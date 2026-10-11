@@ -12,8 +12,7 @@ import {
   LogOut, 
   ShoppingBag, 
   Heart, 
-  Sparkles,
-  PhoneCall
+  Sparkles
 } from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link, useNavigate } from 'react-router-dom';
@@ -489,24 +488,6 @@ export const AuthView = () => {
                 locale="es"
               />
             </div>
-          </div>
-
-          {/* Soporte y ayuda por WhatsApp */}
-          <div className="mt-8 pt-5 border-t border-[#1b3420] text-center">
-            <p className="text-[11px] text-gray-400 mb-2">
-              ¿Tenés dudas o necesitás asistencia técnica con tu pedido?
-            </p>
-            <a
-              href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Necesito%20ayuda%20para%20ingresar%20o%20crear%20mi%20cuenta"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#122317] hover:bg-[#1a3521] border border-[#23422a] hover:border-[#25d366]/60 text-gray-300 hover:text-white text-xs font-semibold transition group shadow-sm"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition">
-                <WhatsAppIcon size={13} />
-              </div>
-              <span>Soporte Oficial por WhatsApp</span>
-            </a>
           </div>
         </div>
       </div>

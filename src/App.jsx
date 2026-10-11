@@ -8,6 +8,8 @@ import { WhatsAppIcon } from './components/WhatsAppIcon';
 import { HeroCarousel } from './components/HeroCarousel';
 import { AuthView } from './components/AuthView';
 import { AuthProvider } from './context/AuthContext';
+import { ShopProvider } from './context/ShopContext';
+import { CartDrawer } from './components/CartDrawer';
 import { 
   MapPin, 
   Clock, 
@@ -169,10 +171,12 @@ const PlaceholderPage = ({ title, description }) => (
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white">
-          <AgeVerificationModal />
-          <Navbar />
+      <ShopProvider>
+        <BrowserRouter>
+          <div className="min-h-screen flex flex-col bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white">
+            <AgeVerificationModal />
+            <CartDrawer />
+            <Navbar />
           
           <main className="flex-grow">
             <Routes>
@@ -291,7 +295,8 @@ function App() {
         </footer>
       </div>
     </BrowserRouter>
-  </AuthProvider>
+  </ShopProvider>
+</AuthProvider>
   );
 }
 

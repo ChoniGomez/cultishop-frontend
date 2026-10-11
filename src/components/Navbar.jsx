@@ -17,9 +17,11 @@ import logo from '../assets/logo.png';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useAuth } from '../context/AuthContext';
+import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
   const { user } = useAuth();
+  const { totalItems, formattedTotalPrice, openCart } = useShop();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null); // ID de la categoría abierta por clic
   const [hoveredCategory, setHoveredCategory] = useState(null); // ID de la categoría abierta por hover
@@ -162,16 +164,25 @@ export const Navbar = () => {
             </div>
           </a>
 
-          <div className="flex items-center gap-2.5 bg-[#122317] px-3.5 py-2 rounded-xl border border-[#23422a] cursor-pointer hover:border-[#4aa036] transition">
+          <button
+            type="button"
+            onClick={openCart}
+            aria-label={`Mi Carrito, ${totalItems} productos por ${formattedTotalPrice}`}
+            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-3.5 py-2 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
+          >
             <div className="relative">
-              <ShoppingBag className="text-[#4aa036]" size={20} />
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center">0</span>
+              <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={20} />
+              <span className={`absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center transition-transform ${totalItems > 0 ? 'scale-110 shadow-sm shadow-black/50' : ''}`}>
+                {totalItems}
+              </span>
             </div>
             <div className="text-left hidden sm:block">
-              <span className="block text-[10px] text-gray-400 uppercase">Mi Carrito</span>
-              <span className="text-xs font-bold text-white">$0.00</span>
+              <span className="block text-[10px] text-gray-400 uppercase font-semibold">Mi Carrito</span>
+              <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
+                {formattedTotalPrice}
+              </span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -189,12 +200,25 @@ export const Navbar = () => {
               <span>CATEGORÍAS DE LA TIENDA</span>
             </button>
 
-            <div className="flex items-center gap-3">
-              <Link to="/favoritos" className="p-1 text-gray-300 hover:text-[#e0a96d] transition">
-                <Heart size={17} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openCart}
+                className="relative p-1.5 text-gray-300 hover:text-white rounded-lg bg-[#142619] border border-[#23422a] transition active:scale-95"
+                aria-label="Abrir carrito"
+              >
+                <ShoppingBag size={16} className="text-[#4aa036]" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+              <Link to="/favoritos" className="p-1.5 text-gray-300 hover:text-[#e0a96d] transition">
+                <Heart size={16} />
               </Link>
-              <Link to="/ingresar" className="p-1 text-gray-300 hover:text-[#e0a96d] transition" title={user ? user.name : 'Mi Cuenta'}>
-                <User size={17} className={user ? 'text-[#4aa036]' : ''} />
+              <Link to="/ingresar" className="p-1.5 text-gray-300 hover:text-[#e0a96d] transition" title={user ? user.name : 'Mi Cuenta'}>
+                <User size={16} className={user ? 'text-[#4aa036]' : ''} />
               </Link>
             </div>
           </div>
@@ -341,6 +365,27 @@ export const Navbar = () => {
               >
                 Ver Todos Los Productos
               </Link>
+
+              {/* Botón Carrito en menú móvil */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openCart();
+                }}
+                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] text-gray-200 text-xs font-bold transition shadow-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingBag size={16} className="text-[#4aa036]" />
+                  <span>Mi Carrito</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#e0a96d] font-heading">{formattedTotalPrice}</span>
+                  <span className="bg-[#e0a96d] text-black text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {totalItems}
+                  </span>
+                </div>
+              </button>
 
               <div className="pt-2">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-2 mb-2 flex items-center gap-1.5">
