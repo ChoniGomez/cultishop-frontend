@@ -79,6 +79,23 @@ export const ShopProvider = ({ children }) => {
     }
   }, [favorites]);
 
+  // Estado global para la barra de búsqueda (inicializado desde query params si existen)
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('search') || params.get('q') || '';
+      } catch (err) {
+        return '';
+      }
+    }
+    return '';
+  });
+
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
   /**
    * Verifica si un producto está en la lista de favoritos.
    */
@@ -262,6 +279,9 @@ export const ShopProvider = ({ children }) => {
         removeFromFavorites,
         clearFavorites,
         favoritesCount,
+        searchQuery,
+        setSearchQuery,
+        clearSearch,
       }}
     >
       {children}

@@ -57,7 +57,7 @@ const SLIDES = [
     ctaLink: '/categoria/indoor',
     whatsappMessage: 'Hola CultiShop! Quiero asesoramiento para equipamiento y carpas de cultivo Indoor',
     whatsappText: 'Armar Mi Espacio',
-    image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1800',
+    image: 'https://images.unsplash.com/photo-1624990833801-56c1b6a56ba7?auto=format&fit=crop&q=80&w=1800',
     accentColor: '#e0a96d'
   }
 ];

@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, Sparkles, ArrowLeft } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, Sparkles, ArrowLeft, Search, X } from 'lucide-react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { PRODUCTS } from '../data/products';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
+import { useShop } from '../context/ShopContext';
 
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
+  const [searchParams] = useSearchParams();
+  const { searchQuery, setSearchQuery, clearSearch } = useShop();
   const currentCategorySlug = category || slug;
   const [selectedCategory, setSelectedCategory] = useState('todos');
+
+  // Sincronizar si hay query param en la URL
+  useEffect(() => {
+    const urlQuery = searchParams.get('search') || searchParams.get('q');
+    if (urlQuery !== null && urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (currentCategorySlug) {
@@ -33,8 +44,44 @@ export const ProductSection = () => {
     { id: 'kits', label: 'Kits' },
   ];
 
+  // Función auxiliar para normalizar texto (sin tildes, minúsculas, espacios recortados)
+  const normalizeText = (text) => {
+    if (!text) return '';
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  };
+
+  const normalizedQuery = normalizeText(searchQuery);
+  const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  const isSearchActive = queryTokens.length > 0;
+
   const filteredProducts = products.filter(product => {
-    const active = currentCategorySlug || selectedCategory;
+    // 1. Filtrado por búsqueda de texto
+    if (isSearchActive) {
+      const titleNorm = normalizeText(product.title);
+      const catNorm = normalizeText(product.category);
+      const descNorm = normalizeText(product.description);
+      const badgeNorm = normalizeText(product.badge);
+      const optionsNorm = (product.options || []).map(normalizeText);
+
+      const matches = queryTokens.every(token => 
+        titleNorm.includes(token) ||
+        catNorm.includes(token) ||
+        descNorm.includes(token) ||
+        badgeNorm.includes(token) ||
+        optionsNorm.some(opt => opt.includes(token))
+      );
+
+      if (!matches) return false;
+    }
+
+    // 2. Filtrado por categoría
+    // Si hay búsqueda activa pero no hay categoría fija en la URL y selectedCategory es 'todos', busca en todo el catálogo
+    const active = currentCategorySlug || (isSearchActive ? (selectedCategory !== 'todos' ? selectedCategory : null) : selectedCategory);
     if (!active || active === 'todos') return true;
 
     if (active === 'fertilizantes') {
@@ -74,10 +121,18 @@ export const ProductSection = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#e0a96d] mb-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#4aa036]"></span>
-            CULTISHOP • {matchedCategory ? matchedCategory.name.toUpperCase() : 'CATÁLOGO EN STOCK'}
+            {isSearchActive ? (
+              <>RESULTADOS DE BÚSQUEDA • {filteredProducts.length} PRODUCTO{filteredProducts.length === 1 ? '' : 'S'}</>
+            ) : (
+              <>CULTISHOP • {matchedCategory ? matchedCategory.name.toUpperCase() : 'CATÁLOGO EN STOCK'}</>
+            )}
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-white font-heading">
-            {matchedSubcategory ? (
+            {isSearchActive ? (
+              <>
+                RESULTADOS PARA <span className="text-[#e0a96d] text-glow-gold">"{searchQuery}"</span>
+              </>
+            ) : matchedSubcategory ? (
               <>
                 {matchedCategory?.name.toUpperCase()}: <span className="text-[#e0a96d] text-glow-gold">{matchedSubcategory.name.toUpperCase()}</span>
               </>
@@ -92,7 +147,9 @@ export const ProductSection = () => {
             )}
           </h2>
           <p className="text-gray-400 text-sm mt-1">
-            {matchedSubcategory 
+            {isSearchActive
+              ? `Mostrando los insumos encontrados para tu consulta en el catálogo de CultiShop.`
+              : matchedSubcategory 
               ? `Explorá las mejores opciones en ${matchedSubcategory.name} con stock disponible y asesoramiento.`
               : matchedCategory
               ? `Explorá los insumos de ${matchedCategory.name} para tu cultivo en Posadas, Misiones.`
@@ -100,64 +157,123 @@ export const ProductSection = () => {
           </p>
         </div>
 
-        {/* Filtros de Categorías o botón volver al catálogo completo */}
-        {matchedCategory ? (
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Ver todo el catálogo</span>
-          </Link>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40'
-                    : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Grilla de productos o mensaje de categoría sin productos cargados */}
-      {filteredProducts.length === 0 ? (
-        <div className="p-12 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-4 max-w-xl mx-auto my-8 shadow-xl">
-          <div className="w-14 h-14 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/50 flex items-center justify-center text-[#e0a96d] mx-auto">
-            <Sparkles size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-white font-heading">
-            Estamos sumando más stock a esta categoría
-          </h3>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Nuevos ingresos de {matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'esta sección'} están llegando a nuestro local. ¡Consultanos por WhatsApp y te confirmamos disponibilidad al instante!
-          </p>
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Consulto%20por%20stock%20de%20${encodeURIComponent(matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'productos')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-[#25d366] hover:bg-[#20ba5a] text-black font-bold px-5 py-2.5 rounded-full text-xs transition shadow-md hover:scale-105"
+        {/* Filtros de Categorías o botón volver al catálogo completo / limpiar búsqueda */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isSearchActive && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white border border-[#2d5a27] transition shadow-sm active:scale-95"
+              title="Limpiar filtro de búsqueda"
             >
-              <WhatsAppIcon size={16} />
-              <span>Consultar por WhatsApp</span>
-            </a>
+              <X size={14} />
+              <span>Limpiar búsqueda</span>
+            </button>
+          )}
+
+          {matchedCategory ? (
             <Link
               to="/"
-              className="inline-flex items-center gap-2 bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white px-5 py-2.5 rounded-full text-xs font-bold border border-[#2d5a27] transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-sm"
             >
-              <span>Ver catálogo disponible</span>
+              <ArrowLeft size={14} />
+              <span>Ver todo el catálogo</span>
             </Link>
-          </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
+                    selectedCategory === cat.id
+                      ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40'
+                      : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Grilla de productos o mensaje de estado vacío */}
+      {filteredProducts.length === 0 ? (
+        isSearchActive ? (
+          /* Estado vacío temático cuando la búsqueda no arroja resultados */
+          <div className="p-10 sm:p-14 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-5 max-w-xl mx-auto my-8 shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/50 flex items-center justify-center text-[#e0a96d] mx-auto shadow-inner">
+              <Search size={28} className="text-[#e0a96d]" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#4aa036]">
+                Sin coincidencias en el cultivo
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white font-heading leading-tight">
+                No encontramos ningún cogollo o insumo con ese nombre en el invernadero
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
+                No hubo resultados para <span className="text-[#e0a96d] font-semibold">"{searchQuery}"</span>. Probá buscando por marca (ej: <em>Namasté, Mamboretá</em>) o tipo de insumo (<em>fertilizante, plagas, contenedor, riego</em>).
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="inline-flex items-center justify-center gap-2 bg-[#2d5a27] hover:bg-[#38761d] text-white px-5 py-2.5 rounded-full text-xs font-bold transition border border-[#4aa036]/50 shadow-md hover:scale-105 active:scale-95 w-full sm:w-auto"
+              >
+                <X size={15} />
+                <span>Limpiar búsqueda y ver todo</span>
+              </button>
+
+              <a
+                href={`https://wa.me/5493764356995?text=${encodeURIComponent(
+                  `Hola CultiShop! Estuve buscando el insumo "${searchQuery}" en la tienda web y no lo encontré. ¿Tienen stock disponible en el local de Posadas?`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 bg-[#25d366] hover:bg-[#20ba5a] text-black font-bold px-5 py-2.5 rounded-full text-xs transition shadow-md hover:scale-105 active:scale-95 w-full sm:w-auto"
+              >
+                <WhatsAppIcon size={16} />
+                <span>Consultar por WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        ) : (
+          /* Estado vacío para categorías sin productos */
+          <div className="p-12 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-4 max-w-xl mx-auto my-8 shadow-xl">
+            <div className="w-14 h-14 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/50 flex items-center justify-center text-[#e0a96d] mx-auto">
+              <Sparkles size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-white font-heading">
+              Estamos sumando más stock a esta categoría
+            </h3>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Nuevos ingresos de {matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'esta sección'} están llegando a nuestro local. ¡Consultanos por WhatsApp y te confirmamos disponibilidad al instante!
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Consulto%20por%20stock%20de%20${encodeURIComponent(matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'productos')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 bg-[#25d366] hover:bg-[#20ba5a] text-black font-bold px-5 py-2.5 rounded-full text-xs transition shadow-md hover:scale-105"
+              >
+                <WhatsAppIcon size={16} />
+                <span>Consultar por WhatsApp</span>
+              </a>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white px-5 py-2.5 rounded-full text-xs font-bold border border-[#2d5a27] transition"
+              >
+                <span>Ver catálogo disponible</span>
+              </Link>
+            </div>
+          </div>
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (

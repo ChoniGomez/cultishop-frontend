@@ -12,7 +12,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -21,8 +21,18 @@ import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
   const { user } = useAuth();
-  const { totalItems, formattedTotalPrice, openCart, favoritesCount } = useShop();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { 
+    totalItems, 
+    formattedTotalPrice, 
+    openCart, 
+    favoritesCount,
+    searchQuery,
+    setSearchQuery,
+    clearSearch
+  } = useShop();
+
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeDropdown, setActiveDropdown] = useState(null); // ID de la categoría abierta por clic
   const [hoveredCategory, setHoveredCategory] = useState(null); // ID de la categoría abierta por hover
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -31,6 +41,62 @@ export const Navbar = () => {
   const navRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const location = useLocation();
+
+  // Sincronizar searchQuery si la URL cambia con un query param (ej: navegación externa o retroceso)
+  useEffect(() => {
+    const urlQuery = searchParams.get('search') || searchParams.get('q');
+    if (urlQuery !== null && urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+    }
+  }, [searchParams]);
+
+  // Manejador de cambio en el input de búsqueda (filtrado en tiempo real)
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    // Si el usuario no está en el catálogo (/ o /productos), redirigir automáticamente
+    if (location.pathname !== '/' && location.pathname !== '/productos') {
+      navigate(val.trim() ? `/?search=${encodeURIComponent(val)}#catalogo` : '/#catalogo');
+    } else {
+      // Si ya está en /, actualizar los query params de forma limpia
+      if (val.trim()) {
+        setSearchParams({ search: val }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
+      }
+    }
+  };
+
+  // Manejador de envío de búsqueda (presionar Enter o hacer clic en la lupa)
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    const query = searchQuery.trim();
+
+    if (location.pathname !== '/' && location.pathname !== '/productos') {
+      navigate(query ? `/?search=${encodeURIComponent(query)}#catalogo` : '/#catalogo');
+    } else {
+      if (query) {
+        setSearchParams({ search: query }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
+      }
+      // Desplazamiento suave hacia la sección de productos
+      const catalogEl = document.getElementById('catalogo');
+      if (catalogEl) {
+        catalogEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  // Limpiar búsqueda
+  const handleClearSearch = () => {
+    clearSearch();
+    if (location.pathname === '/' || location.pathname === '/productos') {
+      setSearchParams({}, { replace: true });
+    }
+  };
 
   // Cerrar menús al cambiar de ruta
   useEffect(() => {
@@ -133,19 +199,36 @@ export const Navbar = () => {
           </button>
         </div>
 
-        {/* Buscador */}
-        <div className="w-full md:w-5/12 relative">
+        {/* Buscador de productos */}
+        <form onSubmit={handleSearchSubmit} className="w-full md:w-5/12 relative">
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             placeholder="Buscar fertilizantes, kits, Mamboretá, contenedores..."
-            className="w-full py-2.5 pl-4 pr-11 rounded-full bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-sm shadow-inner transition"
+            className="w-full py-2.5 pl-4 pr-20 rounded-full bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-sm shadow-inner transition"
+            aria-label="Buscar insumos o productos"
           />
-          <button className="absolute right-3.5 top-2.5 text-gray-400 hover:text-[#e0a96d] transition">
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-10 top-2.5 p-1 text-gray-400 hover:text-white transition rounded-full hover:bg-[#1f3b25]"
+              title="Borrar búsqueda"
+              aria-label="Borrar búsqueda"
+            >
+              <X size={15} />
+            </button>
+          )}
+          <button 
+            type="submit" 
+            className="absolute right-3.5 top-2.5 text-gray-400 hover:text-[#e0a96d] transition"
+            title="Buscar en la tienda"
+            aria-label="Buscar en la tienda"
+          >
             <Search size={18} />
           </button>
-        </div>
+        </form>
 
         {/* WhatsApp & Carrito */}
         <div className="flex items-center gap-4 w-full md:w-auto justify-end">
@@ -382,6 +465,34 @@ export const Navbar = () => {
 
             {/* Contenido del drawer */}
             <div className="p-4 space-y-4 flex-grow">
+              {/* Buscador en drawer móvil */}
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="Buscar fertilizantes, kits..."
+                  className="w-full py-2.5 pl-3.5 pr-16 rounded-xl bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-xs shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-9 top-2.5 p-0.5 text-gray-400 hover:text-white"
+                    title="Borrar"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-[#e0a96d]"
+                  title="Buscar"
+                >
+                  <Search size={16} />
+                </button>
+              </form>
+
               <Link
                 to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
