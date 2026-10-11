@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { buildApiUrl } from '../config/api';
 
 const AuthContext = createContext(null);
-
-const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api');
 
 /**
  * Valida y parsea la respuesta HTTP de forma segura antes de parsear JSON,
@@ -59,7 +58,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(buildApiUrl('auth/login'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -90,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   const register = async ({ name, email, password, isAdult }) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await fetch(buildApiUrl('auth/register'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -125,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No se recibió la credencial de Google para autenticar.');
       }
 
-      const res = await fetch(`${API_URL}/auth/google`, {
+      const res = await fetch(buildApiUrl('auth/google'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -475,9 +475,12 @@ export const AuthView = () => {
             </div>
           </div>
 
-          {/* Botón de Google OAuth */}
+          {/* Botón de Google OAuth integrado sin fondo blanco */}
           <div className="flex flex-col items-center justify-center w-full min-h-[44px]">
-            <div className="w-full flex justify-center">
+            <div 
+              className="google-btn-wrapper w-full flex justify-center items-center overflow-hidden rounded-full bg-transparent transition-opacity"
+              style={{ colorScheme: 'light' }}
+            >
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
@@ -486,6 +489,15 @@ export const AuthView = () => {
                 size="large"
                 text={activeTab === 'login' ? 'signin_with' : 'signup_with'}
                 locale="es"
+                containerProps={{
+                  style: {
+                    display: 'flex',
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    borderRadius: '9999px',
+                    overflow: 'hidden',
+                  }
+                }}
               />
             </div>
           </div>
