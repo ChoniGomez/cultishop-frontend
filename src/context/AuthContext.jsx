@@ -2,7 +2,33 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api');
+
+/**
+ * Valida y parsea la respuesta HTTP de forma segura antes de parsear JSON,
+ * evitando fallas como "Unexpected end of JSON input" cuando el servidor
+ * responde con contenido vacío o texto plano.
+ */
+const safeParseJson = async (res) => {
+  const text = await res.text();
+
+  if (!text || text.trim() === '') {
+    if (!res.ok) {
+      throw new Error(`El servidor respondió con código ${res.status} sin contenido.`);
+    }
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    if (!res.ok) {
+      const cleanSnippet = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+      throw new Error(cleanSnippet || `Error en el servidor (${res.status})`);
+    }
+    throw new Error('La respuesta del servidor no tiene un formato JSON válido.');
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
@@ -35,13 +61,20 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json();
+      const data = await safeParseJson(res);
       if (!res.ok) {
         throw new Error(data.error || 'Error al iniciar sesión');
+      }
+
+      if (!data.user || !data.token) {
+        throw new Error(data.error || 'Respuesta incompleta del servidor.');
       }
 
       setUser(data.user);
@@ -59,13 +92,20 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ name, email, password, isAdult })
       });
 
-      const data = await res.json();
+      const data = await safeParseJson(res);
       if (!res.ok) {
         throw new Error(data.error || 'Error al registrarse');
+      }
+
+      if (!data.user || !data.token) {
+        throw new Error(data.error || 'Respuesta incompleta del servidor.');
       }
 
       setUser(data.user);
@@ -81,15 +121,26 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = async (credential) => {
     setLoading(true);
     try {
+      if (!credential) {
+        throw new Error('No se recibió la credencial de Google para autenticar.');
+      }
+
       const res = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ credential })
       });
 
-      const data = await res.json();
+      const data = await safeParseJson(res);
       if (!res.ok) {
-        throw new Error(data.error || 'Error al autenticar con Google');
+        throw new Error(data.error || `Error al autenticar con Google (${res.status})`);
+      }
+
+      if (!data.user || !data.token) {
+        throw new Error(data.error || 'Respuesta incompleta del servidor al autenticar.');
       }
 
       setUser(data.user);
