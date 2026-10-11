@@ -7,6 +7,7 @@ import { CultiShopLogo } from './components/CultiShopLogo';
 import { WhatsAppIcon } from './components/WhatsAppIcon';
 import { HeroCarousel } from './components/HeroCarousel';
 import { AuthView } from './components/AuthView';
+import { NotFound } from './components/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -188,7 +189,7 @@ function App() {
               <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
               <Route path="/favoritos" element={<PlaceholderPage title="Tus Favoritos" description="Guardá tus productos favoritos para armar tu pedido." />} />
               <Route path="/ingresar" element={<AuthView />} />
-              <Route path="*" element={<HomePage />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
 
