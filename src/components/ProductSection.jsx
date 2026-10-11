@@ -1,0 +1,433 @@
+import React, { useState, useEffect } from 'react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, Sparkles, ArrowLeft } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { CATEGORIES } from '../data/categories';
+import { WhatsAppIcon } from './WhatsAppIcon';
+
+export const ProductSection = () => {
+  const { slug, category, subcategory } = useParams();
+  const currentCategorySlug = category || slug;
+  const [selectedCategory, setSelectedCategory] = useState('todos');
+
+  useEffect(() => {
+    if (currentCategorySlug) {
+      setSelectedCategory(currentCategorySlug);
+    } else {
+      setSelectedCategory('todos');
+    }
+  }, [currentCategorySlug, subcategory]);
+
+  const products = [
+    // Fertilizantes Namasté (Flyer 2)
+    {
+      id: 1,
+      title: 'Oro Negro Namasté Nutrientes',
+      category: 'Fertilizantes',
+      badge: 'STOCK DISPONIBLE',
+      badgeType: 'gold',
+      description: 'Bioestimulante de crecimiento y follaje con ácidos húmicos, fúlvicos y algas.',
+      price: '$14.500,00',
+      options: ['100 cc', '250 cc', '500 cc'],
+      image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 2,
+      title: 'Amazonia Micorrizas Namasté',
+      category: 'Fertilizantes',
+      badge: 'TOP VENTAS',
+      badgeType: 'green',
+      description: 'Microorganismos benéficos y micorrizas para un sistema radicular explosivo.',
+      price: '$16.200,00',
+      options: ['150 gr', '300 gr'],
+      image: 'https://images.unsplash.com/photo-1592417817098-8f3d691a4bf5?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 3,
+      title: 'Flora Booster Namasté (PK Floración)',
+      category: 'Fertilizantes',
+      badge: 'STOCK DISPONIBLE',
+      badgeType: 'gold',
+      description: 'Potenciador de floración rico en Fósforo y Potasio para flores compactas.',
+      price: '$15.800,00',
+      options: ['100 ml', '250 ml'],
+      image: 'https://images.unsplash.com/photo-1628543606553-66239922f533?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 4,
+      title: 'Trico+ Namasté (Melazas y Carbohidratos)',
+      category: 'Fertilizantes',
+      badge: 'STOCK DISPONIBLE',
+      badgeType: 'gold',
+      description: 'Aporte de carbohidratos, azúcares y energía para resina y terpenos.',
+      price: '$13.900,00',
+      options: ['100 gr', '250 gr'],
+      image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=400'
+    },
+
+    // Control de Plagas Mamboretá (Flyer 4)
+    {
+      id: 5,
+      title: 'Kit Completo Contra Plagas Mamboretá',
+      category: 'Kits',
+      badge: 'KIT COMPLETO',
+      badgeType: 'gold',
+      description: 'Solución integral: D, CONFI, FOLI, ABA, H y Bio Oil 85E para proteger tu cultivo.',
+      price: '$58.900,00',
+      options: ['Combo 6 Productos Mamboretá'],
+      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 6,
+      title: 'Mamboretá CONFI Sistémico',
+      category: 'Control de Plagas',
+      badge: 'NUEVO INGRESO',
+      badgeType: 'gold',
+      description: 'Control eficaz contra mosca blanca, cochinillas y pulgones por riego o follaje.',
+      price: '$11.800,00',
+      options: ['30 cm³'],
+      image: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 7,
+      title: 'Mamboretá ABA Acaricida',
+      category: 'Control de Plagas',
+      badge: 'STOCK DISPONIBLE',
+      badgeType: 'green',
+      description: 'Acción de choque y penetración translaminar contra arañuela roja y minador.',
+      price: '$12.900,00',
+      options: ['30 cm³'],
+      image: 'https://images.unsplash.com/photo-1598880940371-c756e015fea1?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 8,
+      title: 'Bio Mamboretá OIL 85 E',
+      category: 'Control de Plagas',
+      badge: 'ECOLÓGICO',
+      badgeType: 'green',
+      description: 'Aceite refinado emulsionable apto para uso preventivo en todo el año.',
+      price: '$13.200,00',
+      options: ['100 cm³'],
+      image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=400'
+    },
+
+    // Contenedores Herméticos Grower Ley 27.350 (Flyer 5)
+    {
+      id: 9,
+      title: 'Contenedor GT5 Grower (5gr)',
+      category: 'Transporte Legal',
+      badge: 'LEY 27.350',
+      badgeType: 'gold',
+      description: 'Contenedor hermético compacto con filtro UV y código QR Ley 27.350 Reprocann.',
+      price: '$8.500,00',
+      options: ['5 Gramos'],
+      image: 'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 10,
+      title: 'Contenedores GT25 / GT40 Herméticos Grower',
+      category: 'Transporte Legal',
+      badge: 'CURADO ÓPTIMO',
+      badgeType: 'gold',
+      description: 'Alto impacto con sellado hermético. Conserva terpenos, humedad y potencia.',
+      price: '$18.900,00',
+      options: ['25 Gramos (GT25)', '40 Gramos (GT40)'],
+      image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=400'
+    },
+
+    // Herramientas y Riego Roots (Flyer 3)
+    {
+      id: 11,
+      title: 'Pulverizador a Presión 1L Roots',
+      category: 'Riego',
+      badge: 'ALTA DURABILIDAD',
+      badgeType: 'green',
+      description: 'Válvula de compresión con boquilla metálica regulable para rociado uniforme.',
+      price: '$15.400,00',
+      options: ['1 Litro'],
+      image: 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?auto=format&fit=crop&q=80&w=400'
+    },
+    {
+      id: 12,
+      title: 'Regadera Ergonómica Roots',
+      category: 'Riego',
+      badge: 'STOCK DISPONIBLE',
+      badgeType: 'gold',
+      description: 'Regadera liviana y resistente con pico difusor para riego suave de sustrato.',
+      price: '$10.200,00',
+      options: ['2 Litros', '5 Litros'],
+      image: 'https://images.unsplash.com/photo-1592417817098-8f3d691a4bf5?auto=format&fit=crop&q=80&w=400'
+    }
+  ];
+
+  const matchedCategory = CATEGORIES.find(c => c.slug === currentCategorySlug);
+  const matchedSubcategory = matchedCategory?.subcategories?.find(s => s.slug === subcategory);
+
+  const categories = [
+    { id: 'todos', label: 'Todos los Productos' },
+    { id: 'fertilizantes', label: 'Fertilizantes Namasté' },
+    { id: 'control-de-plagas', label: 'Control De Plagas' },
+    { id: 'transporte-legal', label: 'Transporte Legal' },
+    { id: 'riego', label: 'Riego & Jardinería' },
+    { id: 'kits', label: 'Kits' },
+  ];
+
+  const filteredProducts = products.filter(product => {
+    const active = currentCategorySlug || selectedCategory;
+    if (!active || active === 'todos') return true;
+
+    if (active === 'fertilizantes') {
+      if (subcategory === 'control-de-plagas') return product.category === 'Control de Plagas';
+      return product.category === 'Fertilizantes';
+    }
+    if (active === 'control-de-plagas') return product.category === 'Control de Plagas';
+    if (active === 'transporte-legal') return product.category === 'Transporte Legal';
+    if (active === 'riego') return product.category === 'Riego';
+    if (active === 'kits') return product.category === 'Kits';
+    if (active === 'sustratos-macetas') return product.category.toLowerCase().includes('sustrato') || product.category.toLowerCase().includes('maceta');
+
+    return product.category.toLowerCase().includes(active.toLowerCase());
+  });
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 py-14">
+      {/* Breadcrumb si está navegando por categoría */}
+      {matchedCategory && (
+        <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 flex-wrap">
+          <Link to="/" className="hover:text-[#4aa036] transition">Inicio</Link>
+          <ChevronRight size={12} />
+          <Link to={`/categoria/${matchedCategory.slug}`} className="hover:text-[#e0a96d] transition font-medium">
+            {matchedCategory.name}
+          </Link>
+          {matchedSubcategory && (
+            <>
+              <ChevronRight size={12} />
+              <span className="text-[#e0a96d] font-bold">{matchedSubcategory.name}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Encabezado con estética de flyers */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 border-b border-[#1f3b25] pb-6">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#e0a96d] mb-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#4aa036]"></span>
+            CULTISHOP • {matchedCategory ? matchedCategory.name.toUpperCase() : 'CATÁLOGO EN STOCK'}
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white font-heading">
+            {matchedSubcategory ? (
+              <>
+                {matchedCategory?.name.toUpperCase()}: <span className="text-[#e0a96d] text-glow-gold">{matchedSubcategory.name.toUpperCase()}</span>
+              </>
+            ) : matchedCategory ? (
+              <>
+                PRODUCTOS DE <span className="text-[#e0a96d] text-glow-gold">{matchedCategory.name.toUpperCase()}</span>
+              </>
+            ) : (
+              <>
+                CONTAMOS CON <span className="text-[#e0a96d] text-glow-gold">STOCK</span> DE TODOS NUESTROS PRODUCTOS
+              </>
+            )}
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">
+            {matchedSubcategory 
+              ? `Explorá las mejores opciones en ${matchedSubcategory.name} con stock disponible y asesoramiento.`
+              : matchedCategory
+              ? `Explorá los insumos de ${matchedCategory.name} para tu cultivo en Posadas, Misiones.`
+              : 'Encontrá los insumos de primera línea para potenciar y proteger tu cultivo.'}
+          </p>
+        </div>
+
+        {/* Filtros de Categorías o botón volver al catálogo completo */}
+        {matchedCategory ? (
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-sm"
+          >
+            <ArrowLeft size={14} />
+            <span>Ver todo el catálogo</span>
+          </Link>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
+                  selectedCategory === cat.id
+                    ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40'
+                    : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grilla de productos o mensaje de categoría sin productos cargados */}
+      {filteredProducts.length === 0 ? (
+        <div className="p-12 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-4 max-w-xl mx-auto my-8 shadow-xl">
+          <div className="w-14 h-14 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/50 flex items-center justify-center text-[#e0a96d] mx-auto">
+            <Sparkles size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-white font-heading">
+            Estamos sumando más stock a esta categoría
+          </h3>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Nuevos ingresos de {matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'esta sección'} están llegando a nuestro local. ¡Consultanos por WhatsApp y te confirmamos disponibilidad al instante!
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Consulto%20por%20stock%20de%20${encodeURIComponent(matchedSubcategory ? matchedSubcategory.name : matchedCategory?.name || 'productos')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-[#25d366] hover:bg-[#20ba5a] text-black font-bold px-5 py-2.5 rounded-full text-xs transition shadow-md hover:scale-105"
+            >
+              <WhatsAppIcon size={16} />
+              <span>Consultar por WhatsApp</span>
+            </a>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white px-5 py-2.5 rounded-full text-xs font-bold border border-[#2d5a27] transition"
+            >
+              <span>Ver catálogo disponible</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {filteredProducts.map((product) => (
+          <div 
+            key={product.id} 
+            className="bg-[#122317] border border-[#1f3b25] hover:border-[#38761d] rounded-2xl p-4 shadow-lg hover:shadow-2xl transition duration-200 flex flex-col justify-between group relative"
+          >
+            {/* Imagen y Badges */}
+            <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0a140d]">
+              <img 
+                src={product.image} 
+                alt={product.title} 
+                className="object-cover h-full w-full group-hover:scale-105 transition duration-300 opacity-90 group-hover:opacity-100" 
+              />
+              
+              {/* Badge destacado tipo flyer CultiShop */}
+              <div className="absolute top-2.5 left-2.5">
+                <span className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md ${
+                  product.badgeType === 'gold' 
+                    ? 'bg-[#e0a96d] text-black' 
+                    : 'bg-[#2d5a27] text-white border border-[#4aa036]/60'
+                }`}>
+                  {product.badge}
+                </span>
+              </div>
+
+              {/* Botón rápido WhatsApp flotante en hover */}
+              <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition flex flex-col gap-1.5 bg-[#0d1a11]/90 rounded-lg p-1.5 border border-[#2d5a27]">
+                <a
+                  href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Consulto%20por%20${encodeURIComponent(product.title)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Pedir por WhatsApp"
+                  className="p-1.5 hover:text-[#25d366] text-gray-300 transition hover:scale-110"
+                >
+                  <WhatsAppIcon size={17} />
+                </a>
+                <button title="Añadir a favoritos" className="p-1.5 hover:text-[#e0a96d] text-gray-300 transition">
+                  <Heart size={17} />
+                </button>
+              </div>
+            </div>
+
+            {/* Datos del producto */}
+            <div className="space-y-2 flex-grow">
+              <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider block">
+                {product.category}
+              </span>
+              <h3 className="font-bold text-white text-base leading-snug font-heading group-hover:text-[#e0a96d] transition line-clamp-2">
+                {product.title}
+              </h3>
+              <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                {product.description}
+              </p>
+            </div>
+
+            {/* Opciones y Precio */}
+            <div className="mt-4 pt-3 border-t border-[#1a3320] space-y-3">
+              {product.options && product.options.length > 0 && (
+                <select className="w-full text-xs bg-[#0a140d] border border-[#23422a] rounded-lg p-2 text-gray-300 focus:outline-none focus:border-[#4aa036]">
+                  {product.options.map((opt, idx) => (
+                    <option key={idx} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="block text-[10px] text-gray-400 uppercase">Precio</span>
+                  <span className="text-[#e0a96d] font-black text-lg font-heading">
+                    {product.price}
+                  </span>
+                </div>
+
+                <a
+                  href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20comprar%20${encodeURIComponent(product.title)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-[#2d5a27] hover:bg-[#38761d] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm border border-[#4aa036]/40"
+                >
+                  <ShoppingCart size={15} />
+                  <span>Pedir</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
+        </div>
+      )}
+
+      {/* Banner de confianza al pie de los productos (Directo de los flyers) */}
+      <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-[#0e1c12] rounded-2xl border border-[#1f3b25]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/40 flex items-center justify-center text-[#4aa036] shrink-0">
+            <CheckCircle size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs uppercase text-white font-heading">Productos de Calidad</h4>
+            <p className="text-[11px] text-gray-400">Marcas líderes del mercado</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/40 flex items-center justify-center text-[#4aa036] shrink-0">
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs uppercase text-white font-heading">Resultados Comprobados</h4>
+            <p className="text-[11px] text-gray-400">Máximo rendimiento</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#e0a96d]/20 border border-[#e0a96d]/40 flex items-center justify-center text-[#e0a96d] shrink-0">
+            <span className="text-base font-black">🌱</span>
+          </div>
+          <div>
+            <h4 className="font-bold text-xs uppercase text-white font-heading">Para Todo Tu Cultivo</h4>
+            <p className="text-[11px] text-gray-400">Indoor, exterior y huerta</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#25d366]/20 border border-[#25d366]/40 flex items-center justify-center text-[#25d366] shrink-0">
+            <WhatsAppIcon size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs uppercase text-white font-heading">Stock Disponible</h4>
+            <p className="text-[11px] text-gray-400">Entrega rápida en Posadas</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};

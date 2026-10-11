@@ -1,0 +1,462 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Search, 
+  ShoppingBag, 
+  Heart, 
+  User, 
+  Instagram, 
+  ChevronDown, 
+  ChevronRight, 
+  ArrowRight,
+  Menu,
+  X,
+  Sparkles
+} from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import logo from '../assets/logo.png';
+import { CATEGORIES } from '../data/categories';
+import { WhatsAppIcon } from './WhatsAppIcon';
+import { useAuth } from '../context/AuthContext';
+
+export const Navbar = () => {
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState(null); // ID de la categoría abierta por clic
+  const [hoveredCategory, setHoveredCategory] = useState(null); // ID de la categoría abierta por hover
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMobileCategory, setExpandedMobileCategory] = useState(null);
+
+  const navRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
+  const location = useLocation();
+
+  // Cerrar menús al cambiar de ruta
+  useEffect(() => {
+    setActiveDropdown(null);
+    setHoveredCategory(null);
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Cerrar dropdown al hacer clic fuera del navbar
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setActiveDropdown(null);
+        setHoveredCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleMouseEnter = (catId) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setHoveredCategory(catId);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCategory(null);
+    }, 180);
+  };
+
+  const handleCategoryClick = (e, cat) => {
+    if (cat.subcategories && cat.subcategories.length > 0) {
+      e.preventDefault();
+      // Alterna el dropdown al hacer clic
+      setActiveDropdown((prev) => (prev === cat.id ? null : cat.id));
+    }
+  };
+
+  const toggleMobileCategory = (catId) => {
+    setExpandedMobileCategory((prev) => (prev === catId ? null : catId));
+  };
+
+  const closeDropdowns = () => {
+    setActiveDropdown(null);
+    setHoveredCategory(null);
+  };
+
+  return (
+    <header ref={navRef} className="w-full bg-[#0d1a11] text-gray-200 border-b border-[#1f3b25] sticky top-0 z-40 backdrop-blur-md">
+      {/* Barra superior de información y redes */}
+      <div className="bg-[#08100a] text-xs text-gray-300 border-b border-[#162a1b]">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center gap-4">
+          <a 
+            href="https://instagram.com/culti.shopp" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="flex items-center gap-1 hover:text-[#e0a96d] transition font-medium"
+          >
+            <Instagram size={14} className="text-[#e0a96d]" />
+            <span>@culti.shopp</span>
+          </a>
+          <span className="text-gray-700">|</span>
+          <Link to="/sobre-nosotros" className="hover:text-[#4aa036] transition">Sobre Nosotros</Link>
+          <Link to="/faq" className="hover:text-[#4aa036] transition">Preguntas</Link>
+        </div>
+      </div>
+
+      {/* Barra principal de navegación */}
+      <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="w-full md:w-auto flex items-center justify-between">
+          {/* Logotipo oficial con imagen y textos */}
+          <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition group">
+            <img
+              src={logo}
+              alt="CultiShop Logo Oficial"
+              className="h-11 md:h-12 w-auto object-contain rounded-xl shadow-md border border-[#2d5a27]/60 group-hover:border-[#4aa036] transition"
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-xl md:text-2xl font-black tracking-wider text-white font-heading">
+                CULTI<span className="text-[#e0a96d]">SHOP</span>
+              </span>
+              <span className="text-[10px] tracking-widest text-gray-300 font-semibold uppercase">
+                GROW • CULTIVA • CRECE
+              </span>
+            </div>
+          </Link>
+
+          {/* Botón hamburguesa para móviles y tablets */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="lg:hidden p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] transition hover:border-[#4aa036]"
+            aria-label="Abrir menú de categorías"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
+
+        {/* Buscador */}
+        <div className="w-full md:w-5/12 relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar fertilizantes, kits, Mamboretá, contenedores..."
+            className="w-full py-2.5 pl-4 pr-11 rounded-full bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-sm shadow-inner transition"
+          />
+          <button className="absolute right-3.5 top-2.5 text-gray-400 hover:text-[#e0a96d] transition">
+            <Search size={18} />
+          </button>
+        </div>
+
+        {/* WhatsApp & Carrito */}
+        <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+          <a
+            href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20un%20pedido%20o%20consulta"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] border border-[#23422a] hover:border-[#25d366]/60 px-3.5 py-2 rounded-xl transition-all group shadow-sm"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:bg-[#25d366] group-hover:text-black group-hover:scale-110 transition-all duration-200 shadow-sm">
+              <WhatsAppIcon size={18} />
+            </div>
+            <div className="text-left">
+              <span className="block text-[10px] uppercase font-bold text-gray-400 tracking-wider">WhatsApp Oficial</span>
+              <span className="font-bold text-sm text-[#e0a96d] group-hover:text-white transition">+54 9 376 435-6995</span>
+            </div>
+          </a>
+
+          <div className="flex items-center gap-2.5 bg-[#122317] px-3.5 py-2 rounded-xl border border-[#23422a] cursor-pointer hover:border-[#4aa036] transition">
+            <div className="relative">
+              <ShoppingBag className="text-[#4aa036]" size={20} />
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center">0</span>
+            </div>
+            <div className="text-left hidden sm:block">
+              <span className="block text-[10px] text-gray-400 uppercase">Mi Carrito</span>
+              <span className="text-xs font-bold text-white">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Menú de categorías corporativo con Dropdowns */}
+      <nav className="bg-[#18311d] border-t border-[#234428] text-gray-200 relative">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          
+          {/* Botón menú visible en móviles/tablets */}
+          <div className="flex lg:hidden items-center justify-between w-full py-2">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#234428] hover:bg-[#2d5a27] text-white text-xs font-bold transition shadow-sm"
+            >
+              <Menu size={16} className="text-[#e0a96d]" />
+              <span>CATEGORÍAS DE LA TIENDA</span>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <Link to="/favoritos" className="p-1 text-gray-300 hover:text-[#e0a96d] transition">
+                <Heart size={17} />
+              </Link>
+              <Link to="/ingresar" className="p-1 text-gray-300 hover:text-[#e0a96d] transition" title={user ? user.name : 'Mi Cuenta'}>
+                <User size={17} className={user ? 'text-[#4aa036]' : ''} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Menú horizontal de escritorio (pantallas >= lg) */}
+          <div className="hidden lg:flex items-center gap-1 xl:gap-2 w-full justify-between">
+            <div className="flex items-center gap-1 xl:gap-2">
+              <Link 
+                to="/" 
+                className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-3 py-1.5 rounded-md text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm"
+              >
+                TODOS
+              </Link>
+
+              {CATEGORIES.map((cat, index) => {
+                const hasSub = cat.subcategories && cat.subcategories.length > 0;
+                const isOpen = hasSub && (activeDropdown === cat.id || hoveredCategory === cat.id);
+
+                return (
+                  <div
+                    key={cat.id}
+                    className="relative"
+                    onMouseEnter={() => hasSub && handleMouseEnter(cat.id)}
+                    onMouseLeave={hasSub ? handleMouseLeave : undefined}
+                  >
+                    {hasSub ? (
+                      <button
+                        type="button"
+                        onClick={(e) => handleCategoryClick(e, cat)}
+                        aria-expanded={isOpen}
+                        className={`flex items-center gap-1 py-2.5 px-2 xl:px-2.5 text-xs xl:text-sm font-semibold transition tracking-wide rounded-lg select-none ${
+                          isOpen
+                            ? 'text-[#e0a96d] bg-[#122416]'
+                            : 'hover:text-[#e0a96d] hover:bg-[#152a1a]/60'
+                        }`}
+                      >
+                        <span>{cat.name}</span>
+                        <ChevronDown
+                          size={13}
+                          className={`transition-transform duration-200 ${
+                            isOpen ? 'rotate-180 text-[#e0a96d]' : 'text-gray-400'
+                          }`}
+                        />
+                      </button>
+                    ) : (
+                      <Link
+                        to={`/categoria/${cat.slug}`}
+                        className="flex items-center gap-1 py-2.5 px-2 xl:px-2.5 text-xs xl:text-sm font-semibold transition tracking-wide rounded-lg hover:text-[#e0a96d] hover:bg-[#152a1a]/60 select-none"
+                      >
+                        <span>{cat.name}</span>
+                      </Link>
+                    )}
+
+                    {/* Menú desplegable con diseño corporativo */}
+                    {hasSub && isOpen && (
+                      <div
+                        className={`absolute top-full mt-1 min-w-[230px] bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-50 py-2.5 backdrop-blur-md animate-in fade-in duration-150 ${
+                          index >= 4 ? 'right-0' : 'left-0'
+                        }`}
+                      >
+                        {/* Acento dorado superior */}
+                        <div className="absolute top-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-[#e0a96d] to-transparent rounded-full pointer-events-none" />
+
+                        {/* Encabezado: Ver todo en la categoría */}
+                        <Link
+                          to={`/categoria/${cat.slug}`}
+                          onClick={closeDropdowns}
+                          className="flex items-center justify-between px-3.5 py-1.5 text-xs font-bold text-[#e0a96d] hover:text-white hover:bg-[#162d1d] rounded-lg mx-1.5 transition group/header"
+                        >
+                          <span>Ver todo {cat.name}</span>
+                          <ArrowRight size={13} className="group-hover/header:translate-x-1 transition-transform" />
+                        </Link>
+
+                        <div className="my-1.5 border-t border-[#1a3320]" />
+
+                        {/* Lista de subcategorías */}
+                        <div className="space-y-0.5">
+                          {cat.subcategories.map((sub) => (
+                            <Link
+                              key={sub.slug}
+                              to={`/categoria/${cat.slug}/${sub.slug}`}
+                              onClick={closeDropdowns}
+                              className="flex items-center justify-between px-3.5 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#162d1d] hover:translate-x-1 transition-all rounded-lg mx-1.5 group/item"
+                            >
+                              <span>{sub.name}</span>
+                              <ChevronRight size={12} className="opacity-0 group-hover/item:opacity-100 text-[#4aa036] transition-opacity" />
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Enlaces de favoritos y cuenta a la derecha */}
+            <div className="flex items-center gap-4 pl-3 border-l border-[#24452a] shrink-0 text-xs font-semibold">
+              <Link to="/favoritos" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
+                <Heart size={15} /> Favoritos
+              </Link>
+              <Link to="/ingresar" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
+                <User size={15} className={user ? 'text-[#4aa036]' : ''} />
+                <span>{user ? user.name.split(' ')[0] : 'Ingresar'}</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Drawer / Menú lateral móvil con acordeones */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop con desenfoque */}
+          <div 
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          {/* Panel deslizante */}
+          <div className="fixed inset-y-0 left-0 w-full max-w-xs sm:max-w-sm bg-[#09150c] border-r border-[#1f3b25] z-50 flex flex-col shadow-2xl overflow-y-auto">
+            {/* Header del drawer */}
+            <div className="p-4 border-b border-[#1b3420] flex items-center justify-between bg-[#07110a]">
+              <div className="flex items-center gap-2.5">
+                <img src={logo} alt="CultiShop Logo" className="h-8 w-auto rounded-lg" />
+                <span className="font-heading font-black text-white text-base tracking-wider">
+                  CULTI<span className="text-[#e0a96d]">SHOP</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#162d1d] transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Contenido del drawer */}
+            <div className="p-4 space-y-4 flex-grow">
+              <Link
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full block text-center py-2.5 px-4 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
+              >
+                Ver Todos Los Productos
+              </Link>
+
+              <div className="pt-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-2 mb-2 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-[#e0a96d]" />
+                  <span>Categorías de la Tienda</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {CATEGORIES.map((cat) => {
+                    const hasSub = cat.subcategories && cat.subcategories.length > 0;
+                    const isExpanded = expandedMobileCategory === cat.id;
+
+                    return (
+                      <div key={cat.id} className="border border-[#18311d] rounded-xl overflow-hidden bg-[#0d1e12]">
+                        {hasSub ? (
+                          <>
+                            <button
+                              onClick={() => toggleMobileCategory(cat.id)}
+                              className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold text-gray-200 hover:text-[#e0a96d] transition text-left"
+                            >
+                              <span>{cat.name}</span>
+                              <ChevronDown
+                                size={14}
+                                className={`transition-transform duration-200 text-gray-400 ${
+                                  isExpanded ? 'rotate-180 text-[#e0a96d]' : ''
+                                }`}
+                              />
+                            </button>
+
+                            {isExpanded && (
+                              <div className="bg-[#09150d] px-3.5 py-2 space-y-1 border-t border-[#162d1b]">
+                                <Link
+                                  to={`/categoria/${cat.slug}`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="flex items-center justify-between py-1.5 text-xs font-bold text-[#e0a96d] hover:text-white transition"
+                                >
+                                  <span>Ver todo {cat.name}</span>
+                                  <ArrowRight size={12} />
+                                </Link>
+                                {cat.subcategories.map((sub) => (
+                                  <Link
+                                    key={sub.slug}
+                                    to={`/categoria/${cat.slug}/${sub.slug}`}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="block py-1.5 text-xs text-gray-300 hover:text-white hover:translate-x-1 transition-all pl-2 border-l border-[#224428]"
+                                  >
+                                    {sub.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <Link
+                            to={`/categoria/${cat.slug}`}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="block px-3.5 py-2.5 text-xs font-semibold text-gray-200 hover:text-[#e0a96d] transition"
+                          >
+                            {cat.name}
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Enlaces de cuenta y ayuda */}
+              <div className="pt-4 border-t border-[#18311d] space-y-2">
+                <Link
+                  to="/favoritos"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-lg hover:bg-[#122416] transition"
+                >
+                  <Heart size={16} className="text-[#e0a96d]" /> Favoritos
+                </Link>
+                <Link
+                  to="/ingresar"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-lg hover:bg-[#122416] transition"
+                >
+                  <User size={16} className={user ? 'text-[#4aa036]' : 'text-[#e0a96d]'} />
+                  <span>{user ? `Hola, ${user.name.split(' ')[0]}` : 'Mi Cuenta / Ingresar'}</span>
+                </Link>
+                <Link
+                  to="/sobre-nosotros"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-1.5 text-xs text-gray-400 hover:text-white transition"
+                >
+                  Sobre Nosotros
+                </Link>
+                <Link
+                  to="/faq"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-1.5 text-xs text-gray-400 hover:text-white transition"
+                >
+                  Preguntas Frecuentes
+                </Link>
+              </div>
+            </div>
+
+            {/* Footer del drawer con WhatsApp */}
+            <div className="p-4 border-t border-[#1b3420] bg-[#07110a]">
+              <a
+                href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20un%20pedido%20o%20consulta"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-xl bg-[#122517] border border-[#25d366]/50 text-[#25d366] hover:bg-[#25d366] hover:text-black text-xs font-bold transition duration-200 group shadow-md"
+              >
+                <WhatsAppIcon size={17} className="text-[#25d366] group-hover:text-black transition" />
+                <span>Atención por WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};

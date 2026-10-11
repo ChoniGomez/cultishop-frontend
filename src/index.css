@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0a140d;
+  color: #f3f4f6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Scrollbar estilizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1a11;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d5a27;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38761d;
+}
+
+/* Efectos de textura de follaje y brillo dorado */
+.wood-texture {
+  background-image: radial-gradient(circle at 50% 0%, rgba(45, 90, 39, 0.25) 0%, rgba(10, 20, 13, 0.95) 70%);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 20px rgba(224, 169, 109, 0.3);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 20px rgba(74, 160, 54, 0.4);
+}
