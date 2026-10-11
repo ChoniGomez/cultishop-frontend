@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ShopContext = createContext();
 
 const CART_STORAGE_KEY = 'cultishop_cart_v1';
+const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
@@ -57,6 +58,63 @@ export const ShopProvider = ({ children }) => {
       console.error('Error al guardar carrito en LocalStorage:', err);
     }
   }, [cart]);
+
+  // Inicialización de favoritos desde LocalStorage
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (err) {
+      console.error('Error al cargar favoritos de LocalStorage:', err);
+      return [];
+    }
+  });
+
+  // Sincronizar favoritos en LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    } catch (err) {
+      console.error('Error al guardar favoritos en LocalStorage:', err);
+    }
+  }, [favorites]);
+
+  /**
+   * Verifica si un producto está en la lista de favoritos.
+   */
+  const isFavorite = (productId) => {
+    return favorites.some((item) => item.id === productId);
+  };
+
+  /**
+   * Alterna un producto en la lista de favoritos (agregar o quitar).
+   */
+  const toggleFavorite = (product) => {
+    setFavorites((prev) => {
+      const exists = prev.some((item) => item.id === product.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== product.id);
+      } else {
+        return [...prev, product];
+      }
+    });
+  };
+
+  /**
+   * Elimina un producto de favoritos.
+   */
+  const removeFromFavorites = (productId) => {
+    setFavorites((prev) => prev.filter((item) => item.id !== productId));
+  };
+
+  /**
+   * Vacía la lista de favoritos.
+   */
+  const clearFavorites = () => {
+    setFavorites([]);
+  };
+
+  const favoritesCount = favorites.length;
 
   /**
    * Añade un producto al carrito con su variante seleccionada y cantidad.
@@ -198,6 +256,12 @@ export const ShopProvider = ({ children }) => {
         formattedTotalPrice,
         getWhatsAppCheckoutUrl,
         lastAddedItem,
+        favorites,
+        isFavorite,
+        toggleFavorite,
+        removeFromFavorites,
+        clearFavorites,
+        favoritesCount,
       }}
     >
       {children}

@@ -21,7 +21,7 @@ import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
   const { user } = useAuth();
-  const { totalItems, formattedTotalPrice, openCart } = useShop();
+  const { totalItems, formattedTotalPrice, openCart, favoritesCount } = useShop();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null); // ID de la categoría abierta por clic
   const [hoveredCategory, setHoveredCategory] = useState(null); // ID de la categoría abierta por hover
@@ -214,8 +214,20 @@ export const Navbar = () => {
                   </span>
                 )}
               </button>
-              <Link to="/favoritos" className="p-1.5 text-gray-300 hover:text-[#e0a96d] transition">
-                <Heart size={16} />
+              <Link 
+                to="/favoritos" 
+                className="relative p-1.5 text-gray-300 hover:text-[#e0a96d] transition"
+                aria-label={`Ver favoritos, ${favoritesCount} guardados`}
+              >
+                <Heart 
+                  size={16} 
+                  className={favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : ""} 
+                />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center">
+                    {favoritesCount}
+                  </span>
+                )}
               </Link>
               <Link to="/ingresar" className="p-1.5 text-gray-300 hover:text-[#e0a96d] transition" title={user ? user.name : 'Mi Cuenta'}>
                 <User size={16} className={user ? 'text-[#4aa036]' : ''} />
@@ -317,8 +329,20 @@ export const Navbar = () => {
 
             {/* Enlaces de favoritos y cuenta a la derecha */}
             <div className="flex items-center gap-4 pl-3 border-l border-[#24452a] shrink-0 text-xs font-semibold">
-              <Link to="/favoritos" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
-                <Heart size={15} /> Favoritos
+              <Link 
+                to="/favoritos" 
+                className="flex items-center gap-1.5 hover:text-[#e0a96d] transition group"
+              >
+                <Heart 
+                  size={15} 
+                  className={`transition-colors ${favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : "group-hover:text-[#e0a96d]"}`} 
+                /> 
+                <span>Favoritos</span>
+                {favoritesCount > 0 && (
+                  <span className="min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center">
+                    {favoritesCount}
+                  </span>
+                )}
               </Link>
               <Link to="/ingresar" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
                 <User size={15} className={user ? 'text-[#4aa036]' : ''} />
@@ -458,9 +482,17 @@ export const Navbar = () => {
                 <Link
                   to="/favoritos"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-lg hover:bg-[#122416] transition"
+                  className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-lg hover:bg-[#122416] transition"
                 >
-                  <Heart size={16} className="text-[#e0a96d]" /> Favoritos
+                  <div className="flex items-center gap-2.5">
+                    <Heart size={16} className={favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : "text-[#e0a96d]"} /> 
+                    <span>Favoritos</span>
+                  </div>
+                  {favoritesCount > 0 && (
+                    <span className="bg-[#e0a96d] text-black text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                      {favoritesCount}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/ingresar"
