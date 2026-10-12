@@ -149,19 +149,31 @@ export const CartDrawer = () => {
                   className="pt-3.5 first:pt-0 flex gap-3.5 items-center group"
                 >
                   {/* Imagen en miniatura */}
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#0a120b] border border-[#23442a] shrink-0 flex items-center justify-center">
+                  <Link
+                    to={`/producto/${item.productId}`}
+                    onClick={closeCart}
+                    className="w-16 h-16 rounded-xl overflow-hidden bg-[#0a120b] border border-[#23442a] hover:border-[#4aa036] shrink-0 flex items-center justify-center transition cursor-pointer"
+                    title={`Ver detalle de ${item.title}`}
+                  >
                     <img
                       src={item.image}
                       alt={item.title}
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </Link>
 
                   {/* Información del ítem */}
                   <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#e0a96d] transition font-heading">
-                      {item.title}
-                    </h5>
+                    <Link
+                      to={`/producto/${item.productId}`}
+                      onClick={closeCart}
+                      className="block group-hover:text-[#e0a96d] transition"
+                      title={`Ver detalle de ${item.title}`}
+                    >
+                      <h5 className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#e0a96d] transition font-heading">
+                        {item.title}
+                      </h5>
+                    </Link>
                     
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] font-semibold text-[#4aa036] bg-[#122317] px-2 py-0.5 rounded border border-[#23442a]">

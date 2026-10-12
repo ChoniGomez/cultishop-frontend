@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ShoppingCart, ShoppingBag, Check, Heart } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice } from '../context/ShopContext';
@@ -25,17 +26,23 @@ export const ProductCard = ({ product }) => {
 
   return (
     <div className="bg-[#122317] border border-[#1f3b25] hover:border-[#38761d] rounded-2xl p-4 shadow-lg hover:shadow-2xl transition duration-200 flex flex-col justify-between group relative">
-      {/* Imagen y Badges */}
+      {/* Imagen y Badges con enlace al detalle */}
       <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0a140d]">
-        <img 
-          src={product.image || product.image_url} 
-          alt={product.title} 
-          className="object-cover h-full w-full group-hover:scale-105 transition duration-300 opacity-90 group-hover:opacity-100" 
-        />
+        <Link 
+          to={`/producto/${product.id}`}
+          className="w-full h-full block cursor-pointer"
+          title={`Ver detalle de ${product.title}`}
+        >
+          <img 
+            src={product.image || product.image_url} 
+            alt={product.title} 
+            className="object-cover h-full w-full group-hover:scale-105 transition duration-300 opacity-90 group-hover:opacity-100" 
+          />
+        </Link>
         
         {/* Badge destacado tipo flyer CultiShop */}
         {product.badge && (
-          <div className="absolute top-2.5 left-2.5">
+          <div className="absolute top-2.5 left-2.5 pointer-events-none">
             <span className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md ${
               product.badgeType === 'gold' 
                 ? 'bg-[#e0a96d] text-black font-extrabold' 
@@ -47,7 +54,7 @@ export const ProductCard = ({ product }) => {
         )}
 
         {/* Botón rápido WhatsApp y Favorito flotante */}
-        <div className={`absolute right-2 top-2 transition-all duration-200 flex flex-col gap-1.5 bg-[#0d1a11]/90 rounded-lg p-1.5 border border-[#2d5a27] shadow-lg ${
+        <div className={`absolute right-2 top-2 transition-all duration-200 flex flex-col gap-1.5 bg-[#0d1a11]/90 rounded-lg p-1.5 border border-[#2d5a27] shadow-lg z-10 ${
           isFav ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}>
           <a
@@ -56,6 +63,7 @@ export const ProductCard = ({ product }) => {
             rel="noreferrer"
             title="Consultar por WhatsApp"
             className="p-1.5 hover:text-[#25d366] text-gray-300 transition hover:scale-110"
+            onClick={(e) => e.stopPropagation()}
           >
             <WhatsAppIcon size={17} />
           </a>
@@ -91,9 +99,15 @@ export const ProductCard = ({ product }) => {
         <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider block">
           {product.category}
         </span>
-        <h3 className="font-bold text-white text-base leading-snug font-heading group-hover:text-[#e0a96d] transition line-clamp-2">
-          {product.title}
-        </h3>
+        <Link 
+          to={`/producto/${product.id}`}
+          className="block group/link"
+          title={`Ver detalle de ${product.title}`}
+        >
+          <h3 className="font-bold text-white text-base leading-snug font-heading group-hover/link:text-[#e0a96d] transition line-clamp-2">
+            {product.title}
+          </h3>
+        </Link>
         <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
           {product.description}
         </p>

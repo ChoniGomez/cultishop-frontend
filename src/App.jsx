@@ -10,6 +10,7 @@ import { AuthView } from './components/AuthView';
 import { NotFound } from './components/NotFound';
 import { FavoritesView } from './components/FavoritesView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ProductDetail } from './components/ProductDetail';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -185,6 +186,8 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/productos" element={<HomePage />} />
+              <Route path="/producto/:id" element={<ProductDetail />} />
+              <Route path="/producto/:id/:slug" element={<ProductDetail />} />
               <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />
               <Route path="/categoria/:slug" element={<ProductSection />} />
               <Route path="/sobre-nosotros" element={<PlaceholderPage title="Sobre CultiShop" description="Somos CultiShop. Te brindamos los mejores insumos para que tu cultivo crezca sano y productivo." />} />
