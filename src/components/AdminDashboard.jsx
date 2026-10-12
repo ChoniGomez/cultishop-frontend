@@ -21,13 +21,18 @@ import {
   X,
   Sparkles,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Droplets,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
 import { formatPrice, parsePrice, useShop } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
+import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { CultiShopLogo } from './CultiShopLogo';
 
@@ -39,7 +44,10 @@ export const AdminDashboard = () => {
     fetchProducts, 
     updateProduct, 
     addProduct, 
-    deleteProduct 
+    deleteProduct,
+    categories,
+    loadingCategories,
+    fetchCategories
   } = useShop();
   const navigate = useNavigate();
 
@@ -61,31 +69,71 @@ export const AdminDashboard = () => {
   const [currentProduct, setCurrentProduct] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  // Formulario de Producto
+  // Formulario de Producto (Campos Básicos)
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formStock, setFormStock] = useState('20');
   const [formCategory, setFormCategory] = useState('Fertilizantes');
+  const [formSubcategory, setFormSubcategory] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formBadge, setFormBadge] = useState('STOCK DISPONIBLE');
   const [formBadgeType, setFormBadgeType] = useState('gold');
   const [formOptions, setFormOptions] = useState('100 cc, 250 cc, 500 cc');
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
-  // Categorías fijas de CultiShop
-  const CATEGORY_OPTIONS = [
-    'Fertilizantes',
-    'Control de Plagas',
-    'Transporte Legal',
-    'Riego',
-    'Kits',
-    'Indoor',
-    'Iluminación',
-    'Medición',
-    'Parafernalia',
-    'Sustratos/Macetas'
-  ];
+  // Pestaña activa en el Modal de Gestión de Información Detallada ('desc' | 'ficha' | 'uso' | 'envios')
+  const [modalDetailTab, setModalDetailTab] = useState('desc');
+
+  // Pestaña 1: Ventajas y Compatibilidad
+  const [formKeyBenefits, setFormKeyBenefits] = useState('');
+  const [formCannabisGenotype, setFormCannabisGenotype] = useState('');
+  const [formCannabisStage, setFormCannabisStage] = useState('');
+  const [formCannabisEnv, setFormCannabisEnv] = useState('');
+  const [formCannabisQuality, setFormCannabisQuality] = useState('');
+
+  // Pestaña 2: Ficha Técnica Oficial
+  const [formBrand, setFormBrand] = useState('CultiShop Selección');
+  const [formOrigin, setFormOrigin] = useState('Argentina');
+  const [formFormat, setFormFormat] = useState('');
+  const [formCultivationStage, setFormCultivationStage] = useState('');
+  const [formPhRecommended, setFormPhRecommended] = useState('5.8 - 6.5');
+  const [formEcRecommended, setFormEcRecommended] = useState('');
+  const [formSuitableFor, setFormSuitableFor] = useState('');
+
+  // Pestaña 3: Modo de Uso y Dosificación
+  const [formDosage, setFormDosage] = useState('');
+  const [formApplicationGuide, setFormApplicationGuide] = useState('');
+
+  // Pestaña 4: Envíos y Retiro
+  const [formShippingInfo, setFormShippingInfo] = useState('');
+
+  // Subcategorías dinámicas dependientes de la categoría principal seleccionada
+  const activeCategoryData = categories.find(
+    (c) =>
+      c.name.toLowerCase() === formCategory.toLowerCase() ||
+      c.slug.toLowerCase() === formCategory.toLowerCase()
+  );
+  const activeSubcategories = activeCategoryData?.subcategories || [];
+
+  // Cambio de Categoría Principal en el formulario
+  const handleCategoryChange = (newCatName) => {
+    setFormCategory(newCatName);
+    const newCatObj = categories.find(
+      (c) =>
+        c.name.toLowerCase() === newCatName.toLowerCase() ||
+        c.slug.toLowerCase() === newCatName.toLowerCase()
+    );
+    const newSubs = newCatObj?.subcategories || [];
+    const isCurrentSubValid = newSubs.some(
+      (s) =>
+        s.name.toLowerCase() === formSubcategory.toLowerCase() ||
+        s.slug.toLowerCase() === formSubcategory.toLowerCase()
+    );
+    if (!isCurrentSubValid) {
+      setFormSubcategory('');
+    }
+  };
 
   // 1. Cargar pedidos desde el Backend
   const fetchOrders = async () => {
@@ -113,6 +161,7 @@ export const AdminDashboard = () => {
     if (isAdmin) {
       fetchProducts();
       fetchOrders();
+      if (fetchCategories) fetchCategories();
     }
   }, [isAdmin, token]);
 
@@ -131,11 +180,30 @@ export const AdminDashboard = () => {
     setFormDescription('');
     setFormPrice('14500');
     setFormStock('20');
-    setFormCategory('Fertilizantes');
+    const firstCat = categories[0]?.name || 'Fertilizantes';
+    setFormCategory(firstCat);
+    setFormSubcategory('');
     setFormImageUrl('https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600');
     setFormBadge('STOCK DISPONIBLE');
     setFormBadgeType('gold');
     setFormOptions('100 cc, 250 cc, 500 cc');
+    // Reinicio de secciones de pestañas
+    setModalDetailTab('desc');
+    setFormKeyBenefits('');
+    setFormCannabisGenotype('Apto para Índicas, Sativas, Híbridas y Autoflorecientes.');
+    setFormCannabisStage('Vegetativo, Floración o Mantenimiento');
+    setFormCannabisEnv('Optimizado para carpas de cultivo interior, invernaderos y exterior.');
+    setFormCannabisQuality('Grado Agrícola Profesional para Cultivo Medicinal');
+    setFormBrand('CultiShop Selección');
+    setFormOrigin('Argentina');
+    setFormFormat('Líquido concentrado soluble');
+    setFormCultivationStage('Todo el ciclo de cultivo');
+    setFormPhRecommended('5.8 - 6.5');
+    setFormEcRecommended('1.2 - 1.6 mS/cm');
+    setFormSuitableFor('Indoor, Exterior, Sustratos orgánicos y huertas.');
+    setFormDosage('2 a 4 ml por litro de agua sin cloro, cada 7 a 10 días.');
+    setFormApplicationGuide('');
+    setFormShippingInfo('');
     setIsModalOpen(true);
   };
 
@@ -151,10 +219,47 @@ export const AdminDashboard = () => {
     setFormPrice(rawPrice ? rawPrice.toString() : '0');
     setFormStock(prod.stock !== undefined ? prod.stock.toString() : '15');
     setFormCategory(prod.category || 'Fertilizantes');
+    setFormSubcategory(prod.subcategory || '');
     setFormImageUrl(prod.image_url || prod.image || '');
     setFormBadge(prod.badge || 'STOCK DISPONIBLE');
     setFormBadgeType(prod.badge_type || prod.badgeType || 'gold');
-    setFormOptions(Array.isArray(prod.options) ? prod.options.join(', ') : 'Estándar');
+    setFormOptions(Array.isArray(prod.options) ? prod.options.join(', ') : (prod.options || 'Estándar'));
+
+    // Especificaciones y detalles enriquecidos
+    const specs = getProductDetails(prod) || {};
+
+    // Pestaña 1: Ventajas y Compatibilidad
+    const benefitsList = Array.isArray(prod.key_benefits) && prod.key_benefits.length > 0
+      ? prod.key_benefits
+      : (Array.isArray(prod.keyBenefits) && prod.keyBenefits.length > 0 ? prod.keyBenefits : (specs.keyBenefits || []));
+    setFormKeyBenefits(Array.isArray(benefitsList) ? benefitsList.join('\n') : String(benefitsList || ''));
+
+    const cSpecs = prod.cannabis_specs || prod.cannabisSpecs || specs.cannabisSpecs || {};
+    setFormCannabisGenotype(cSpecs.genotypeCompatibility || '');
+    setFormCannabisStage(cSpecs.cultivationStage || '');
+    setFormCannabisEnv(cSpecs.environment || '');
+    setFormCannabisQuality(cSpecs.qualityGrade || '');
+
+    // Pestaña 2: Ficha Técnica
+    setFormBrand(prod.brand || specs.brand || 'CultiShop Selección');
+    setFormOrigin(prod.origin || specs.origin || 'Argentina');
+    setFormFormat(prod.format || specs.format || '');
+    setFormCultivationStage(prod.cultivation_stage || prod.cultivationStage || specs.cultivationStage || '');
+    setFormPhRecommended(prod.ph_recommended || prod.phRecommended || specs.phRecommended || '');
+    setFormEcRecommended(prod.ec_recommended || prod.ecRecommended || specs.ecRecommended || '');
+    setFormSuitableFor(prod.suitable_for || prod.suitableFor || specs.suitableFor || '');
+
+    // Pestaña 3: Modo de Uso
+    setFormDosage(prod.dosage || specs.dosage || '');
+    const guideList = Array.isArray(prod.application_guide) && prod.application_guide.length > 0
+      ? prod.application_guide
+      : (Array.isArray(prod.applicationGuide) && prod.applicationGuide.length > 0 ? prod.applicationGuide : (specs.applicationGuide || []));
+    setFormApplicationGuide(Array.isArray(guideList) ? guideList.join('\n') : String(guideList || ''));
+
+    // Pestaña 4: Envíos y Retiro
+    setFormShippingInfo(prod.shipping_info || prod.shippingInfo || specs.shippingInfo || '');
+
+    setModalDetailTab('desc');
     setIsModalOpen(true);
   };
 
@@ -172,25 +277,74 @@ export const AdminDashboard = () => {
       .map(o => o.trim())
       .filter(Boolean);
 
+    // Resolver IDs de categoría y subcategoría según lo seleccionado
+    const catObj = categories.find(
+      c => c.name.toLowerCase() === formCategory.toLowerCase() ||
+           c.slug.toLowerCase() === formCategory.toLowerCase()
+    );
+    const categoryId = catObj ? catObj.id : null;
+
+    let subcategoryId = null;
+    if (catObj && formSubcategory) {
+      const subObj = catObj.subcategories?.find(
+        s => s.name.toLowerCase() === formSubcategory.toLowerCase() ||
+             s.slug.toLowerCase() === formSubcategory.toLowerCase()
+      );
+      if (subObj) {
+        subcategoryId = subObj.id;
+      }
+    }
+
+    const keyBenefitsArray = formKeyBenefits
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    const applicationGuideArray = formApplicationGuide
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean);
+
     const payload = {
       title: formTitle.trim(),
-      description: formDescription,
+      description: formDescription.trim(),
       price: parseFloat(formPrice.toString().replace(/[^0-9.-]/g, '')) || 0,
       stock: parseInt(formStock, 10) || 0,
       category: formCategory,
+      category_id: categoryId,
+      subcategory: formSubcategory || null,
+      subcategory_id: subcategoryId,
       image_url: formImageUrl.trim() || 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600',
-      badge: formBadge,
+      badge: formBadge.trim(),
       badge_type: formBadgeType,
-      options: optionsArray.length > 0 ? optionsArray : ['Estándar']
+      options: optionsArray.length > 0 ? optionsArray : ['Estándar'],
+      // Pestañas de Información Detallada
+      brand: formBrand.trim(),
+      origin: formOrigin.trim(),
+      format: formFormat.trim(),
+      cultivation_stage: formCultivationStage.trim(),
+      dosage: formDosage.trim(),
+      ph_recommended: formPhRecommended.trim(),
+      ec_recommended: formEcRecommended.trim(),
+      suitable_for: formSuitableFor.trim(),
+      key_benefits: keyBenefitsArray,
+      application_guide: applicationGuideArray,
+      cannabis_specs: {
+        genotypeCompatibility: formCannabisGenotype.trim(),
+        cultivationStage: formCannabisStage.trim(),
+        environment: formCannabisEnv.trim(),
+        qualityGrade: formCannabisQuality.trim()
+      },
+      shipping_info: formShippingInfo.trim()
     };
 
     try {
       if (modalMode === 'create') {
         await addProduct(payload, token);
-        showNotification('success', '¡Producto creado y guardado permanentemente!');
+        showNotification('success', '¡Producto y especificaciones guardados exitosamente!');
       } else {
         await updateProduct(currentProduct.id, payload, token);
-        showNotification('success', '¡Imagen y datos del producto guardados correctamente!');
+        showNotification('success', '¡Producto y pestañas de información actualizados!');
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -435,8 +589,8 @@ export const AdminDashboard = () => {
                 className="py-2.5 px-3 rounded-xl bg-[#142619] border border-[#23422a] text-gray-200 text-xs focus:outline-none focus:border-[#4aa036]"
               >
                 <option value="todas">Todas las Categorías</option>
-                {CATEGORY_OPTIONS.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map(cat => (
+                  <option key={cat.id || cat.slug || cat.name} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -457,7 +611,7 @@ export const AdminDashboard = () => {
                 <thead className="bg-[#142619] text-gray-400 font-bold uppercase tracking-wider border-b border-[#1f3b25]">
                   <tr>
                     <th className="py-3 px-4">Producto / Imagen</th>
-                    <th className="py-3 px-4">Categoría</th>
+                    <th className="py-3 px-4">Categoría / Subcategoría</th>
                     <th className="py-3 px-4">Precio</th>
                     <th className="py-3 px-4">Stock</th>
                     <th className="py-3 px-4">Etiqueta</th>
@@ -488,9 +642,16 @@ export const AdminDashboard = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2.5 py-1 rounded-md bg-[#18311d] border border-[#2d5a27] text-gray-200 text-[11px]">
-                            {prod.category || 'Varios'}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="px-2.5 py-0.5 rounded-md bg-[#18311d] border border-[#2d5a27] text-gray-200 text-[11px]">
+                              {prod.category || 'Varios'}
+                            </span>
+                            {prod.subcategory && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#0a140d] border border-[#e0a96d]/40 text-[#e0a96d] text-[10px] font-medium">
+                                › {prod.subcategory}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 font-bold text-white font-heading">
                           {typeof prod.price === 'number' ? formatPrice(prod.price) : prod.price}
@@ -706,178 +867,498 @@ export const AdminDashboard = () => {
       {/* MODAL PARA ALTA / MODIFICACIÓN DE PRODUCTOS */}
       {/* ============================================================ */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-6 sm:p-8 shadow-2xl my-8">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 right-5 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-[#1a3321] transition"
-            >
-              <X size={20} />
-            </button>
-
-            <h3 className="text-xl sm:text-2xl font-black text-white font-heading mb-1">
-              {modalMode === 'create' ? 'Alta de Nuevo Producto' : 'Modificar Producto'}
-            </h3>
-            <p className="text-xs text-gray-400 mb-6">
-              {modalMode === 'create' 
-                ? 'Ingresa los detalles del insumo para incorporarlo al catálogo oficial de CultiShop.'
-                : `Actualizando datos para "${currentProduct?.title}".`}
-            </p>
-
-            <form onSubmit={handleSaveProductSubmit} className="space-y-4">
-              {/* Título */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-3xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-5 sm:p-7 shadow-2xl my-6 flex flex-col max-h-[92vh]">
+            {/* Cabecera del Modal */}
+            <div className="flex items-start justify-between pb-3 border-b border-[#1f3b25] shrink-0">
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Título del Producto *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="Ej: Oro Negro Namasté Nutrientes"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                />
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    modalMode === 'create' ? 'bg-[#2d5a27] text-white' : 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                  }`}>
+                    {modalMode === 'create' ? 'Nuevo Insumo' : 'Edición de Insumo'}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading">
+                  {modalMode === 'create' ? 'Alta de Producto en Catálogo' : `Modificar: ${currentProduct?.title || 'Producto'}`}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Gestiona las categorías, subcategorías y los contenidos de cada pestaña informativa del producto.
+                </p>
               </div>
 
-              {/* Categoría y Precio */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
-                    Categoría
-                  </label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                  >
-                    {CATEGORY_OPTIONS.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#1a3321] transition shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
-                    Precio ($ ARS) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    placeholder="14500"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                  />
-                </div>
-              </div>
-
-              {/* Stock y Etiqueta (Badge) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
-                    Stock Disponible
-                  </label>
-                  <input
-                    type="number"
-                    value={formStock}
-                    onChange={(e) => setFormStock(e.target.value)}
-                    placeholder="25"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
-                    Etiqueta Promocional (Badge)
-                  </label>
-                  <input
-                    type="text"
-                    value={formBadge}
-                    onChange={(e) => setFormBadge(e.target.value)}
-                    placeholder="Ej: STOCK DISPONIBLE, TOP VENTAS, LEY 27.350"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                  />
-                </div>
-              </div>
-
-              {/* Presentaciones / Opciones */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Opciones y Presentaciones (separadas por coma)
-                </label>
-                <input
-                  type="text"
-                  value={formOptions}
-                  onChange={(e) => setFormOptions(e.target.value)}
-                  placeholder="100 cc, 250 cc, 500 cc"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                />
-              </div>
-
-              {/* URL de Imagen con Previsualizador */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  URL de la Imagen *
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={formImageUrl}
-                  onChange={(e) => setFormImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
-                />
-                
-                {/* Previsualización en vivo de la foto */}
-                {formImageUrl && (
-                  <div className="mt-3 flex items-center gap-3 p-3 bg-[#0a140d] rounded-xl border border-[#1f3b25]">
-                    <img
-                      src={formImageUrl}
-                      alt="Previsualización"
-                      className="w-16 h-16 rounded-lg object-cover border border-[#2d5a27]"
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
-                      }}
+            {/* Formulario scrolleable */}
+            <form onSubmit={handleSaveProductSubmit} className="flex flex-col overflow-hidden pt-4 flex-grow">
+              <div className="overflow-y-auto pr-1 sm:pr-2 space-y-4 flex-grow custom-scrollbar">
+                {/* 1. SECCIÓN BÁSICA */}
+                <div className="space-y-3.5">
+                  {/* Título */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">
+                      Título del Producto *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      placeholder="Ej: Oro Negro Namasté Nutrientes"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
                     />
-                    <div className="text-xs">
-                      <span className="font-bold text-white block">Previsualización de Imagen</span>
-                      <span className="text-[11px] text-gray-400">Verificá que la imagen se vea nítida en el catálogo.</span>
+                  </div>
+
+                  {/* Categoría y Subcategoría Dinámica */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        Categoría Principal *
+                      </label>
+                      <select
+                        value={formCategory}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition cursor-pointer"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat.id || cat.slug || cat.name} value={cat.name}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1 flex items-center justify-between">
+                        <span>Subcategoría</span>
+                        <span className="text-[10px] text-gray-400 font-normal">
+                          {activeSubcategories.length > 0 
+                            ? `${activeSubcategories.length} opción(es)` 
+                            : 'Sin subcategorías'}
+                        </span>
+                      </label>
+                      <select
+                        value={formSubcategory}
+                        onChange={(e) => setFormSubcategory(e.target.value)}
+                        disabled={activeSubcategories.length === 0}
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition cursor-pointer ${
+                          activeSubcategories.length === 0
+                            ? 'bg-[#0a140d] border-[#1b3420] text-gray-500 cursor-not-allowed'
+                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
+                        }`}
+                      >
+                        <option value="">(Sin subcategoría / General)</option>
+                        {activeSubcategories.map((sub) => (
+                          <option key={sub.id || sub.slug || sub.name} value={sub.name}>
+                            {sub.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                )}
+
+                  {/* Precio y Stock */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        Precio ($ ARS) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={formPrice}
+                        onChange={(e) => setFormPrice(e.target.value)}
+                        placeholder="14500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        Stock Disponible
+                      </label>
+                      <input
+                        type="number"
+                        value={formStock}
+                        onChange={(e) => setFormStock(e.target.value)}
+                        placeholder="25"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Etiqueta Promocional (Badge) y Tipo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        Etiqueta Promocional (Badge)
+                      </label>
+                      <input
+                        type="text"
+                        value={formBadge}
+                        onChange={(e) => setFormBadge(e.target.value)}
+                        placeholder="Ej: STOCK DISPONIBLE, TOP VENTAS, LEY 27.350"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 mb-1">
+                        Color Etiqueta
+                      </label>
+                      <select
+                        value={formBadgeType}
+                        onChange={(e) => setFormBadgeType(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition cursor-pointer"
+                      >
+                        <option value="gold">Dorado Mostaza</option>
+                        <option value="green">Verde Hoja</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Presentaciones / Opciones */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">
+                      Opciones y Presentaciones (separadas por coma)
+                    </label>
+                    <input
+                      type="text"
+                      value={formOptions}
+                      onChange={(e) => setFormOptions(e.target.value)}
+                      placeholder="100 cc, 250 cc, 500 cc"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                    />
+                  </div>
+
+                  {/* URL de Imagen con Previsualizador */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">
+                      URL de la Imagen del Producto *
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={formImageUrl}
+                      onChange={(e) => setFormImageUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                    />
+                    
+                    {formImageUrl && (
+                      <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-[#0a140d] rounded-xl border border-[#1f3b25]">
+                        <img
+                          src={formImageUrl}
+                          alt="Previsualización"
+                          className="w-14 h-14 rounded-lg object-cover border border-[#2d5a27]"
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                          }}
+                        />
+                        <div className="text-xs">
+                          <span className="font-bold text-white block">Previsualización de Imagen</span>
+                          <span className="text-[11px] text-gray-400">Verifica que la imagen cargue correctamente y tenga buena resolución.</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. SECCIÓN GESTIÓN DE PESTAÑAS DETALLADAS (TABS) */}
+                <div className="pt-3 border-t border-[#1f3b25] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#e0a96d]" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                        Pestañas de Información Detallada del Producto
+                      </h4>
+                    </div>
+                    <span className="text-[10px] text-[#e0a96d] font-semibold hidden sm:inline">
+                      Visibles en la ficha técnica del producto
+                    </span>
+                  </div>
+
+                  {/* Barra de pestañas del modal */}
+                  <div className="flex rounded-xl bg-[#0a140d] p-1 border border-[#1b3420] overflow-x-auto gap-1">
+                    {[
+                      { id: 'desc', label: '1. Descripción & Ventajas', icon: FileText },
+                      { id: 'ficha', label: '2. Ficha Técnica', icon: Layers },
+                      { id: 'uso', label: '3. Modo de Uso', icon: Droplets },
+                      { id: 'envios', label: '4. Envíos y Retiro', icon: Truck },
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setModalDetailTab(tab.id)}
+                          className={`flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                            modalDetailTab === tab.id
+                              ? 'bg-[#183520] text-[#e0a96d] shadow-sm border border-[#2d5a27]'
+                              : 'text-gray-400 hover:text-white hover:bg-[#122317]'
+                          }`}
+                        >
+                          <Icon size={14} className={modalDetailTab === tab.id ? 'text-[#e0a96d]' : 'text-gray-400'} />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* TAB 1: DESCRIPCIÓN & VENTAJAS */}
+                  {modalDetailTab === 'desc' && (
+                    <div className="space-y-3.5 p-4 rounded-2xl bg-[#0a140d] border border-[#1a3520]">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                          Descripción Principal del Producto *
+                        </label>
+                        <textarea
+                          rows="3"
+                          value={formDescription}
+                          onChange={(e) => setFormDescription(e.target.value)}
+                          placeholder="Descripción completa del insumo, composición orgánica y beneficios generales..."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none leading-relaxed"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold text-gray-300">
+                            Ventajas Destacadas para el Cultivo (Viñetas con tilde verde)
+                          </label>
+                          <span className="text-[10px] text-[#e0a96d]">1 ventaja por renglón</span>
+                        </div>
+                        <textarea
+                          rows="4"
+                          value={formKeyBenefits}
+                          onChange={(e) => setFormKeyBenefits(e.target.value)}
+                          placeholder="Multiplica la superficie de contacto de las raíces con el medio hasta un 400%&#10;Facilita la solubilización biológica del Fósforo, nutriente clave para floración pesada&#10;Aumenta drásticamente la resistencia de las plantas a la sequía y calor"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none font-mono text-[11px] leading-relaxed"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Cada renglón que ingreses se convertirá automáticamente en una tarjeta con tilde verde (✓) en la pestaña "Descripción Completa".
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#1b3420]">
+                        <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-wider block mb-2">
+                          Compatibilidad Cannábica & Comportamiento en Cultivo (Opcional)
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <label className="block text-[11px] text-gray-400 mb-1">Compatibilidad Genotípica</label>
+                            <input
+                              type="text"
+                              value={formCannabisGenotype}
+                              onChange={(e) => setFormCannabisGenotype(e.target.value)}
+                              placeholder="Ej: Apto para Índicas, Sativas, Híbridas y Autoflorecientes."
+                              className="w-full px-3 py-2 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-gray-400 mb-1">Etapa de Cultivo</label>
+                            <input
+                              type="text"
+                              value={formCannabisStage}
+                              onChange={(e) => setFormCannabisStage(e.target.value)}
+                              placeholder="Ej: Vegetativo, Enraizamiento, Floración"
+                              className="w-full px-3 py-2 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-gray-400 mb-1">Entorno Recomendado</label>
+                            <input
+                              type="text"
+                              value={formCannabisEnv}
+                              onChange={(e) => setFormCannabisEnv(e.target.value)}
+                              placeholder="Ej: Optimizado para carpas indoor, invernaderos y exterior."
+                              className="w-full px-3 py-2 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-gray-400 mb-1">Grado de Calidad</label>
+                            <input
+                              type="text"
+                              value={formCannabisQuality}
+                              onChange={(e) => setFormCannabisQuality(e.target.value)}
+                              placeholder="Ej: Grado Agrícola Profesional para Cultivo Medicinal"
+                              className="w-full px-3 py-2 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: FICHA TÉCNICA */}
+                  {modalDetailTab === 'ficha' && (
+                    <div className="space-y-3 p-4 rounded-2xl bg-[#0a140d] border border-[#1a3520]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">Marca / Fabricante</label>
+                          <input
+                            type="text"
+                            value={formBrand}
+                            onChange={(e) => setFormBrand(e.target.value)}
+                            placeholder="Ej: Namasté Nutrientes, Mamboretá"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">País de Origen</label>
+                          <input
+                            type="text"
+                            value={formOrigin}
+                            onChange={(e) => setFormOrigin(e.target.value)}
+                            placeholder="Ej: Argentina"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">Presentación / Formato Técnico</label>
+                          <input
+                            type="text"
+                            value={formFormat}
+                            onChange={(e) => setFormFormat(e.target.value)}
+                            placeholder="Ej: Líquido concentrado soluble, Polvo soluble"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">Etapa Recomendada</label>
+                          <input
+                            type="text"
+                            value={formCultivationStage}
+                            onChange={(e) => setFormCultivationStage(e.target.value)}
+                            placeholder="Ej: Fase Vegetativa & Enraizamiento"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">Rango de pH Sugerido</label>
+                          <input
+                            type="text"
+                            value={formPhRecommended}
+                            onChange={(e) => setFormPhRecommended(e.target.value)}
+                            placeholder="Ej: 5.8 - 6.5"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 font-semibold mb-1">Conductividad (EC Sugerida)</label>
+                          <input
+                            type="text"
+                            value={formEcRecommended}
+                            onChange={(e) => setFormEcRecommended(e.target.value)}
+                            placeholder="Ej: 1.2 - 1.6 mS/cm"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                          Medios de Cultivo Aptos
+                        </label>
+                        <input
+                          type="text"
+                          value={formSuitableFor}
+                          onChange={(e) => setFormSuitableFor(e.target.value)}
+                          placeholder="Ej: Indoor, Exterior, Sustratos orgánicos, Fibra de coco e Hidroponia."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: MODO DE USO Y APLICACIÓN */}
+                  {modalDetailTab === 'uso' && (
+                    <div className="space-y-3 p-4 rounded-2xl bg-[#0a140d] border border-[#1a3520]">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                          Dosis Referencial Recomendada
+                        </label>
+                        <input
+                          type="text"
+                          value={formDosage}
+                          onChange={(e) => setFormDosage(e.target.value)}
+                          placeholder="Ej: 2 a 4 ml por litro de agua sin cloro, cada 7 a 10 días."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold text-gray-300">
+                            Paso a Paso de Aplicación y Dosificación
+                          </label>
+                          <span className="text-[10px] text-[#e0a96d]">1 paso por renglón</span>
+                        </div>
+                        <textarea
+                          rows="4"
+                          value={formApplicationGuide}
+                          onChange={(e) => setFormApplicationGuide(e.target.value)}
+                          placeholder="Agitar enérgicamente el envase antes de dosificar.&#10;Diluir en agua reposada o desclorada a temperatura ambiente (18°C - 22°C).&#10;Aplicar principalmente en el riego habitual al pie del tallo.&#10;Suspender al inicio de la 3ra semana de floración."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none font-mono text-[11px] leading-relaxed"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Cada renglón se presentará como un paso numerado interactivo (1, 2, 3...) en la pestaña "Modo de Uso y Aplicación".
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: ENVÍOS Y RETIRO */}
+                  {modalDetailTab === 'envios' && (
+                    <div className="space-y-3 p-4 rounded-2xl bg-[#0a140d] border border-[#1a3520]">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">
+                          Condiciones Específicas de Envío / Retiro de este Insumo
+                        </label>
+                        <textarea
+                          rows="4"
+                          value={formShippingInfo}
+                          onChange={(e) => setFormShippingInfo(e.target.value)}
+                          placeholder="Ej: Insumo frágil despachado con embalaje térmico y cámara de aire. Disponible para retiro inmediato sin costo en nuestro local de Av. López y Planes 2919 (Posadas, Misiones)."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none leading-relaxed"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Se exhibirá de manera destacada en la pestaña "Envíos y Retiro" para comunicar condiciones particulares de empaque, almacenamiento o logística.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Descripción */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Descripción del Producto
-                </label>
-                <textarea
-                  rows="3"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Bioestimulante de crecimiento y follaje con ácidos húmicos y algas..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none"
-                />
-              </div>
-
-              {/* Botones de acción del Modal */}
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-[#1f3b25]">
+              {/* Botones fijos al pie del Modal */}
+              <div className="pt-4 mt-3 flex items-center justify-end gap-3 border-t border-[#1f3b25] shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-bold transition"
+                  className="px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white text-xs font-bold transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingProduct}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold uppercase tracking-wider transition shadow-lg disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold uppercase tracking-wider transition shadow-lg disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isSavingProduct ? 'Guardando...' : (modalMode === 'create' ? 'Crear Producto' : 'Guardar Cambios')}
+                  {isSavingProduct ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>{modalMode === 'create' ? 'Crear Producto' : 'Guardar Cambios'}</span>
+                  )}
                 </button>
               </div>
             </form>

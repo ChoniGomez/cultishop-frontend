@@ -317,13 +317,62 @@ export const PRODUCT_TECHNICAL_SPECS = {
 };
 
 /**
+ * Helper para parsear arreglos que pueden venir como JSON string, array nativo o texto con saltos de línea.
+ */
+const parseArraySafe = (val) => {
+  if (!val) return null;
+  if (Array.isArray(val)) {
+    const filtered = val.map(item => String(item).trim()).filter(Boolean);
+    return filtered.length > 0 ? filtered : null;
+  }
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.map(item => String(item).trim()).filter(Boolean);
+        return filtered.length > 0 ? filtered : null;
+      }
+    } catch {}
+    const lines = val.split('\n').map(l => l.trim()).filter(Boolean);
+    return lines.length > 0 ? lines : null;
+  }
+  return null;
+};
+
+/**
+ * Helper para parsear objetos que pueden venir como JSON string u objeto plano.
+ */
+const parseObjectSafe = (val) => {
+  if (!val) return null;
+  if (typeof val === 'object' && !Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return null;
+};
+
+/**
  * Retorna las especificaciones completas para un producto dado, combinando
- * datos existentes o generando una plantilla profesional para insumos nuevos.
+ * datos guardados en base de datos (administración), especificaciones predefinidas o
+ * generando una plantilla profesional para insumos nuevos.
  */
 export const getProductDetails = (product) => {
   if (!product) return null;
 
   const specific = PRODUCT_TECHNICAL_SPECS[product.id] || {};
+  const dbDetails = parseObjectSafe(product.details) || {};
+
+  const brand = product.brand || dbDetails.brand || specific.brand || 'CultiShop Selección';
+  const origin = product.origin || dbDetails.origin || specific.origin || 'Argentina';
+  const cultivationStage = product.cultivation_stage || product.cultivationStage || dbDetails.cultivationStage || specific.cultivationStage || 'Todo el ciclo de cultivo';
+  const format = product.format || dbDetails.format || specific.format || (product.options && product.options.length > 0 ? product.options.join(', ') : 'Estándar');
+  const dosage = product.dosage || dbDetails.dosage || specific.dosage || 'Consultar según fase del cultivo';
+  const phRecommended = product.ph_recommended || product.phRecommended || dbDetails.phRecommended || specific.phRecommended || '5.8 - 6.5';
+  const ecRecommended = product.ec_recommended || product.ecRecommended || dbDetails.ecRecommended || specific.ecRecommended || 'N/A';
+  const suitableFor = product.suitable_for || product.suitableFor || dbDetails.suitableFor || specific.suitableFor || 'Indoor, Exterior, Sustratos orgánicos y huertas.';
 
   const defaultBenefits = [
     `Insumo de primera calidad seleccionado por CultiShop para cultivadores de Posadas y toda la región.`,
@@ -334,7 +383,7 @@ export const getProductDetails = (product) => {
 
   const defaultCannabisSpecs = {
     genotypeCompatibility: 'Apto para todo tipo de variedades e híbridos cannábicos.',
-    cultivationStage: specific.cultivationStage || 'Vegetativo, Floración o Mantenimiento',
+    cultivationStage: cultivationStage,
     environment: 'Optimizado para carpas de cultivo interior, invernaderos y exterior.',
     qualityGrade: 'Grado Agrícola Profesional para Cultivo Medicinal'
   };
@@ -345,19 +394,25 @@ export const getProductDetails = (product) => {
     'Consultanos por WhatsApp para recibir una tabla de dosis personalizada para tu carpa o jardín.'
   ];
 
+  const customBenefits = parseArraySafe(product.key_benefits || product.keyBenefits || dbDetails.keyBenefits);
+  const customGuide = parseArraySafe(product.application_guide || product.applicationGuide || dbDetails.applicationGuide);
+  const customCannabisSpecs = parseObjectSafe(product.cannabis_specs || product.cannabisSpecs || dbDetails.cannabisSpecs);
+  const shippingInfo = product.shipping_info || product.shippingInfo || dbDetails.shippingInfo || null;
+
   return {
-    brand: specific.brand || 'CultiShop Selección',
-    origin: specific.origin || 'Argentina',
-    cultivationStage: specific.cultivationStage || 'Todo el ciclo de cultivo',
-    format: specific.format || (product.options && product.options.length > 0 ? product.options.join(', ') : 'Estándar'),
-    dosage: specific.dosage || 'Consultar según fase del cultivo',
-    phRecommended: specific.phRecommended || '5.8 - 6.5',
-    ecRecommended: specific.ecRecommended || 'N/A',
-    suitableFor: specific.suitableFor || 'Indoor, Exterior, Sustratos orgánicos y huertas.',
-    cannabisSpecs: { ...defaultCannabisSpecs, ...(specific.cannabisSpecs || {}) },
-    keyBenefits: specific.keyBenefits || defaultBenefits,
-    applicationGuide: specific.applicationGuide || defaultGuide,
-    dimensions: specific.dimensions || null,
-    capacity: specific.capacity || null
+    brand,
+    origin,
+    cultivationStage,
+    format,
+    dosage,
+    phRecommended,
+    ecRecommended,
+    suitableFor,
+    cannabisSpecs: { ...defaultCannabisSpecs, ...(specific.cannabisSpecs || {}), ...(customCannabisSpecs || {}) },
+    keyBenefits: customBenefits || specific.keyBenefits || defaultBenefits,
+    applicationGuide: customGuide || specific.applicationGuide || defaultGuide,
+    shippingInfo,
+    dimensions: product.dimensions || dbDetails.dimensions || specific.dimensions || null,
+    capacity: product.capacity || dbDetails.capacity || specific.capacity || null
   };
 };

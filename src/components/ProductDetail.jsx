@@ -683,7 +683,12 @@ export const ProductDetail = () => {
                       </tr>
                       <tr className="bg-[#0e1c12]">
                         <th className="py-3 px-4 font-bold text-white">Categoría</th>
-                        <td className="py-3 px-4 text-gray-200">{product.category}</td>
+                        <td className="py-3 px-4 text-gray-200">
+                          {product.category}
+                          {product.subcategory && (
+                            <span className="text-[#e0a96d] ml-1.5 font-medium">› {product.subcategory}</span>
+                          )}
+                        </td>
                       </tr>
                       <tr className="bg-[#122317]">
                         <th className="py-3 px-4 font-bold text-white">Presentación / Formato</th>
@@ -703,7 +708,13 @@ export const ProductDetail = () => {
                           <td className="py-3 px-4 text-gray-200">{details.phRecommended}</td>
                         </tr>
                       )}
-                      <tr className="bg-[#122317]">
+                      {details.ecRecommended && details.ecRecommended !== 'N/A' && (
+                        <tr className="bg-[#122317]">
+                          <th className="py-3 px-4 font-bold text-white">Conductividad (EC)</th>
+                          <td className="py-3 px-4 text-gray-200">{details.ecRecommended}</td>
+                        </tr>
+                      )}
+                      <tr className="bg-[#0e1c12]">
                         <th className="py-3 px-4 font-bold text-white">Origen</th>
                         <td className="py-3 px-4 text-gray-200">{details.origin}</td>
                       </tr>
@@ -759,6 +770,18 @@ export const ProductDetail = () => {
                 <h3 className="text-lg font-bold text-white font-heading">
                   Políticas de Entrega y Retiro
                 </h3>
+
+                {details.shippingInfo && (
+                  <div className="p-4 rounded-2xl bg-[#142619] border border-[#2d5a27] space-y-1.5 shadow-md">
+                    <h4 className="font-bold text-[#e0a96d] text-xs uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles size={14} className="text-[#e0a96d]" />
+                      Condiciones Específicas de este Insumo
+                    </h4>
+                    <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">
+                      {details.shippingInfo}
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-[#122317] border border-[#1f3b25] space-y-2">

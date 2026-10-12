@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
+import { CATEGORIES } from '../data/categories';
 import { buildApiUrl } from '../config/api';
 
 const ShopContext = createContext();
@@ -108,6 +109,26 @@ export const ShopProvider = ({ children }) => {
   });
 
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  // Cargar categorías y subcategorías desde la base de datos
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const res = await fetch(buildApiUrl('categories'));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/categories no disponible temporalmente, catálogo local activo:', err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   // Sincronizar con Backend y persistir en LocalStorage
   const fetchProducts = async () => {
@@ -124,7 +145,23 @@ export const ShopProvider = ({ children }) => {
             badgeType: p.badge_type || p.badgeType || 'gold',
             numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
             price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
-            stock: p.stock ?? 20
+            stock: p.stock ?? 20,
+            brand: p.brand || '',
+            origin: p.origin || '',
+            format: p.format || '',
+            cultivationStage: p.cultivation_stage || p.cultivationStage || '',
+            dosage: p.dosage || '',
+            phRecommended: p.ph_recommended || p.phRecommended || '',
+            ecRecommended: p.ec_recommended || p.ecRecommended || '',
+            suitableFor: p.suitable_for || p.suitableFor || '',
+            keyBenefits: p.key_benefits || p.keyBenefits || [],
+            applicationGuide: p.application_guide || p.applicationGuide || [],
+            cannabisSpecs: p.cannabis_specs || p.cannabisSpecs || null,
+            shippingInfo: p.shipping_info || p.shippingInfo || '',
+            details: p.details || null,
+            subcategory: p.subcategory || null,
+            subcategory_id: p.subcategory_id || null,
+            subcategory_slug: p.subcategory_slug || null
           }));
 
           setProducts((prevProducts) => {
@@ -166,6 +203,7 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   /**
@@ -259,7 +297,22 @@ export const ShopProvider = ({ children }) => {
             badgeType: data.product.badge_type || data.product.badgeType || 'gold',
             price: typeof data.product.price === 'number' ? formatPrice(data.product.price) : data.product.price,
             numericPrice: typeof data.product.price === 'number' ? data.product.price : parsePrice(data.product.price),
-            stock: data.product.stock ?? 20
+            stock: data.product.stock ?? 20,
+            brand: data.product.brand || '',
+            origin: data.product.origin || '',
+            format: data.product.format || '',
+            cultivationStage: data.product.cultivation_stage || data.product.cultivationStage || '',
+            dosage: data.product.dosage || '',
+            phRecommended: data.product.ph_recommended || data.product.phRecommended || '',
+            ecRecommended: data.product.ec_recommended || data.product.ecRecommended || '',
+            suitableFor: data.product.suitable_for || data.product.suitableFor || '',
+            keyBenefits: data.product.key_benefits || data.product.keyBenefits || [],
+            applicationGuide: data.product.application_guide || data.product.applicationGuide || [],
+            cannabisSpecs: data.product.cannabis_specs || data.product.cannabisSpecs || null,
+            shippingInfo: data.product.shipping_info || data.product.shippingInfo || '',
+            details: data.product.details || null,
+            subcategory: data.product.subcategory || null,
+            subcategory_id: data.product.subcategory_id || null
           };
           setProducts((prev) => {
             const next = prev.map((p) => (p.id === id || String(p.id) === String(id) ? { ...p, ...dbProd } : p));
@@ -323,7 +376,22 @@ export const ShopProvider = ({ children }) => {
             badgeType: data.product.badge_type || data.product.badgeType || 'gold',
             price: typeof data.product.price === 'number' ? formatPrice(data.product.price) : data.product.price,
             numericPrice: typeof data.product.price === 'number' ? data.product.price : parsePrice(data.product.price),
-            stock: data.product.stock ?? 20
+            stock: data.product.stock ?? 20,
+            brand: data.product.brand || '',
+            origin: data.product.origin || '',
+            format: data.product.format || '',
+            cultivationStage: data.product.cultivation_stage || data.product.cultivationStage || '',
+            dosage: data.product.dosage || '',
+            phRecommended: data.product.ph_recommended || data.product.phRecommended || '',
+            ecRecommended: data.product.ec_recommended || data.product.ecRecommended || '',
+            suitableFor: data.product.suitable_for || data.product.suitableFor || '',
+            keyBenefits: data.product.key_benefits || data.product.keyBenefits || [],
+            applicationGuide: data.product.application_guide || data.product.applicationGuide || [],
+            cannabisSpecs: data.product.cannabis_specs || data.product.cannabisSpecs || null,
+            shippingInfo: data.product.shipping_info || data.product.shippingInfo || '',
+            details: data.product.details || null,
+            subcategory: data.product.subcategory || null,
+            subcategory_id: data.product.subcategory_id || null
           };
           setProducts((prev) => {
             const next = prev.map((p) => (p.id === tempId ? dbProd : p));
@@ -576,6 +644,9 @@ export const ShopProvider = ({ children }) => {
         searchQuery,
         setSearchQuery,
         clearSearch,
+        categories,
+        loadingCategories,
+        fetchCategories,
       }}
     >
       {children}
