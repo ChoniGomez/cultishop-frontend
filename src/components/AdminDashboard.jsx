@@ -30,7 +30,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
-import { formatPrice, parsePrice, useShop } from '../context/ShopContext';
+import { formatPrice, parsePrice, useShop, getProductOptions } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -79,8 +79,46 @@ export const AdminDashboard = () => {
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formBadge, setFormBadge] = useState('STOCK DISPONIBLE');
   const [formBadgeType, setFormBadgeType] = useState('gold');
-  const [formOptions, setFormOptions] = useState('100 cc, 250 cc, 500 cc');
+  const [formVariants, setFormVariants] = useState([
+    { name: '100 cc', price: '6000' },
+    { name: '250 cc', price: '14500' },
+    { name: '500 cc', price: '28000' }
+  ]);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Manejo de cambio de stock con asignación automática de "SIN STOCK"
+  const handleStockChange = (val) => {
+    setFormStock(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num <= 0) {
+      setFormBadge('SIN STOCK');
+      setFormBadgeType('red');
+    } else if (!isNaN(num) && num > 0 && formBadge === 'SIN STOCK') {
+      setFormBadge('STOCK DISPONIBLE');
+      setFormBadgeType('gold');
+    }
+  };
+
+  // Manejo de filas de variantes con precio independiente
+  const handleAddVariant = () => {
+    setFormVariants((prev) => [
+      ...prev,
+      { name: '', price: formPrice || '0' }
+    ]);
+  };
+
+  const handleRemoveVariant = (index) => {
+    if (formVariants.length <= 1) return;
+    setFormVariants((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    setFormVariants((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
 
   // Pestaña activa en el Modal de Gestión de Información Detallada ('desc' | 'ficha' | 'uso' | 'envios')
   const [modalDetailTab, setModalDetailTab] = useState('desc');
@@ -178,7 +216,7 @@ export const AdminDashboard = () => {
     setCurrentProduct(null);
     setFormTitle('');
     setFormDescription('');
-    setFormPrice('14500');
+    setFormPrice('6000');
     setFormStock('20');
     const firstCat = categories[0]?.name || 'Fertilizantes';
     setFormCategory(firstCat);
@@ -186,7 +224,11 @@ export const AdminDashboard = () => {
     setFormImageUrl('https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600');
     setFormBadge('STOCK DISPONIBLE');
     setFormBadgeType('gold');
-    setFormOptions('100 cc, 250 cc, 500 cc');
+    setFormVariants([
+      { name: '100 cc', price: '6000' },
+      { name: '250 cc', price: '14500' },
+      { name: '500 cc', price: '28000' }
+    ]);
     // Reinicio de secciones de pestañas
     setModalDetailTab('desc');
     setFormKeyBenefits('');
@@ -221,9 +263,19 @@ export const AdminDashboard = () => {
     setFormCategory(prod.category || 'Fertilizantes');
     setFormSubcategory(prod.subcategory || '');
     setFormImageUrl(prod.image_url || prod.image || '');
-    setFormBadge(prod.badge || 'STOCK DISPONIBLE');
-    setFormBadgeType(prod.badge_type || prod.badgeType || 'gold');
-    setFormOptions(Array.isArray(prod.options) ? prod.options.join(', ') : (prod.options || 'Estándar'));
+    const isZeroStock = (prod.stock !== undefined && Number(prod.stock) <= 0) || prod.badge === 'SIN STOCK';
+    setFormBadge(isZeroStock ? 'SIN STOCK' : (prod.badge || 'STOCK DISPONIBLE'));
+    setFormBadgeType(isZeroStock ? 'red' : (prod.badge_type || prod.badgeType || 'gold'));
+
+    const opts = getProductOptions(prod);
+    if (opts && opts.length > 0) {
+      setFormVariants(opts.map((o) => ({
+        name: o.name,
+        price: o.price !== undefined ? String(o.price) : (rawPrice ? String(rawPrice) : '0')
+      })));
+    } else {
+      setFormVariants([{ name: 'Estándar', price: rawPrice ? String(rawPrice) : '0' }]);
+    }
 
     // Especificaciones y detalles enriquecidos
     const specs = getProductDetails(prod) || {};
@@ -266,16 +318,36 @@ export const AdminDashboard = () => {
   // Guardar Producto (Alta o Edición) con persistencia garantizada
   const handleSaveProductSubmit = async (e) => {
     e.preventDefault();
-    if (!formTitle || !formPrice) {
-      showNotification('error', 'Por favor, completa el título y el precio del producto.');
+    if (!formTitle) {
+      showNotification('error', 'Por favor, completa el título del producto.');
       return;
     }
 
     setIsSavingProduct(true);
-    const optionsArray = formOptions
-      .split(',')
-      .map(o => o.trim())
-      .filter(Boolean);
+
+    const validVariants = formVariants
+      .filter((v) => v.name.trim().length > 0)
+      .map((v) => ({
+        name: v.name.trim(),
+        price: parseFloat(String(v.price).replace(/[^0-9.-]/g, '')) || 0
+      }));
+
+    const finalVariants = validVariants.length > 0
+      ? validVariants
+      : [{ name: 'Estándar', price: parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0 }];
+
+    const variantPrices = finalVariants.map((v) => v.price).filter((p) => p > 0);
+    const finalBasePrice = variantPrices.length > 0
+      ? Math.min(...variantPrices)
+      : (parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0);
+
+    const numStock = parseInt(formStock, 10) || 0;
+    let finalBadge = formBadge.trim();
+    let finalBadgeType = formBadgeType;
+    if (numStock <= 0) {
+      finalBadge = 'SIN STOCK';
+      finalBadgeType = 'red';
+    }
 
     // Resolver IDs de categoría y subcategoría según lo seleccionado
     const catObj = categories.find(
@@ -308,16 +380,16 @@ export const AdminDashboard = () => {
     const payload = {
       title: formTitle.trim(),
       description: formDescription.trim(),
-      price: parseFloat(formPrice.toString().replace(/[^0-9.-]/g, '')) || 0,
-      stock: parseInt(formStock, 10) || 0,
+      price: finalBasePrice,
+      stock: numStock,
       category: formCategory,
       category_id: categoryId,
       subcategory: formSubcategory || null,
       subcategory_id: subcategoryId,
       image_url: formImageUrl.trim() || 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600',
-      badge: formBadge.trim(),
-      badge_type: formBadgeType,
-      options: optionsArray.length > 0 ? optionsArray : ['Estándar'],
+      badge: finalBadge,
+      badge_type: finalBadgeType,
+      options: finalVariants,
       // Pestañas de Información Detallada
       brand: formBrand.trim(),
       origin: formOrigin.trim(),
@@ -654,20 +726,46 @@ export const AdminDashboard = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4 font-bold text-white font-heading">
-                          {typeof prod.price === 'number' ? formatPrice(prod.price) : prod.price}
+                          {(() => {
+                            const pOpts = getProductOptions(prod);
+                            if (pOpts.length > 1) {
+                              const prices = pOpts.map(o => o.price).filter(p => !isNaN(p) && p > 0);
+                              if (prices.length > 0) {
+                                const min = Math.min(...prices);
+                                const max = Math.max(...prices);
+                                if (min !== max) {
+                                  return (
+                                    <div>
+                                      <span className="text-xs text-[#e0a96d] block font-heading">{formatPrice(min)} – {formatPrice(max)}</span>
+                                      <span className="text-[10px] text-gray-400 font-normal">({pOpts.length} medidas)</span>
+                                    </div>
+                                  );
+                                }
+                              }
+                            }
+                            return typeof prod.price === 'number' ? formatPrice(prod.price) : prod.price;
+                          })()}
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                            (prod.stock || 0) <= 5 
-                              ? 'bg-red-950/60 text-red-400 border border-red-500/50' 
-                              : 'bg-[#18311d] text-[#4aa036] border border-[#2d5a27]'
+                            (prod.stock || 0) <= 0 
+                              ? 'bg-red-950/80 text-red-400 border border-red-500/60' 
+                              : (prod.stock || 0) <= 5
+                                ? 'bg-amber-950/60 text-amber-400 border border-amber-500/50'
+                                : 'bg-[#18311d] text-[#4aa036] border border-[#2d5a27]'
                           }`}>
-                            {prod.stock || 0} un.
+                            {(prod.stock || 0) <= 0 ? '0 un. (Sin Stock)' : `${prod.stock} un.`}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           {prod.badge && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40 text-[10px] font-bold">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              prod.badge_type === 'red' || prod.badgeType === 'red' || prod.badge.toUpperCase() === 'SIN STOCK'
+                                ? 'bg-red-950/80 text-red-400 border border-red-500/50'
+                                : prod.badge_type === 'gold' || prod.badgeType === 'gold'
+                                  ? 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                                  : 'bg-[#18311d] text-[#4aa036] border border-[#2d5a27]'
+                            }`}>
                               {prod.badge}
                             </span>
                           )}
@@ -968,7 +1066,7 @@ export const AdminDashboard = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 mb-1">
-                        Precio ($ ARS) *
+                        Precio Base / Referencia ($ ARS) *
                       </label>
                       <input
                         type="number"
@@ -979,19 +1077,32 @@ export const AdminDashboard = () => {
                         placeholder="14500"
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
                       />
+                      <span className="text-[10px] text-gray-400 mt-1 block">
+                        Si defines medidas abajo, el precio base tomará automáticamente la opción más económica.
+                      </span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300 mb-1">
-                        Stock Disponible
+                      <label className="block text-xs font-semibold text-gray-300 mb-1 flex items-center justify-between">
+                        <span>Stock Disponible</span>
+                        {parseInt(formStock, 10) <= 0 && (
+                          <span className="text-[10px] text-red-400 font-bold">⚠️ Asignará "Sin Stock"</span>
+                        )}
                       </label>
                       <input
                         type="number"
                         value={formStock}
-                        onChange={(e) => setFormStock(e.target.value)}
+                        onChange={(e) => handleStockChange(e.target.value)}
                         placeholder="25"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition ${
+                          parseInt(formStock, 10) <= 0
+                            ? 'bg-red-950/30 border-red-500/80 text-red-200'
+                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
+                        }`}
                       />
+                      <span className="text-[10px] text-gray-400 mt-1 block">
+                        Al ingresar 0, el sistema asignará automáticamente "SIN STOCK" y deshabilitará la compra.
+                      </span>
                     </div>
                   </div>
 
@@ -1005,8 +1116,12 @@ export const AdminDashboard = () => {
                         type="text"
                         value={formBadge}
                         onChange={(e) => setFormBadge(e.target.value)}
-                        placeholder="Ej: STOCK DISPONIBLE, TOP VENTAS, LEY 27.350"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                        placeholder="Ej: STOCK DISPONIBLE, TOP VENTAS, LEY 27.350, SIN STOCK"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition ${
+                          formBadge.toUpperCase() === 'SIN STOCK'
+                            ? 'bg-red-950/30 border-red-500/80 text-red-200 font-bold'
+                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
+                        }`}
                       />
                     </div>
                     <div>
@@ -1020,22 +1135,71 @@ export const AdminDashboard = () => {
                       >
                         <option value="gold">Dorado Mostaza</option>
                         <option value="green">Verde Hoja</option>
+                        <option value="red">Rojo (Sin Stock / Alerta)</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* Presentaciones / Opciones */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 mb-1">
-                      Opciones y Presentaciones (separadas por coma)
-                    </label>
-                    <input
-                      type="text"
-                      value={formOptions}
-                      onChange={(e) => setFormOptions(e.target.value)}
-                      placeholder="100 cc, 250 cc, 500 cc"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
-                    />
+                  {/* Gestor de Medidas y Precios Independientes */}
+                  <div className="p-3.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                          Medidas y Precios Independientes
+                        </label>
+                        <p className="text-[10px] text-gray-400">
+                          Configurá cada presentación (ej: 100ml, 500ml, 2 Litros) con su propio precio de venta específico.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddVariant}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>Agregar Medida</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {formVariants.map((variant, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-[#122317] p-2 rounded-xl border border-[#1f3b25]">
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              required
+                              value={variant.name}
+                              onChange={(e) => handleVariantChange(idx, 'name', e.target.value)}
+                              placeholder="Medida / Presentación (ej: 100 ml, 500 ml)"
+                              className="w-full px-3 py-2 rounded-lg bg-[#0a140d] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+                          <div className="w-36">
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-2 text-xs text-gray-400 font-bold">$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                required
+                                value={variant.price}
+                                onChange={(e) => handleVariantChange(idx, 'price', e.target.value)}
+                                placeholder="Precio"
+                                className="w-full pl-6 pr-2.5 py-2 rounded-lg bg-[#0a140d] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={formVariants.length <= 1}
+                            onClick={() => handleRemoveVariant(idx)}
+                            title={formVariants.length <= 1 ? "Mínimo 1 opción requerida" : "Eliminar esta presentación"}
+                            className="p-2 rounded-lg bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* URL de Imagen con Previsualizador */}

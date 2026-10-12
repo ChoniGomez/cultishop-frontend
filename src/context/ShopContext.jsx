@@ -36,6 +36,126 @@ export const formatPrice = (amount) => {
   return `$${integerPart},${decimalPart}`;
 };
 
+/**
+ * Normaliza las opciones / medidas de un producto al formato estándar:
+ * [{ name: string, price: number }]
+ * Soporta retrocompatibilidad con arrays de strings (ej: ["100 cc", "250 cc"]).
+ */
+export const getProductOptions = (product) => {
+  if (!product) return [];
+  const raw = product.options;
+  if (!raw) return [];
+
+  let list = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) list = parsed;
+      else list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    } catch {
+      list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
+  const basePrice = typeof product.numericPrice === 'number'
+    ? product.numericPrice
+    : (typeof product.price === 'number' ? product.price : parsePrice(product.price));
+
+  return list.map((item, idx) => {
+    if (typeof item === 'object' && item !== null) {
+      const name = String(item.name || item.title || item.option || `Opción ${idx + 1}`).trim();
+      const price = typeof item.price === 'number'
+        ? item.price
+        : (item.price ? parsePrice(item.price) : basePrice);
+      return { name, price: isNaN(price) ? basePrice : price };
+    }
+    const name = String(item).trim();
+    return { name, price: basePrice };
+  }).filter((opt) => opt.name.length > 0);
+};
+
+/**
+ * Determina si un producto está agotado / sin stock.
+ * Se considera sin stock si su stock es 0 (o menor) o su badge es 'SIN STOCK'.
+ */
+export const isProductOutOfStock = (product) => {
+  if (!product) return false;
+  if (product.stock !== undefined && product.stock !== null) {
+    const num = Number(product.stock);
+    if (!isNaN(num) && num <= 0) return true;
+  }
+  const badgeStr = (product.badge || '').trim().toUpperCase();
+  if (badgeStr === 'SIN STOCK' || badgeStr === 'SIN-STOCK' || badgeStr === 'AGOTADO') {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Obtiene la información calculada de precios para un producto:
+ * - hasMultipleOptions: si tiene más de 1 medida/presentación
+ * - isRange: si los precios varían entre las opciones
+ * - minPrice / maxPrice: valores numéricos
+ * - formattedPrice: ej "$6.000,00 – $46.200,00" o "$14.500,00"
+ * - options: lista normalizada de [{ name, price }]
+ */
+export const getProductPriceInfo = (product) => {
+  if (!product) {
+    return {
+      hasMultipleOptions: false,
+      isRange: false,
+      minPrice: 0,
+      maxPrice: 0,
+      formattedPrice: '$0,00',
+      options: []
+    };
+  }
+
+  const options = getProductOptions(product);
+  const basePrice = typeof product.numericPrice === 'number'
+    ? product.numericPrice
+    : (typeof product.price === 'number' ? product.price : parsePrice(product.price));
+
+  if (options.length === 0) {
+    return {
+      hasMultipleOptions: false,
+      isRange: false,
+      minPrice: basePrice,
+      maxPrice: basePrice,
+      formattedPrice: formatPrice(basePrice),
+      options: []
+    };
+  }
+
+  if (options.length === 1) {
+    const singlePrice = options[0].price || basePrice;
+    return {
+      hasMultipleOptions: false,
+      isRange: false,
+      minPrice: singlePrice,
+      maxPrice: singlePrice,
+      formattedPrice: formatPrice(singlePrice),
+      options
+    };
+  }
+
+  const prices = options.map((o) => o.price).filter((p) => !isNaN(p) && p > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : basePrice;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : basePrice;
+  const isRange = minPrice !== maxPrice;
+
+  return {
+    hasMultipleOptions: true,
+    isRange,
+    minPrice,
+    maxPrice,
+    formattedPrice: isRange ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}` : formatPrice(minPrice),
+    options
+  };
+};
+
 export const ShopProvider = ({ children }) => {
   // Inicialización de carrito desde LocalStorage
   const [cart, setCart] = useState(() => {
@@ -102,7 +222,7 @@ export const ShopProvider = ({ children }) => {
       ...p,
       image: p.image || p.image_url,
       image_url: p.image || p.image_url,
-      badgeType: p.badgeType || p.badge_type || 'gold',
+      badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
       stock: p.stock ?? 25,
       numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
     }));
@@ -142,7 +262,7 @@ export const ShopProvider = ({ children }) => {
             ...p,
             image: p.image_url || p.image,
             image_url: p.image_url || p.image,
-            badgeType: p.badge_type || p.badgeType || 'gold',
+            badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
             numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
             price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
             stock: p.stock ?? 20,
@@ -491,11 +611,48 @@ export const ShopProvider = ({ children }) => {
 
   /**
    * Añade un producto al carrito con su variante seleccionada y cantidad.
+   * Valida stock > 0 y selección obligatoria si tiene múltiples medidas.
    */
   const addToCart = (product, selectedOption, quantity = 1) => {
-    const option = selectedOption || (product.options && product.options[0]) || 'Estándar';
-    const unitPrice = parsePrice(product.price);
-    const cartId = `${product.id}__${option}`;
+    // 1. Validación de Stock
+    if (isProductOutOfStock(product)) {
+      return {
+        success: false,
+        reason: 'out_of_stock',
+        message: 'Este producto se encuentra actualmente sin stock.'
+      };
+    }
+
+    const priceInfo = getProductPriceInfo(product);
+
+    // 2. Validación de selección obligatoria si hay múltiples opciones
+    if (priceInfo.hasMultipleOptions && (!selectedOption || String(selectedOption).trim() === '')) {
+      return {
+        success: false,
+        reason: 'option_required',
+        message: 'Por favor, seleccioná una opción o medida antes de agregar al carrito.'
+      };
+    }
+
+    // 3. Resolución de nombre de opción y precio unitario específico
+    let finalOptionName = 'Estándar';
+    let unitPrice = priceInfo.minPrice;
+
+    if (priceInfo.hasMultipleOptions) {
+      finalOptionName = selectedOption;
+      const matched = priceInfo.options.find((o) => o.name === selectedOption);
+      if (matched) {
+        unitPrice = matched.price;
+      }
+    } else if (priceInfo.options.length === 1) {
+      finalOptionName = priceInfo.options[0].name;
+      unitPrice = priceInfo.options[0].price;
+    } else if (selectedOption) {
+      finalOptionName = selectedOption;
+    }
+
+    const cartId = `${product.id}__${finalOptionName}`;
+    const formattedItemPrice = formatPrice(unitPrice);
 
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex((item) => item.cartId === cartId);
@@ -504,6 +661,8 @@ export const ShopProvider = ({ children }) => {
         updated[existingIndex] = {
           ...updated[existingIndex],
           quantity: updated[existingIndex].quantity + quantity,
+          unitPrice,
+          formattedPrice: formattedItemPrice
         };
         return updated;
       } else {
@@ -512,10 +671,10 @@ export const ShopProvider = ({ children }) => {
           productId: product.id,
           title: product.title,
           category: product.category,
-          selectedOption: option,
+          selectedOption: finalOptionName,
           unitPrice,
-          formattedPrice: product.price,
-          image: product.image,
+          formattedPrice: formattedItemPrice,
+          image: product.image || product.image_url,
           quantity,
         };
         return [...prevCart, newItem];
@@ -525,9 +684,12 @@ export const ShopProvider = ({ children }) => {
     // Notificación efímera
     setLastAddedItem({
       title: product.title,
-      option,
+      option: finalOptionName,
+      price: formattedItemPrice,
       time: Date.now(),
     });
+
+    return { success: true };
   };
 
   /**
@@ -620,6 +782,9 @@ export const ShopProvider = ({ children }) => {
         updateProduct,
         addProduct,
         deleteProduct,
+        getProductOptions,
+        isProductOutOfStock,
+        getProductPriceInfo,
         cart,
         isCartOpen,
         setIsCartOpen,

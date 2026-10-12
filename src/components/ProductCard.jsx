@@ -1,31 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, ShoppingBag, Check, Heart } from 'lucide-react';
+import { ShoppingCart, Check, Heart, XCircle, AlertCircle } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
-import { useShop, formatPrice } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 
 export const ProductCard = ({ product }) => {
-  const { addToCart, openCart, isFavorite, toggleFavorite } = useShop();
+  const { addToCart, isFavorite, toggleFavorite } = useShop();
   const isFav = isFavorite(product.id);
-  
-  // Variante seleccionada (por defecto la primera disponible)
+
+  const priceInfo = getProductPriceInfo(product);
+  const isOutOfStock = isProductOutOfStock(product);
+
+  // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
-    product.options && product.options.length > 0 ? product.options[0] : ''
+    priceInfo.hasMultipleOptions ? '' : (priceInfo.options[0]?.name || '')
   );
+
+  // Error de validación local si intenta comprar sin elegir opción
+  const [validationError, setValidationError] = useState('');
 
   // Estado efímero de confirmación visual al añadir
   const [isAdded, setIsAdded] = useState(false);
 
+  // Sincronizar selección si cambia el producto
+  useEffect(() => {
+    setSelectedOption(
+      priceInfo.hasMultipleOptions ? '' : (priceInfo.options[0]?.name || '')
+    );
+    setValidationError('');
+  }, [product.id, priceInfo.hasMultipleOptions]);
+
+  // Precio dinámico a mostrar según la variante elegida o rango
+  const selectedVariant = selectedOption
+    ? priceInfo.options.find((o) => o.name === selectedOption)
+    : null;
+  const displayPrice = selectedVariant
+    ? formatPrice(selectedVariant.price)
+    : priceInfo.formattedPrice;
+
   const handleAddToCart = () => {
-    addToCart(product, selectedOption, 1);
+    if (isOutOfStock) return;
+
+    if (priceInfo.hasMultipleOptions && !selectedOption) {
+      setValidationError('Elegí una opción');
+      setTimeout(() => setValidationError(''), 2500);
+      return;
+    }
+
+    setValidationError('');
+    const res = addToCart(product, selectedOption, 1);
+    if (res && res.success === false) {
+      setValidationError(res.message || 'Error al añadir');
+      setTimeout(() => setValidationError(''), 2500);
+      return;
+    }
+
     setIsAdded(true);
     setTimeout(() => {
       setIsAdded(false);
     }, 1200);
   };
 
+  const waText = isOutOfStock
+    ? `Hola CultiShop! Consulto por ingreso o disponibilidad de ${product.title}`
+    : `Hola CultiShop! Consulto por ${product.title}${selectedOption ? ` (${selectedOption})` : ''}`;
+
   return (
-    <div className="bg-[#122317] border border-[#1f3b25] hover:border-[#38761d] rounded-2xl p-4 shadow-lg hover:shadow-2xl transition duration-200 flex flex-col justify-between group relative">
+    <div className={`bg-[#122317] border rounded-2xl p-4 shadow-lg hover:shadow-2xl transition duration-200 flex flex-col justify-between group relative ${
+      isOutOfStock ? 'border-[#331c1c] opacity-95' : 'border-[#1f3b25] hover:border-[#38761d]'
+    }`}>
       {/* Imagen y Badges con enlace al detalle */}
       <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0a140d]">
         <Link 
@@ -36,29 +79,39 @@ export const ProductCard = ({ product }) => {
           <img 
             src={product.image || product.image_url} 
             alt={product.title} 
-            className="object-cover h-full w-full group-hover:scale-105 transition duration-300 opacity-90 group-hover:opacity-100" 
+            className={`object-cover h-full w-full group-hover:scale-105 transition duration-300 ${
+              isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-90 group-hover:opacity-100'
+            }`} 
           />
         </Link>
         
         {/* Badge destacado tipo flyer CultiShop */}
-        {product.badge && (
-          <div className="absolute top-2.5 left-2.5 pointer-events-none">
+        {isOutOfStock ? (
+          <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
+            <span className="text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md bg-red-600 text-white border border-red-400 shadow-red-950/60">
+              SIN STOCK
+            </span>
+          </div>
+        ) : product.badge ? (
+          <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
             <span className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md ${
-              product.badgeType === 'gold' 
-                ? 'bg-[#e0a96d] text-black font-extrabold' 
-                : 'bg-[#2d5a27] text-white border border-[#4aa036]/60'
+              product.badgeType === 'red' || product.badge.toUpperCase() === 'SIN STOCK'
+                ? 'bg-red-600 text-white border border-red-400'
+                : product.badgeType === 'gold' 
+                  ? 'bg-[#e0a96d] text-black font-extrabold' 
+                  : 'bg-[#2d5a27] text-white border border-[#4aa036]/60'
             }`}>
               {product.badge}
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Botón rápido WhatsApp y Favorito flotante */}
         <div className={`absolute right-2 top-2 transition-all duration-200 flex flex-col gap-1.5 bg-[#0d1a11]/90 rounded-lg p-1.5 border border-[#2d5a27] shadow-lg z-10 ${
           isFav ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}>
           <a
-            href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Consulto%20por%20${encodeURIComponent(product.title)}${selectedOption ? ` (${encodeURIComponent(selectedOption)})` : ''}`}
+            href={`https://wa.me/5493764356995?text=${encodeURIComponent(waText)}`}
             target="_blank"
             rel="noreferrer"
             title="Consultar por WhatsApp"
@@ -115,57 +168,96 @@ export const ProductCard = ({ product }) => {
 
       {/* Opciones y Botón interactivo de Compra */}
       <div className="mt-4 pt-3 border-t border-[#1a3320] space-y-3">
-        {product.options && product.options.length > 0 && (
-          <div>
-            <label className="sr-only">Seleccionar variante</label>
+        {/* Selector Desplegable para múltiples opciones */}
+        {priceInfo.hasMultipleOptions ? (
+          <div className="space-y-1">
+            <label className="sr-only">Seleccionar medida o presentación</label>
             <select 
               value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              className="w-full text-xs bg-[#0a140d] border border-[#23422a] rounded-lg p-2 text-gray-200 focus:outline-none focus:border-[#4aa036] cursor-pointer"
+              onChange={(e) => {
+                setSelectedOption(e.target.value);
+                if (validationError) setValidationError('');
+              }}
+              disabled={isOutOfStock}
+              className={`w-full text-xs rounded-lg p-2 transition cursor-pointer font-medium ${
+                isOutOfStock 
+                  ? 'bg-[#0a140d]/60 border-[#1f3b25] text-gray-500 cursor-not-allowed'
+                  : validationError
+                    ? 'bg-red-950/40 border-red-500 text-white ring-1 ring-red-500 animate-pulse'
+                    : selectedOption
+                      ? 'bg-[#0e2114] border-[#4aa036] text-[#e0a96d]'
+                      : 'bg-[#0a140d] border-[#23422a] text-gray-300 focus:outline-none focus:border-[#4aa036]'
+              }`}
             >
-              {product.options.map((opt, idx) => (
-                <option key={idx} value={opt} className="bg-[#0e1c12] text-white">
-                  {opt}
+              <option value="">Elegí una opción...</option>
+              {priceInfo.options.map((opt, idx) => (
+                <option key={idx} value={opt.name} className="bg-[#0e1c12] text-white">
+                  {opt.name} — {formatPrice(opt.price)}
                 </option>
               ))}
             </select>
+            {validationError && (
+              <div className="flex items-center gap-1 text-[10px] text-red-400 font-bold px-1 animate-fade-in">
+                <AlertCircle size={11} className="shrink-0" />
+                <span>{validationError}</span>
+              </div>
+            )}
           </div>
-        )}
+        ) : priceInfo.options.length === 1 && priceInfo.options[0].name !== 'Estándar' ? (
+          <div className="text-[11px] text-gray-400 font-medium">
+            Presentación: <span className="text-gray-200 font-bold">{priceInfo.options[0].name}</span>
+          </div>
+        ) : null}
 
         <div className="flex items-center justify-between gap-2">
           <div>
-            <span className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">Precio</span>
-            <span className="text-[#e0a96d] font-black text-lg font-heading leading-tight">
-              {typeof product.price === 'number' ? formatPrice(product.price) : product.price}
+            <span className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+              {priceInfo.hasMultipleOptions && !selectedOption ? 'Desde' : 'Precio'}
+            </span>
+            <span className="text-[#e0a96d] font-black text-lg font-heading leading-tight block">
+              {displayPrice}
             </span>
           </div>
 
-          {/* Botón interactivo: Añadir al Carrito */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            aria-label={`Añadir ${product.title} al carrito`}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shadow-md border active:scale-95 cursor-pointer ${
-              isAdded
-                ? 'bg-[#38761d] text-white border-[#4aa036] shadow-[#4aa036]/20'
-                : 'bg-[#2d5a27] hover:bg-[#38761d] text-white border-[#4aa036]/50 hover:border-[#4aa036] shadow-black/40'
-            }`}
-          >
-            {isAdded ? (
-              <>
-                <Check size={15} className="text-white animate-bounce" />
-                <span>¡Añadido!</span>
-              </>
-            ) : (
-              <>
-                <ShoppingCart size={15} className="shrink-0" />
-                <span>Añadir</span>
-              </>
-            )}
-          </button>
+          {/* Botón interactivo: Añadir al Carrito o Sin Stock */}
+          {isOutOfStock ? (
+            <button
+              type="button"
+              disabled
+              aria-label={`${product.title} sin stock disponible`}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md border bg-[#1a0f0f] text-red-400 border-red-900/60 cursor-not-allowed opacity-80"
+            >
+              <XCircle size={15} className="shrink-0" />
+              <span>Sin Stock</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              aria-label={`Añadir ${product.title} al carrito`}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shadow-md border active:scale-95 cursor-pointer ${
+                isAdded
+                  ? 'bg-[#38761d] text-white border-[#4aa036] shadow-[#4aa036]/20'
+                  : 'bg-[#2d5a27] hover:bg-[#38761d] text-white border-[#4aa036]/50 hover:border-[#4aa036] shadow-black/40'
+              }`}
+            >
+              {isAdded ? (
+                <>
+                  <Check size={15} className="text-white animate-bounce" />
+                  <span>¡Añadido!</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart size={15} className="shrink-0" />
+                  <span>Añadir</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 
