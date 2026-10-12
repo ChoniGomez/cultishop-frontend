@@ -9,6 +9,7 @@ import { HeroCarousel } from './components/HeroCarousel';
 import { AuthView } from './components/AuthView';
 import { NotFound } from './components/NotFound';
 import { FavoritesView } from './components/FavoritesView';
+import { AdminDashboard } from './components/AdminDashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -191,6 +192,8 @@ function App() {
               <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
               <Route path="/favoritos" element={<FavoritesView />} />
               <Route path="/ingresar" element={<AuthView />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/*" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

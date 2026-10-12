@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, Sparkles, ArrowLeft, Search, X } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
-import { PRODUCTS } from '../data/products';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
@@ -10,7 +9,7 @@ import { useShop } from '../context/ShopContext';
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
-  const { searchQuery, setSearchQuery, clearSearch } = useShop();
+  const { products, searchQuery, setSearchQuery, clearSearch } = useShop();
   const currentCategorySlug = category || slug;
   const [selectedCategory, setSelectedCategory] = useState('todos');
 
@@ -29,8 +28,6 @@ export const ProductSection = () => {
       setSelectedCategory('todos');
     }
   }, [currentCategorySlug, subcategory]);
-
-  const products = PRODUCTS;
 
   const matchedCategory = CATEGORIES.find(c => c.slug === currentCategorySlug);
   const matchedSubcategory = matchedCategory?.subcategories?.find(s => s.slug === subcategory);

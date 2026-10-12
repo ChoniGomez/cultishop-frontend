@@ -11,10 +11,13 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Link } from 'react-router-dom';
 
 export const CartDrawer = () => {
+  const { user, token } = useAuth();
   const {
     cart,
     isCartOpen,
@@ -23,9 +26,30 @@ export const CartDrawer = () => {
     updateQuantity,
     clearCart,
     totalItems,
+    totalPrice,
     formattedTotalPrice,
     getWhatsAppCheckoutUrl,
   } = useShop();
+
+  const handleCheckoutClick = async () => {
+    try {
+      await fetch(buildApiUrl('orders'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          items: cart,
+          total_amount: totalPrice,
+          customer_name: user?.name || 'Cliente Web CultiShop',
+          customer_email: user?.email || null
+        })
+      });
+    } catch (err) {
+      console.warn('Error al registrar pedido en backend:', err);
+    }
+  };
 
   // Cerrar con la tecla Escape
   useEffect(() => {
@@ -235,6 +259,7 @@ export const CartDrawer = () => {
             {/* Botón oficial de Checkout por WhatsApp */}
             <a
               href={getWhatsAppCheckoutUrl()}
+              onClick={handleCheckoutClick}
               target="_blank"
               rel="noreferrer"
               className="w-full py-3 px-4 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-extrabold text-sm flex items-center justify-center gap-2.5 transition-all shadow-lg hover:shadow-[#25d366]/20 hover:scale-[1.01] active:scale-95 group font-heading"

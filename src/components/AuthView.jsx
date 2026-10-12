@@ -12,7 +12,10 @@ import {
   LogOut, 
   ShoppingBag, 
   Heart, 
-  Sparkles
+  Sparkles,
+  KeyRound,
+  Shield,
+  LayoutDashboard
 } from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,7 +26,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '104719283749-demo-cultishop-client.apps.googleusercontent.com';
 
 export const AuthView = () => {
-  const { user, login, register, loginWithGoogle, logout, loading } = useAuth();
+  const { user, login, register, loginWithGoogle, logout, changePassword, loading } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
@@ -36,6 +39,16 @@ export const AuthView = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isAdult, setIsAdult] = useState(false);
+
+  // Estados para cambio de contraseña seguro
+  const [showChangePassForm, setShowChangePassForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passError, setPassError] = useState('');
+  const [passSuccess, setPassSuccess] = useState('');
+  const [isSubmittingPass, setIsSubmittingPass] = useState(false);
 
   const resetForm = () => {
     setName('');
@@ -121,10 +134,42 @@ export const AuthView = () => {
     setErrorMessage('Error al conectar con el servicio de Google Sign-In.');
   };
 
+  // Manejo de cambio de contraseña
+  const handlePasswordChangeSubmit = async (e) => {
+    e.preventDefault();
+    setPassError('');
+    setPassSuccess('');
+
+    if (!newPassword || newPassword.length < 6) {
+      setPassError('La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassError('Las nuevas contraseñas no coinciden.');
+      return;
+    }
+
+    setIsSubmittingPass(true);
+    const res = await changePassword(currentPassword, newPassword);
+    setIsSubmittingPass(false);
+
+    if (!res.success) {
+      setPassError(res.error || 'Error al actualizar la contraseña.');
+    } else {
+      setPassSuccess(res.message || '¡Contraseña actualizada exitosamente!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
   // ==========================================
   // VISTA SI EL USUARIO YA ESTÁ AUTENTICADO
   // ==========================================
   if (user) {
+    const isAdmin = user.role === 'admin';
+
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
@@ -134,19 +179,32 @@ export const AuthView = () => {
           {/* Encabezado del perfil */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-[#1f3b25]">
             <div className="flex items-center gap-4 text-center sm:text-left">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2d5a27] to-[#18311d] border-2 border-[#4aa036] flex items-center justify-center text-white text-2xl font-black font-heading shadow-lg shadow-black/50">
+              <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center text-white text-2xl font-black font-heading shadow-lg shadow-black/50 ${
+                isAdmin 
+                  ? 'bg-gradient-to-br from-[#e0a96d] to-[#b37d45] border-[#e0a96d] text-black' 
+                  : 'bg-gradient-to-br from-[#2d5a27] to-[#18311d] border-[#4aa036]'
+              }`}>
                 {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
               </div>
               <div>
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
                   <h2 className="text-2xl font-black text-white font-heading">{user.name}</h2>
+                  {isAdmin ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#362410] border border-[#e0a96d] text-[10px] font-black text-[#e0a96d] uppercase tracking-wider shadow-sm">
+                      <Shield size={12} className="fill-[#e0a96d]" /> Rol: Administrador
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#142619] border border-[#4aa036]/60 text-[10px] font-bold text-[#4aa036] uppercase tracking-wider">
+                      <ShieldCheck size={12} /> Rol: Consumidor
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#18311d] border border-[#4aa036]/50 text-[10px] font-bold text-[#4aa036] uppercase">
-                    <ShieldCheck size={12} /> +18 Verificado
+                    +18 Verificado
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
                 <span className="inline-block mt-1 text-[11px] font-semibold text-[#e0a96d]">
-                  Cliente Oficial CultiShop
+                  {isAdmin ? 'Cuenta de Administración Oficial' : 'Cliente Registrado de CultiShop'}
                 </span>
               </div>
             </div>
@@ -159,6 +217,29 @@ export const AuthView = () => {
               <span>Cerrar Sesión</span>
             </button>
           </div>
+
+          {/* BANNER DESTACADO PARA ADMINISTRADORES */}
+          {isAdmin && (
+            <div className="mt-8 p-5 rounded-2xl bg-gradient-to-r from-[#1a3821] via-[#24492b] to-[#1a3821] border-2 border-[#e0a96d] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-center sm:text-left">
+                <div className="w-12 h-12 rounded-xl bg-[#e0a96d] text-black flex items-center justify-center font-black shadow-md shrink-0">
+                  <LayoutDashboard size={24} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#e0a96d]">Acceso de Gestión</span>
+                  <h3 className="text-lg font-black text-white font-heading">Panel de Administración CultiShop</h3>
+                  <p className="text-xs text-gray-200">Alta, baja y modificación de productos (CRUD), stock e imágenes, y gestión de pedidos.</p>
+                </div>
+              </div>
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#e0a96d] hover:bg-[#f5c387] text-black font-black text-xs uppercase tracking-wider transition shadow-lg shrink-0 group hover:scale-105"
+              >
+                <span>Abrir Panel Admin</span>
+                <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          )}
 
           {/* Tarjetas de acciones rápidas */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
@@ -196,6 +277,109 @@ export const AuthView = () => {
               <h3 className="font-bold text-sm text-white font-heading">Atención Directa</h3>
               <p className="text-xs text-gray-400 mt-1">Contactate con nuestro equipo en Posadas por WhatsApp.</p>
             </a>
+          </div>
+
+          {/* SECCIÓN SEGURIDAD Y CAMBIO DE CONTRASEÑA */}
+          <div className="mb-8 bg-[#122317] border border-[#23442a] rounded-2xl p-6 shadow-md">
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#1c3623] text-[#e0a96d] flex items-center justify-center">
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white font-heading">Seguridad de la Cuenta</h3>
+                  <p className="text-xs text-gray-400">Actualiza tu contraseña de acceso para mantener protegida tu cuenta.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowChangePassForm(!showChangePassForm);
+                  setPassError('');
+                  setPassSuccess('');
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#18311d] hover:bg-[#23442a] text-gray-200 border border-[#2d5a27] transition shadow-sm"
+              >
+                {showChangePassForm ? 'Ocultar Formulario' : 'Cambiar Contraseña'}
+              </button>
+            </div>
+
+            {showChangePassForm && (
+              <form onSubmit={handlePasswordChangeSubmit} className="mt-4 pt-4 border-t border-[#1f3b25] space-y-4 max-w-lg">
+                {passError && (
+                  <div className="p-3 bg-red-950/60 border border-red-500/50 rounded-xl text-xs text-red-200 flex items-center gap-2">
+                    <AlertCircle size={15} className="shrink-0 text-red-400" />
+                    <span>{passError}</span>
+                  </div>
+                )}
+                {passSuccess && (
+                  <div className="p-3 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-xs text-emerald-200 flex items-center gap-2">
+                    <CheckCircle2 size={15} className="shrink-0 text-[#25d366]" />
+                    <span>{passSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Contraseña Actual (dejar en blanco si te registraste con Google)
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0c1810] border border-[#23442a] focus:border-[#4aa036] text-white text-xs outline-none transition"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">
+                      Nueva Contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className="w-full px-3.5 py-2.5 pr-9 rounded-xl bg-[#0c1810] border border-[#23442a] focus:border-[#4aa036] text-white text-xs outline-none transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-2.5 top-2.5 text-gray-400 hover:text-white"
+                      >
+                        {showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">
+                      Confirmar Nueva Contraseña
+                    </label>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repetir nueva contraseña"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0c1810] border border-[#23442a] focus:border-[#4aa036] text-white text-xs outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingPass}
+                    className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingPass ? 'Guardando...' : 'Actualizar Contraseña'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* Banner de beneficios */}

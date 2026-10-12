@@ -10,7 +10,8 @@ import {
   ArrowRight,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  Shield
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '../assets/logo.png';
@@ -427,6 +428,16 @@ export const Navbar = () => {
                   </span>
                 )}
               </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2a1e0f] border border-[#e0a96d] text-[#e0a96d] hover:bg-[#e0a96d] hover:text-black transition text-xs font-black uppercase tracking-wider shadow-sm"
+                  title="Panel de Administración"
+                >
+                  <Shield size={12} className="fill-current" />
+                  <span>Admin</span>
+                </Link>
+              )}
               <Link to="/ingresar" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
                 <User size={15} className={user ? 'text-[#4aa036]' : ''} />
                 <span>{user ? user.name.split(' ')[0] : 'Ingresar'}</span>
@@ -605,6 +616,19 @@ export const Navbar = () => {
                     </span>
                   )}
                 </Link>
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2 text-xs font-bold bg-[#2a1e0f] border border-[#e0a96d] text-[#e0a96d] hover:bg-[#e0a96d] hover:text-black rounded-lg transition shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Shield size={15} className="fill-current" />
+                      <span>Panel de Administración</span>
+                    </div>
+                    <ArrowRight size={13} />
+                  </Link>
+                )}
                 <Link
                   to="/ingresar"
                   onClick={() => setIsMobileMenuOpen(false)}

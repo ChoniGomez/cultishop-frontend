@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingCart, ShoppingBag, Check, Heart } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
-import { useShop } from '../context/ShopContext';
+import { useShop, formatPrice } from '../context/ShopContext';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, openCart, isFavorite, toggleFavorite } = useShop();
@@ -28,7 +28,7 @@ export const ProductCard = ({ product }) => {
       {/* Imagen y Badges */}
       <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0a140d]">
         <img 
-          src={product.image} 
+          src={product.image || product.image_url} 
           alt={product.title} 
           className="object-cover h-full w-full group-hover:scale-105 transition duration-300 opacity-90 group-hover:opacity-100" 
         />
@@ -122,7 +122,7 @@ export const ProductCard = ({ product }) => {
           <div>
             <span className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">Precio</span>
             <span className="text-[#e0a96d] font-black text-lg font-heading leading-tight">
-              {product.price}
+              {typeof product.price === 'number' ? formatPrice(product.price) : product.price}
             </span>
           </div>
 

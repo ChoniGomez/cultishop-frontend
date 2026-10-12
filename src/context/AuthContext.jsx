@@ -152,13 +152,55 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const changePassword = async (currentPassword, newPassword) => {
+    setLoading(true);
+    try {
+      if (!token) {
+        throw new Error('Debes iniciar sesión para cambiar tu contraseña.');
+      }
+
+      const res = await fetch(buildApiUrl('auth/change-password'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      const data = await safeParseJson(res);
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cambiar la contraseña.');
+      }
+
+      return { success: true, message: data.message || 'Contraseña actualizada con éxito.' };
+    } catch (err) {
+      return { success: false, error: err.message || 'Error de conexión con el servidor.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      login, 
+      register, 
+      loginWithGoogle, 
+      logout,
+      changePassword,
+      isAdmin 
+    }}>
       {children}
     </AuthContext.Provider>
   );

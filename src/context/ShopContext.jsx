@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
+import { buildApiUrl } from '../config/api';
 
 const ShopContext = createContext();
 
 const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
+const PRODUCTS_STORAGE_KEY = 'cultishop_products_v2';
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
@@ -78,6 +81,291 @@ export const ShopProvider = ({ children }) => {
       console.error('Error al guardar favoritos en LocalStorage:', err);
     }
   }, [favorites]);
+
+  // ============================================================
+  // GESTIÓN Y PERSISTENCIA DE PRODUCTOS (CATÁLOGO DINÁMICO)
+  // ============================================================
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.error('Error al leer productos de LocalStorage:', err);
+    }
+    return FALLBACK_PRODUCTS.map((p) => ({
+      ...p,
+      image: p.image || p.image_url,
+      image_url: p.image || p.image_url,
+      badgeType: p.badgeType || p.badge_type || 'gold',
+      stock: p.stock ?? 25,
+      numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
+    }));
+  });
+
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Sincronizar con Backend y persistir en LocalStorage
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const res = await fetch(buildApiUrl('products'));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          const apiProducts = data.products.map((p) => ({
+            ...p,
+            image: p.image_url || p.image,
+            image_url: p.image_url || p.image,
+            badgeType: p.badge_type || p.badgeType || 'gold',
+            numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
+            price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
+            stock: p.stock ?? 20
+          }));
+
+          setProducts((prevProducts) => {
+            // Combinar inteligentemente respetando ediciones locales recientes
+            const merged = apiProducts.map((dbProd) => {
+              const localMatch = prevProducts.find(
+                (lp) => lp.id === dbProd.id || String(lp.id) === String(dbProd.id)
+              );
+              if (localMatch && localMatch._localUpdated) {
+                const isLocalNewer =
+                  !dbProd.updated_at ||
+                  new Date(localMatch._localUpdated) > new Date(dbProd.updated_at);
+                if (isLocalNewer) {
+                  return { ...dbProd, ...localMatch };
+                }
+              }
+              return dbProd;
+            });
+
+            const apiIds = new Set(apiProducts.map((p) => String(p.id)));
+            const extraLocal = prevProducts.filter((lp) => !apiIds.has(String(lp.id)));
+            const finalProducts = [...merged, ...extraLocal];
+
+            try {
+              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
+            } catch (e) {
+              console.error('Error guardando productos en LocalStorage:', e);
+            }
+            return finalProducts;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/products no disponible temporalmente, catálogo local activo:', err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  /**
+   * Actualiza un producto existente (imagen, precio, stock, etc.).
+   * Persiste inmediatamente en LocalStorage y sincroniza con el backend.
+   */
+  const updateProduct = async (id, updatedFields, authToken) => {
+    const finalImage = updatedFields.image_url || updatedFields.image;
+    const nowIso = new Date().toISOString();
+
+    // 1. Actualización inmediata en el estado de productos y LocalStorage
+    setProducts((prev) => {
+      const next = prev.map((p) => {
+        if (p.id === id || String(p.id) === String(id)) {
+          return {
+            ...p,
+            ...updatedFields,
+            image: finalImage || p.image,
+            image_url: finalImage || p.image_url,
+            badgeType: updatedFields.badge_type || updatedFields.badgeType || p.badgeType || 'gold',
+            price: typeof updatedFields.price === 'number' ? formatPrice(updatedFields.price) : updatedFields.price,
+            numericPrice: typeof updatedFields.price === 'number' ? updatedFields.price : parsePrice(updatedFields.price),
+            _localUpdated: nowIso
+          };
+        }
+        return p;
+      });
+      try {
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+      } catch (err) {
+        console.error('Error al guardar productos en LocalStorage:', err);
+      }
+      return next;
+    });
+
+    // 2. Si el producto estaba en favoritos, actualizar su foto e información
+    setFavorites((prevFavs) => {
+      const nextFavs = prevFavs.map((f) => {
+        if (f.id === id || String(f.id) === String(id)) {
+          return {
+            ...f,
+            ...updatedFields,
+            image: finalImage || f.image,
+            image_url: finalImage || f.image_url
+          };
+        }
+        return f;
+      });
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
+      } catch (e) {}
+      return nextFavs;
+    });
+
+    // 3. Si el producto estaba en el carrito, actualizar su foto y título
+    setCart((prevCart) => {
+      const nextCart = prevCart.map((item) => {
+        if (item.productId === id || String(item.productId) === String(id)) {
+          return {
+            ...item,
+            image: finalImage || item.image,
+            title: updatedFields.title || item.title
+          };
+        }
+        return item;
+      });
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextCart));
+      } catch (e) {}
+      return nextCart;
+    });
+
+    // 4. Sincronizar vía PUT con el backend
+    try {
+      const res = await fetch(buildApiUrl(`products/${id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify(updatedFields)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.product) {
+          const dbProd = {
+            ...data.product,
+            image: data.product.image_url || data.product.image,
+            image_url: data.product.image_url || data.product.image,
+            badgeType: data.product.badge_type || data.product.badgeType || 'gold',
+            price: typeof data.product.price === 'number' ? formatPrice(data.product.price) : data.product.price,
+            numericPrice: typeof data.product.price === 'number' ? data.product.price : parsePrice(data.product.price),
+            stock: data.product.stock ?? 20
+          };
+          setProducts((prev) => {
+            const next = prev.map((p) => (p.id === id || String(p.id) === String(id) ? { ...p, ...dbProd } : p));
+            try {
+              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+            } catch (e) {}
+            return next;
+          });
+        }
+      }
+    } catch (apiErr) {
+      console.warn('PUT /api/products no sincronizado con backend, guardado en LocalStorage:', apiErr);
+    }
+
+    return { success: true };
+  };
+
+  /**
+   * Da de alta un nuevo producto en el catálogo.
+   */
+  const addProduct = async (newProductData, authToken) => {
+    const tempId = Date.now();
+    const finalImage = newProductData.image_url || newProductData.image;
+    const optimisticProd = {
+      id: tempId,
+      ...newProductData,
+      image: finalImage,
+      image_url: finalImage,
+      badgeType: newProductData.badge_type || newProductData.badgeType || 'gold',
+      price: typeof newProductData.price === 'number' ? formatPrice(newProductData.price) : newProductData.price,
+      numericPrice: typeof newProductData.price === 'number' ? newProductData.price : parsePrice(newProductData.price),
+      stock: newProductData.stock ?? 20,
+      _localUpdated: new Date().toISOString()
+    };
+
+    setProducts((prev) => {
+      const next = [optimisticProd, ...prev];
+      try {
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    try {
+      const res = await fetch(buildApiUrl('products'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify(newProductData)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.product) {
+          const dbProd = {
+            ...data.product,
+            image: data.product.image_url || data.product.image,
+            image_url: data.product.image_url || data.product.image,
+            badgeType: data.product.badge_type || data.product.badgeType || 'gold',
+            price: typeof data.product.price === 'number' ? formatPrice(data.product.price) : data.product.price,
+            numericPrice: typeof data.product.price === 'number' ? data.product.price : parsePrice(data.product.price),
+            stock: data.product.stock ?? 20
+          };
+          setProducts((prev) => {
+            const next = prev.map((p) => (p.id === tempId ? dbProd : p));
+            try {
+              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+            } catch (e) {}
+            return next;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('POST /api/products guardado localmente:', err);
+    }
+
+    return { success: true };
+  };
+
+  /**
+   * Da de baja / elimina un producto del catálogo.
+   */
+  const deleteProduct = async (id, authToken) => {
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id !== id && String(p.id) !== String(id));
+      try {
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    try {
+      await fetch(buildApiUrl(`products/${id}`), {
+        method: 'DELETE',
+        headers: {
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        }
+      });
+    } catch (err) {
+      console.warn('DELETE /api/products eliminado localmente:', err);
+    }
+
+    return { success: true };
+  };
 
   // Estado global para la barra de búsqueda (inicializado desde query params si existen)
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -258,6 +546,12 @@ export const ShopProvider = ({ children }) => {
   return (
     <ShopContext.Provider
       value={{
+        products,
+        loadingProducts,
+        fetchProducts,
+        updateProduct,
+        addProduct,
+        deleteProduct,
         cart,
         isCartOpen,
         setIsCartOpen,
