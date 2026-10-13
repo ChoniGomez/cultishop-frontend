@@ -55,12 +55,12 @@ function App() {
     <AuthProvider>
       <ShopProvider>
         <BrowserRouter>
-          <div className="min-h-screen flex flex-col bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white">
+          <div className="min-h-screen w-full flex flex-col bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white overflow-x-hidden">
             <AgeVerificationModal />
             <CartDrawer />
             <Navbar />
           
-          <main className="flex-grow">
+          <main className="flex-grow w-full overflow-x-hidden">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/productos" element={<HomePage />} />

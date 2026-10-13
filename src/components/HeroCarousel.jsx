@@ -267,23 +267,23 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
               {/* Contenido textual superpuesto completamente centrado sólo si showText es true */}
               {showText && (
-                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex flex-col items-center justify-center text-center">
-                  <div className="space-y-2.5 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 w-full flex flex-col items-center justify-center text-center">
+                  <div className="space-y-2 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
                     {/* Badge temático centrado */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[10px] sm:text-xs font-bold text-[#e0a96d] uppercase tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
-                      <Sparkles size={12} className="text-[#e0a96d] shrink-0" />
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-0.5 sm:py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[9px] sm:text-[11px] md:text-xs font-bold text-[#e0a96d] uppercase tracking-wider sm:tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
+                      <Sparkles size={11} className="text-[#e0a96d] shrink-0" />
                       <span>{badgeText}</span>
                     </div>
 
                     {/* Subtítulo previo */}
                     {description && subtitle && (
-                      <p className="text-[#e0a96d] text-xs sm:text-sm font-semibold tracking-wide">
+                      <p className="text-[#e0a96d] text-[11px] sm:text-xs md:text-sm font-semibold tracking-wide">
                         {subtitle}
                       </p>
                     )}
 
                     {/* Título principal centrado con tono mostaza/dorado */}
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
+                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
                       {slide.titlePrefix && slide.titleHighlight ? (
                         <>
                           {slide.titlePrefix}
@@ -305,34 +305,34 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
                     {/* Bajada descriptiva centrada */}
                     {(description || subtitle) && (
-                      <p className="text-gray-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl drop-shadow text-center">
+                      <p className="text-gray-200 text-[11px] sm:text-xs md:text-base leading-relaxed max-w-2xl drop-shadow text-center line-clamp-2 sm:line-clamp-none">
                         {description || subtitle}
                       </p>
                     )}
 
                     {/* Cuadro destacado de horarios (centrado) */}
                     {isSchedule && (
-                      <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-3 sm:p-3.5 max-w-lg w-full shadow-xl space-y-2 text-center mx-auto">
-                        <div className="flex items-center justify-center gap-2 text-[#e0a96d] text-[11px] font-bold uppercase tracking-wider">
-                          <Clock size={14} className="shrink-0" />
+                      <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-2.5 sm:p-3.5 max-w-lg w-full shadow-xl space-y-1.5 sm:space-y-2 text-center mx-auto">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-[#e0a96d] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+                          <Clock size={13} className="shrink-0" />
                           <span>Horarios en Nuestro Local</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                          <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
-                            <span className="text-gray-400 block font-semibold text-[10px]">Lunes a Viernes</span>
-                            <span className="text-white font-bold text-xs">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
+                          <div className="bg-[#122416] p-1.5 sm:p-2 rounded-lg border border-[#1f3b25]">
+                            <span className="text-gray-400 block font-semibold text-[9px] sm:text-[10px]">Lunes a Viernes</span>
+                            <span className="text-white font-bold text-[11px] sm:text-xs">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
                           </div>
-                          <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
-                            <span className="text-gray-400 block font-semibold text-[10px]">Sábados</span>
-                            <span className="text-white font-bold text-xs">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
+                          <div className="bg-[#122416] p-1.5 sm:p-2 rounded-lg border border-[#1f3b25]">
+                            <span className="text-gray-400 block font-semibold text-[9px] sm:text-[10px]">Sábados</span>
+                            <span className="text-white font-bold text-[11px] sm:text-xs">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center justify-center gap-3 pt-0.5 text-[10px]">
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-0.5 text-[9px] sm:text-[10px]">
                           <span className="text-red-400 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-900/50">
                             Domingos: Cerrado
                           </span>
                           <span className="text-gray-300 flex items-center gap-1 font-medium">
-                            <MapPin size={12} className="text-[#e0a96d]" />
+                            <MapPin size={11} className="text-[#e0a96d]" />
                             Av. López y Planes 2919, Posadas
                           </span>
                         </div>
@@ -340,25 +340,25 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                     )}
 
                     {/* Botones de acción centrados */}
-                    <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                    <div className="pt-1.5 sm:pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                       {isExternalCta ? (
                         <a
                           href={ctaLink}
                           target="_blank"
                           rel="noreferrer"
-                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                         >
-                          {ctaLink.includes('maps') && <MapPin size={15} className="text-[#e0a96d]" />}
+                          {ctaLink.includes('maps') && <MapPin size={14} className="text-[#e0a96d]" />}
                           <span>{ctaText}</span>
-                          <ExternalLink size={14} />
+                          <ExternalLink size={13} />
                         </a>
                       ) : (
                         <Link
                           to={ctaLink}
-                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                         >
                           <span>{ctaText}</span>
-                          <ArrowRight size={15} />
+                          <ArrowRight size={14} />
                         </Link>
                       )}
 
@@ -366,10 +366,10 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                         href={`https://wa.me/5493764356995?text=${encodeURIComponent(whatsappMessage)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-5 sm:px-6 py-3 rounded-full transition-all border border-[#23442a] hover:border-[#25d366]/60 flex items-center justify-center gap-2 text-xs sm:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
+                        className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all border border-[#23422a] hover:border-[#25d366]/60 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
                       >
-                        <div className="w-5 h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
-                          <WhatsAppIcon size={13} />
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
+                          <WhatsAppIcon size={12} />
                         </div>
                         <span>{whatsappText}</span>
                       </a>
@@ -382,13 +382,13 @@ export const HeroCarousel = ({ interval = 5000 }) => {
         })}
       </div>
 
-      {/* Flechas de navegación manual (Anterior / Siguiente) */}
+      {/* Flechas de navegación manual (Anterior / Siguiente) - Ocultas en móvil para evitar superposición con textos */}
       {totalSlides > 1 && (
         <>
           <button
             onClick={prevSlide}
             aria-label="Diapositiva anterior"
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+            className="hidden sm:flex absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234228] hover:border-[#4aa036] items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
           >
             <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
@@ -396,7 +396,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
           <button
             onClick={nextSlide}
             aria-label="Siguiente diapositiva"
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+            className="hidden sm:flex absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234228] hover:border-[#4aa036] items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
           >
             <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
@@ -405,7 +405,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
       {/* Indicadores de puntos / Dots en la parte inferior */}
       {totalSlides > 1 && (
-        <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 z-20 flex items-center justify-center gap-2.5 sm:gap-3">
+        <div className="absolute bottom-2.5 sm:bottom-5 left-0 right-0 z-20 flex items-center justify-center gap-2 sm:gap-2.5">
           {banners.map((slide, index) => {
             const isActive = index === currentSlide;
 
@@ -414,10 +414,10 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                 key={slide.id || index}
                 onClick={() => goToSlide(index)}
                 aria-label={`Ir a diapositiva ${index + 1}`}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
+                className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
                   isActive
-                    ? 'w-8 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
-                    : 'w-2.5 bg-white/30 hover:bg-white/60'
+                    ? 'w-6 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
+                    : 'w-2 sm:w-2.5 bg-white/30 hover:bg-white/60'
                 }`}
               />
             );

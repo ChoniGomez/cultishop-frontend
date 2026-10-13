@@ -152,33 +152,68 @@ export const Navbar = () => {
   return (
     <header ref={navRef} className="w-full bg-[#0d1a11] text-gray-200 border-b border-[#1f3b25] sticky top-0 z-40 backdrop-blur-md">
       {/* Barra principal de navegación */}
-      <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 py-2.5 sm:py-3.5 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
         <div className="w-full md:w-auto flex items-center justify-between">
           {/* Logotipo oficial con imagen y textos */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition group">
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 hover:opacity-95 transition group">
             <img
               src={logo}
               alt="CultiShop Logo Oficial"
-              className="h-11 md:h-12 w-auto object-contain rounded-xl shadow-md border border-[#2d5a27]/60 group-hover:border-[#4aa036] transition"
+              className="h-10 sm:h-11 md:h-12 w-auto object-contain rounded-xl shadow-md border border-[#2d5a27]/60 group-hover:border-[#4aa036] transition"
             />
             <div className="flex flex-col leading-tight">
-              <span className="text-xl md:text-2xl font-black tracking-wider text-white font-heading">
+              <span className="text-xl sm:text-2xl font-black tracking-wider text-white font-heading">
                 CULTI<span className="text-[#e0a96d]">SHOP</span>
               </span>
-              <span className="text-[10px] tracking-widest text-gray-300 font-semibold uppercase">
+              <span className="text-[9px] sm:text-[10px] tracking-widest text-gray-300 font-semibold uppercase">
                 GROW • CULTIVA • CRECE
               </span>
             </div>
           </Link>
 
-          {/* Botón hamburguesa para móviles y tablets */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="lg:hidden p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] transition hover:border-[#4aa036]"
-            aria-label="Abrir menú de categorías"
-          >
-            <Menu size={22} />
-          </button>
+          {/* Acciones móviles compactas (visibles solo en < md) */}
+          <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+            {/* Botón Favoritos en móvil */}
+            <Link 
+              to="/favoritos" 
+              className="relative p-2 text-gray-300 hover:text-[#e0a96d] rounded-xl bg-[#142619] border border-[#23422a] transition active:scale-95"
+              aria-label={`Ver favoritos, ${favoritesCount} guardados`}
+            >
+              <Heart 
+                size={18} 
+                className={favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : ""} 
+              />
+              {favoritesCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center">
+                  {favoritesCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Botón Carrito compacto en móvil */}
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label={`Mi Carrito, ${totalItems} productos`}
+              className="relative p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] transition active:scale-95 flex items-center justify-center"
+            >
+              <ShoppingBag size={18} className="text-[#4aa036]" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
+                  {totalItems}
+                </span>
+              )}
+            </button>
+
+            {/* Botón Menú hamburguesa */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] transition active:scale-95"
+              aria-label="Abrir menú de categorías"
+            >
+              <Menu size={20} className="text-[#e0a96d]" />
+            </button>
+          </div>
         </div>
 
         {/* Buscador de productos */}
@@ -187,24 +222,24 @@ export const Navbar = () => {
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Buscar fertilizantes, kits, Mamboretá, contenedores..."
-            className="w-full py-2.5 pl-4 pr-20 rounded-full bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-sm shadow-inner transition"
+            placeholder="Buscar fertilizantes, kits, Mamboretá..."
+            className="w-full py-2 sm:py-2.5 pl-4 pr-16 sm:pr-20 rounded-full bg-[#142619] text-gray-100 placeholder-gray-400 border border-[#23422a] focus:outline-none focus:border-[#4aa036] text-xs sm:text-sm shadow-inner transition"
             aria-label="Buscar insumos o productos"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={handleClearSearch}
-              className="absolute right-10 top-2.5 p-1 text-gray-400 hover:text-white transition rounded-full hover:bg-[#1f3b25]"
+              className="absolute right-9 sm:right-10 top-2 sm:top-2.5 p-1 text-gray-400 hover:text-white transition rounded-full hover:bg-[#1f3b25]"
               title="Borrar búsqueda"
               aria-label="Borrar búsqueda"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           )}
           <button 
             type="submit" 
-            className="absolute right-3.5 top-2.5 text-gray-400 hover:text-[#e0a96d] transition"
+            className="absolute right-3.5 top-2 sm:top-2.5 text-gray-400 hover:text-[#e0a96d] transition"
             title="Buscar en la tienda"
             aria-label="Buscar en la tienda"
           >
@@ -212,8 +247,8 @@ export const Navbar = () => {
           </button>
         </form>
 
-        {/* Acceso a Carrito */}
-        <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+        {/* Acceso a Carrito en Escritorio (oculto en móvil) */}
+        <div className="hidden md:flex items-center gap-4 md:w-auto justify-end">
           <button
             type="button"
             onClick={openCart}
@@ -240,49 +275,23 @@ export const Navbar = () => {
       <nav className="bg-[#18311d] border-t border-[#234428] text-gray-200 relative">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           
-          {/* Botón menú visible en móviles/tablets */}
-          <div className="flex lg:hidden items-center justify-between w-full py-2">
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#234428] hover:bg-[#2d5a27] text-white text-xs font-bold transition shadow-sm"
+          {/* Tira horizontal deslizable de categorías para móviles y tablets */}
+          <div className="flex lg:hidden items-center gap-2 overflow-x-auto py-2 w-full no-scrollbar text-xs scroll-smooth">
+            <Link 
+              to="/" 
+              className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
             >
-              <Menu size={16} className="text-[#e0a96d]" />
-              <span>CATEGORÍAS DE LA TIENDA</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={openCart}
-                className="relative p-1.5 text-gray-300 hover:text-white rounded-lg bg-[#142619] border border-[#23422a] transition active:scale-95"
-                aria-label="Abrir carrito"
+              TODOS
+            </Link>
+            {CATEGORIES.map((cat) => (
+              <Link
+                key={cat.id}
+                to={`/categoria/${cat.slug}`}
+                className="whitespace-nowrap px-3 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] font-semibold text-xs border border-[#23422a] shrink-0 transition"
               >
-                <ShoppingBag size={16} className="text-[#4aa036]" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
-              <Link 
-                to="/favoritos" 
-                className="relative p-1.5 text-gray-300 hover:text-[#e0a96d] transition"
-                aria-label={`Ver favoritos, ${favoritesCount} guardados`}
-              >
-                <Heart 
-                  size={16} 
-                  className={favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : ""} 
-                />
-                {favoritesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center">
-                    {favoritesCount}
-                  </span>
-                )}
+                {cat.name}
               </Link>
-              <Link to="/ingresar" className="p-1.5 text-gray-300 hover:text-[#e0a96d] transition" title={user ? user.name : 'Mi Cuenta'}>
-                <User size={16} className={user ? 'text-[#4aa036]' : ''} />
-              </Link>
-            </div>
+            ))}
           </div>
 
           {/* Menú horizontal de escritorio (pantallas >= lg) */}
