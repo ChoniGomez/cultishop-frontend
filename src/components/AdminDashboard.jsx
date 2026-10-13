@@ -1183,11 +1183,17 @@ export const AdminDashboard = () => {
                       </div>
                       <div>
                         <span className="text-gray-400 block font-semibold">Contacto WhatsApp:</span>
-                        <span className="text-white font-medium">{order.whatsapp_phone || 'No especificado'}</span>
+                        <span className="text-white font-medium">{order.whatsapp_phone || order.phone || 'No especificado'}</span>
+                        {order.payment_method && (
+                          <span className="text-[11px] text-[#e0a96d] block font-semibold mt-1">
+                            Pago: {order.payment_method === 'transferencia' ? '🏦 Transferencia / Alias' : order.payment_method === 'efectivo' ? '💵 Efectivo al retirar' : '💬 Acordar por WhatsApp'}
+                          </span>
+                        )}
                       </div>
                       <div>
-                        <span className="text-gray-400 block font-semibold">Dirección / Notas:</span>
-                        <span className="text-white font-medium">{order.shipping_address || order.notes || 'Entrega a convenir en local de Posadas'}</span>
+                        <span className="text-gray-400 block font-semibold">Dirección de Entrega:</span>
+                        <span className="text-white font-medium">{order.shipping_address || 'Entrega a convenir en local de Posadas'}</span>
+                        {order.notes && <span className="text-gray-400 block mt-1">Nota: {order.notes}</span>}
                       </div>
                     </div>
 

@@ -187,6 +187,11 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
   };
 
+  const setSession = (userData, tokenData) => {
+    setUser(userData);
+    setToken(tokenData);
+  };
+
   const isAdmin = user?.role === 'admin';
 
   return (
@@ -198,6 +203,7 @@ export const AuthProvider = ({ children }) => {
       register, 
       loginWithGoogle, 
       logout,
+      setSession,
       changePassword,
       isAdmin 
     }}>

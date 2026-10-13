@@ -270,16 +270,26 @@ export const CartDrawer = () => {
               <span>Coordinación directa de entrega en Posadas o retiro en local.</span>
             </div>
 
-            {/* Botón oficial de Checkout por WhatsApp */}
+            {/* Botón Principal: Finalizar la Compra */}
+            <Link
+              to="/finalizar-compra"
+              onClick={closeCart}
+              className="w-full py-3.5 px-4 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-extrabold text-sm flex items-center justify-center gap-2.5 transition-all shadow-lg hover:shadow-[#4aa036]/20 hover:scale-[1.01] active:scale-95 group font-heading border border-[#4aa036]/50"
+            >
+              <span>Finalizar la Compra</span>
+              <ArrowRight size={17} className="text-[#e0a96d] group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            {/* Botón Secundario Oficial de Pedido por WhatsApp */}
             <a
               href={getWhatsAppCheckoutUrl()}
               onClick={handleCheckoutClick}
               target="_blank"
               rel="noreferrer"
-              className="w-full py-3 px-4 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-extrabold text-sm flex items-center justify-center gap-2.5 transition-all shadow-lg hover:shadow-[#25d366]/20 hover:scale-[1.01] active:scale-95 group font-heading"
+              className="w-full py-2.5 px-4 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#25d366] hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all border border-[#23422a] hover:border-[#25d366]/50 group"
             >
-              <WhatsAppIcon size={20} className="shrink-0" />
-              <span>Finalizar Pedido por WhatsApp</span>
+              <WhatsAppIcon size={16} className="shrink-0 text-[#25d366] group-hover:scale-110 transition-transform" />
+              <span>Pedir directo por WhatsApp</span>
             </a>
 
             <button
