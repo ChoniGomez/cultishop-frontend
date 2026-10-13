@@ -108,6 +108,7 @@ export const AdminDashboard = () => {
   const [bannerFormButtonText, setBannerFormButtonText] = useState('Ver Más');
   const [bannerFormOrder, setBannerFormOrder] = useState('1');
   const [bannerFormIsActive, setBannerFormIsActive] = useState(true);
+  const [bannerFormShowText, setBannerFormShowText] = useState(true);
 
   // Referencias a inputs de archivos locales e información de archivo
   const productFileInputRef = useRef(null);
@@ -340,6 +341,7 @@ export const AdminDashboard = () => {
     setBannerFormButtonText('Ver Más');
     setBannerFormOrder(String((safeBanners?.length || 0) + 1));
     setBannerFormIsActive(true);
+    setBannerFormShowText(true);
     setIsBannerModalOpen(true);
   };
 
@@ -355,25 +357,32 @@ export const AdminDashboard = () => {
     setBannerFormButtonText(banner.button_text || 'Ver Más');
     setBannerFormOrder(String(banner.display_order ?? 0));
     setBannerFormIsActive(banner.is_active !== false);
+    setBannerFormShowText(banner.show_text !== false);
     setIsBannerModalOpen(true);
   };
 
   const handleSaveBannerSubmit = async (e) => {
     e.preventDefault();
-    if (!bannerFormTitle.trim() || !bannerFormImageUrl.trim()) {
-      showNotification('error', 'El título y la URL de la imagen horizontal son obligatorios.');
+    if (!bannerFormImageUrl.trim()) {
+      showNotification('error', 'La imagen horizontal del banner es obligatoria.');
+      return;
+    }
+
+    if (bannerFormShowText && !bannerFormTitle.trim()) {
+      showNotification('error', 'El título del banner es obligatorio cuando se muestran textos.');
       return;
     }
 
     setIsSavingBanner(true);
     const payload = {
-      title: bannerFormTitle.trim(),
+      title: bannerFormTitle.trim() || 'Banner Publicitario',
       subtitle: bannerFormSubtitle.trim(),
       image_url: bannerFormImageUrl.trim(),
       link_url: bannerFormLinkUrl.trim(),
       button_text: bannerFormButtonText.trim() || 'Ver Más',
       display_order: parseInt(bannerFormOrder, 10) || 0,
-      is_active: bannerFormIsActive
+      is_active: bannerFormIsActive,
+      show_text: bannerFormShowText
     };
 
     try {
@@ -1312,8 +1321,19 @@ export const AdminDashboard = () => {
 
                         {/* Contenido (Título & Subtítulo) */}
                         <td className="py-4 px-4 space-y-1">
-                          <div className="text-sm font-bold text-white font-heading leading-tight line-clamp-1">
-                            {banner.title}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-white font-heading leading-tight line-clamp-1">
+                              {banner.title}
+                            </span>
+                            {banner.show_text === false ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950/80 text-blue-300 border border-blue-500/50">
+                                🖼️ Imagen Limpia
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#18311d] text-[#4aa036] border border-[#2d5a27]">
+                                📝 Con Textos
+                              </span>
+                            )}
                           </div>
                           <div className="text-gray-400 text-xs line-clamp-2 leading-relaxed">
                             {banner.subtitle || <span className="italic text-gray-500">Sin subtítulo</span>}
@@ -2144,17 +2164,23 @@ export const AdminDashboard = () => {
                           e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1200';
                         }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent flex flex-col justify-end p-4">
-                        <span className="text-[10px] text-[#e0a96d] font-bold uppercase tracking-wider">
-                          {bannerFormButtonText || 'Ver Más'}
-                        </span>
-                        <h4 className="text-sm sm:text-base font-black text-white font-heading truncate">
-                          {bannerFormTitle || 'Título del Banner'}
-                        </h4>
-                        <p className="text-[11px] text-gray-300 line-clamp-1">
-                          {bannerFormSubtitle || 'Subtítulo o descripción breve'}
-                        </p>
-                      </div>
+                      {bannerFormShowText ? (
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent flex flex-col justify-end p-4">
+                          <span className="text-[10px] text-[#e0a96d] font-bold uppercase tracking-wider">
+                            {bannerFormButtonText || 'Ver Más'}
+                          </span>
+                          <h4 className="text-sm sm:text-base font-black text-white font-heading truncate">
+                            {bannerFormTitle || 'Título del Banner'}
+                          </h4>
+                          <p className="text-[11px] text-gray-300 line-clamp-1">
+                            {bannerFormSubtitle || 'Subtítulo o descripción breve'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="absolute bottom-2.5 right-2.5 px-3 py-1 rounded-lg bg-black/80 border border-[#2d5a27] text-[10px] font-bold text-gray-200 backdrop-blur-md shadow-md flex items-center gap-1.5">
+                          <span>🖼️ Modo Limpio: Solo Imagen</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 bg-[#0a140d] rounded-xl border border-[#1f3b25] text-xs">
@@ -2189,63 +2215,122 @@ export const AdminDashboard = () => {
                 )}
               </div>
 
-              {/* Título Principal */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
-                  Título Principal del Banner *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={bannerFormTitle}
-                  onChange={(e) => setBannerFormTitle(e.target.value)}
-                  placeholder="Ej: EXPLOSIÓN DE RESINA, FLORES Y RAÍCES FUERTES"
-                  className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
-                />
-              </div>
-
-              {/* Subtítulo / Bajada Descriptiva */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
-                  Subtítulo / Bajada Descriptiva
-                </label>
-                <textarea
-                  rows={2}
-                  value={bannerFormSubtitle}
-                  onChange={(e) => setBannerFormSubtitle(e.target.value)}
-                  placeholder="Ej: Línea completa Namasté Nutrientes: Oro Negro, Amazonia Micorrizas y más..."
-                  className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#4aa036] resize-none"
-                />
-              </div>
-
-              {/* Enlace de Destino y Texto del Botón */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Enlace de Destino (Ruta o URL)
-                  </label>
-                  <input
-                    type="text"
-                    value={bannerFormLinkUrl}
-                    onChange={(e) => setBannerFormLinkUrl(e.target.value)}
-                    placeholder="Ej: /categoria/fertilizantes o https://..."
-                    className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
-                  />
+              {/* Interruptor para Mostrar u Ocultar Textos Superpuestos */}
+              <div className="p-3.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25] flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-white block">
+                    Mostrar textos y botones superpuestos sobre la imagen
+                  </span>
+                  <p className="text-[11px] text-gray-400">
+                    Desactiva esta opción si tu imagen ya incluye diseño gráfico o deseas exhibir el banner 100% limpio en la tienda.
+                  </p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Texto del Botón CTA
-                  </label>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
-                    type="text"
-                    value={bannerFormButtonText}
-                    onChange={(e) => setBannerFormButtonText(e.target.value)}
-                    placeholder="Ej: Ver Fertilizantes, Explorar Indoor"
-                    className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                    type="checkbox"
+                    checked={bannerFormShowText}
+                    onChange={(e) => setBannerFormShowText(e.target.checked)}
+                    className="sr-only peer"
                   />
-                </div>
+                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2d5a27]"></div>
+                </label>
               </div>
+
+              {bannerFormShowText ? (
+                <>
+                  {/* Título Principal */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Título Principal del Banner *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={bannerFormTitle}
+                      onChange={(e) => setBannerFormTitle(e.target.value)}
+                      placeholder="Ej: EXPLOSIÓN DE RESINA, FLORES Y RAÍCES FUERTES"
+                      className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                    />
+                  </div>
+
+                  {/* Subtítulo / Bajada Descriptiva */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Subtítulo / Bajada Descriptiva
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={bannerFormSubtitle}
+                      onChange={(e) => setBannerFormSubtitle(e.target.value)}
+                      placeholder="Ej: Línea completa Namasté Nutrientes: Oro Negro, Amazonia Micorrizas y más..."
+                      className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#4aa036] resize-none"
+                    />
+                  </div>
+
+                  {/* Enlace de Destino y Texto del Botón */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                        Enlace de Destino (Ruta o URL)
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerFormLinkUrl}
+                        onChange={(e) => setBannerFormLinkUrl(e.target.value)}
+                        placeholder="Ej: /categoria/fertilizantes o https://..."
+                        className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                        Texto del Botón CTA
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerFormButtonText}
+                        onChange={(e) => setBannerFormButtonText(e.target.value)}
+                        placeholder="Ej: Ver Fertilizantes, Explorar Indoor"
+                        className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3 p-3.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25]">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Título de Referencia Interna (Opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={bannerFormTitle}
+                      onChange={(e) => setBannerFormTitle(e.target.value)}
+                      placeholder="Ej: Banner Promocional Imagen Panorámica (Solo visible en administración)"
+                      className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      No se mostrará ningún texto sobre la imagen en la tienda; este título es únicamente para tu control interno.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Enlace de Destino al hacer clic en el Banner (Opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={bannerFormLinkUrl}
+                      onChange={(e) => setBannerFormLinkUrl(e.target.value)}
+                      placeholder="Ej: /categoria/fertilizantes o https://..."
+                      className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Al hacer clic en cualquier parte de la imagen, el cliente será dirigido a esta ruta o dirección web.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Orden y Visibilidad */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

@@ -185,6 +185,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
         {banners.map((slide, index) => {
           const isActive = index === currentSlide;
           const imageUrl = slide.image_url || slide.image;
+          const showText = slide.show_text !== false && slide.show_overlay !== false;
           const title = slide.title || (slide.titlePrefix ? `${slide.titlePrefix}${slide.titleHighlight || ''}` : 'CultiShop');
           const subtitle = slide.subtitle || '';
           const description = slide.description || '';
@@ -217,130 +218,165 @@ export const HeroCarousel = ({ interval = 5000 }) => {
             >
               {/* Imagen del banner horizontal panorámica con fondo sólido #0b1610 */}
               <div className="absolute inset-0 bg-[#0b1610] flex items-center justify-center overflow-hidden">
-                <img
-                  src={imageUrl}
-                  alt={title}
-                  className="w-full h-full object-cover object-center select-none"
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
-                  }}
-                />
-                {/* Atenuación oscura uniforme para contraste y legibilidad */}
-                <div className="absolute inset-0 bg-[#0b1610]/60" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b1610] via-transparent to-[#0b1610]/70" />
+                {!showText && ctaLink ? (
+                  isExternalCta ? (
+                    <a href={ctaLink} target="_blank" rel="noreferrer" className="w-full h-full block cursor-pointer">
+                      <img
+                        src={imageUrl}
+                        alt={title}
+                        className="w-full h-full object-cover object-center select-none"
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
+                        }}
+                      />
+                    </a>
+                  ) : (
+                    <Link to={ctaLink} className="w-full h-full block cursor-pointer">
+                      <img
+                        src={imageUrl}
+                        alt={title}
+                        className="w-full h-full object-cover object-center select-none"
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
+                        }}
+                      />
+                    </Link>
+                  )
+                ) : (
+                  <img
+                    src={imageUrl}
+                    alt={title}
+                    className="w-full h-full object-cover object-center select-none"
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
+                    }}
+                  />
+                )}
+
+                {/* Atenuación oscura uniforme sólo si showText es true */}
+                {showText && (
+                  <>
+                    <div className="absolute inset-0 bg-[#0b1610]/60 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b1610] via-transparent to-[#0b1610]/70 pointer-events-none" />
+                  </>
+                )}
               </div>
 
-              {/* Contenido textual superpuesto completamente centrado */}
-              <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex flex-col items-center justify-center text-center">
-                <div className="space-y-2.5 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
-                  {/* Badge temático centrado */}
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[10px] sm:text-xs font-bold text-[#e0a96d] uppercase tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
-                    <Sparkles size={12} className="text-[#e0a96d] shrink-0" />
-                    <span>{badgeText}</span>
-                  </div>
-
-                  {/* Subtítulo previo */}
-                  {description && subtitle && (
-                    <p className="text-[#e0a96d] text-xs sm:text-sm font-semibold tracking-wide">
-                      {subtitle}
-                    </p>
-                  )}
-
-                  {/* Título principal centrado con tono mostaza/dorado */}
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
-                    {slide.titlePrefix && slide.titleHighlight ? (
-                      <>
-                        {slide.titlePrefix}
-                        <span className="text-[#e0a96d] text-glow-gold block sm:inline">
-                          {slide.titleHighlight}
-                        </span>
-                      </>
-                    ) : title.includes('•') ? (
-                      <>
-                        {title.split('•')[0].trim()}{' '}
-                        <span className="text-[#e0a96d] text-glow-gold block sm:inline">
-                          • {title.split('•').slice(1).join('•').trim()}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-white">{title}</span>
-                    )}
-                  </h1>
-
-                  {/* Bajada descriptiva centrada */}
-                  {(description || subtitle) && (
-                    <p className="text-gray-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl drop-shadow text-center">
-                      {description || subtitle}
-                    </p>
-                  )}
-
-                  {/* Cuadro destacado de horarios (centrado) */}
-                  {isSchedule && (
-                    <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-3 sm:p-3.5 max-w-lg w-full shadow-xl space-y-2 text-center mx-auto">
-                      <div className="flex items-center justify-center gap-2 text-[#e0a96d] text-[11px] font-bold uppercase tracking-wider">
-                        <Clock size={14} className="shrink-0" />
-                        <span>Horarios en Nuestro Local</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
-                          <span className="text-gray-400 block font-semibold text-[10px]">Lunes a Viernes</span>
-                          <span className="text-white font-bold text-xs">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
-                        </div>
-                        <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
-                          <span className="text-gray-400 block font-semibold text-[10px]">Sábados</span>
-                          <span className="text-white font-bold text-xs">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-0.5 text-[10px]">
-                        <span className="text-red-400 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-900/50">
-                          Domingos: Cerrado
-                        </span>
-                        <span className="text-gray-300 flex items-center gap-1 font-medium">
-                          <MapPin size={12} className="text-[#e0a96d]" />
-                          Av. López y Planes 2919, Posadas
-                        </span>
-                      </div>
+              {/* Contenido textual superpuesto completamente centrado sólo si showText es true */}
+              {showText && (
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex flex-col items-center justify-center text-center">
+                  <div className="space-y-2.5 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
+                    {/* Badge temático centrado */}
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[10px] sm:text-xs font-bold text-[#e0a96d] uppercase tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
+                      <Sparkles size={12} className="text-[#e0a96d] shrink-0" />
+                      <span>{badgeText}</span>
                     </div>
-                  )}
 
-                  {/* Botones de acción centrados */}
-                  <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-                    {isExternalCta ? (
+                    {/* Subtítulo previo */}
+                    {description && subtitle && (
+                      <p className="text-[#e0a96d] text-xs sm:text-sm font-semibold tracking-wide">
+                        {subtitle}
+                      </p>
+                    )}
+
+                    {/* Título principal centrado con tono mostaza/dorado */}
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
+                      {slide.titlePrefix && slide.titleHighlight ? (
+                        <>
+                          {slide.titlePrefix}
+                          <span className="text-[#e0a96d] text-glow-gold block sm:inline">
+                            {slide.titleHighlight}
+                          </span>
+                        </>
+                      ) : title.includes('•') ? (
+                        <>
+                          {title.split('•')[0].trim()}{' '}
+                          <span className="text-[#e0a96d] text-glow-gold block sm:inline">
+                            • {title.split('•').slice(1).join('•').trim()}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-white">{title}</span>
+                      )}
+                    </h1>
+
+                    {/* Bajada descriptiva centrada */}
+                    {(description || subtitle) && (
+                      <p className="text-gray-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl drop-shadow text-center">
+                        {description || subtitle}
+                      </p>
+                    )}
+
+                    {/* Cuadro destacado de horarios (centrado) */}
+                    {isSchedule && (
+                      <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-3 sm:p-3.5 max-w-lg w-full shadow-xl space-y-2 text-center mx-auto">
+                        <div className="flex items-center justify-center gap-2 text-[#e0a96d] text-[11px] font-bold uppercase tracking-wider">
+                          <Clock size={14} className="shrink-0" />
+                          <span>Horarios en Nuestro Local</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
+                            <span className="text-gray-400 block font-semibold text-[10px]">Lunes a Viernes</span>
+                            <span className="text-white font-bold text-xs">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
+                          </div>
+                          <div className="bg-[#122416] p-2 rounded-lg border border-[#1f3b25]">
+                            <span className="text-gray-400 block font-semibold text-[10px]">Sábados</span>
+                            <span className="text-white font-bold text-xs">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 pt-0.5 text-[10px]">
+                          <span className="text-red-400 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-900/50">
+                            Domingos: Cerrado
+                          </span>
+                          <span className="text-gray-300 flex items-center gap-1 font-medium">
+                            <MapPin size={12} className="text-[#e0a96d]" />
+                            Av. López y Planes 2919, Posadas
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Botones de acción centrados */}
+                    <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                      {isExternalCta ? (
+                        <a
+                          href={ctaLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                        >
+                          {ctaLink.includes('maps') && <MapPin size={15} className="text-[#e0a96d]" />}
+                          <span>{ctaText}</span>
+                          <ExternalLink size={14} />
+                        </a>
+                      ) : (
+                        <Link
+                          to={ctaLink}
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                        >
+                          <span>{ctaText}</span>
+                          <ArrowRight size={15} />
+                        </Link>
+                      )}
+
                       <a
-                        href={ctaLink}
+                        href={`https://wa.me/5493764356995?text=${encodeURIComponent(whatsappMessage)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                        className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-5 sm:px-6 py-3 rounded-full transition-all border border-[#23442a] hover:border-[#25d366]/60 flex items-center justify-center gap-2 text-xs sm:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
                       >
-                        {ctaLink.includes('maps') && <MapPin size={15} className="text-[#e0a96d]" />}
-                        <span>{ctaText}</span>
-                        <ExternalLink size={14} />
+                        <div className="w-5 h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
+                          <WhatsAppIcon size={13} />
+                        </div>
+                        <span>{whatsappText}</span>
                       </a>
-                    ) : (
-                      <Link
-                        to={ctaLink}
-                        className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-6 sm:px-7 py-3 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
-                      >
-                        <span>{ctaText}</span>
-                        <ArrowRight size={15} />
-                      </Link>
-                    )}
-
-                    <a
-                      href={`https://wa.me/5493764356995?text=${encodeURIComponent(whatsappMessage)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-5 sm:px-6 py-3 rounded-full transition-all border border-[#23442a] hover:border-[#25d366]/60 flex items-center justify-center gap-2 text-xs sm:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
-                    >
-                      <div className="w-5 h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
-                        <WhatsAppIcon size={13} />
-                      </div>
-                      <span>{whatsappText}</span>
-                    </a>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
