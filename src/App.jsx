@@ -16,13 +16,8 @@ import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
 import { 
   MapPin, 
-  Clock, 
   Instagram, 
-  ShieldCheck, 
-  Sparkles, 
-  Check, 
-  ArrowRight,
-  ExternalLink
+  ExternalLink 
 } from 'lucide-react';
 
 const HomePage = () => (
@@ -34,38 +29,6 @@ const HomePage = () => (
     <div id="catalogo">
       <ProductSection />
     </div>
-
-    {/* BANNER TRANSPORTE LEGAL (Directo del Flyer 5) */}
-    <section className="max-w-7xl mx-auto px-4 py-8">
-      <div className="bg-gradient-to-r from-[#0d1c11] via-[#152a1b] to-[#0d1c11] border-2 border-[#2d5a27] rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#2d5a27]/40 text-[#4aa036] text-xs font-bold uppercase tracking-wider border border-[#4aa036]/40">
-              <ShieldCheck size={16} />
-              Cumplí la Ley 27.350
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white font-heading leading-tight">
-              TRANSPORTÁ LEGAL, <span className="text-[#e0a96d] block">TRANSPORTÁ SEGURO.</span>
-            </h2>
-            <p className="text-gray-300 text-sm leading-relaxed">
-              Contenedores herméticos Grower (GT5, GT25, GT40) de alto impacto con filtro de rayos UV y sistema de sellado hermético que conserva terpenos, humedad y potencia.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-            <a
-              href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20consultar%20por%20los%20Contenedores%20de%20transporte%20legal%20Grower"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold px-6 py-3.5 rounded-full transition flex items-center justify-center gap-2 shadow-lg border border-[#4aa036]/50 text-sm group"
-            >
-              <WhatsAppIcon size={18} className="text-[#25d366] group-hover:scale-110 transition-transform" />
-              <span>Consultar Contenedores</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
 
     {/* SECCIÓN NUEVO HORARIO & UBICACIÓN (Directo del Flyer 1) */}
     <section id="horarios" className="max-w-7xl mx-auto px-4 py-12">
@@ -217,36 +180,53 @@ function App() {
 
         {/* FOOTER CORPORATIVO CULTISHOP */}
         <footer className="bg-[#08100a] text-gray-400 border-t border-[#162a1b] pt-14 pb-8">
-          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-            {/* Columna Marca */}
-            <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            {/* Columna 1: Marca CultiShop */}
+            <div className="space-y-3">
               <CultiShopLogo size="md" />
               <p className="text-xs text-gray-400 leading-relaxed">
-                Tu tienda especializada en cultivo en Posadas. Insumos de calidad, resultados comprobados y asesoramiento técnico.
+                Tu tienda especializada en cultivo en Posadas. Insumos seleccionados de alta calidad, resultados comprobados y asesoramiento técnico profesional para cada etapa de tu cultivo.
               </p>
-              <div className="flex items-center gap-3 pt-2">
-                <a
-                  href="https://instagram.com/culti.shopp"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#122317] border border-[#23422a] flex items-center justify-center text-[#e0a96d] hover:text-white hover:border-[#4aa036] transition"
-                  title="Instagram @culti.shopp"
-                >
-                  <Instagram size={17} />
-                </a>
-                <a
-                  href="https://wa.me/5493764356995"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#122317] border border-[#23422a] flex items-center justify-center text-[#25d366] hover:bg-[#25d366] hover:text-black hover:border-[#25d366] hover:scale-110 transition-all duration-200 shadow-sm"
-                  title="WhatsApp CultiShop"
-                >
-                  <WhatsAppIcon size={17} />
-                </a>
-              </div>
+              <span className="inline-block text-[10px] tracking-widest text-[#e0a96d] font-bold uppercase">
+                GROW • CULTIVA • CRECE
+              </span>
             </div>
 
-            {/* Columna Contacto */}
+            {/* Columna 2: Catálogo de la Tienda */}
+            <div className="space-y-3">
+              <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
+                Catálogo de la Tienda
+              </h4>
+              <ul className="text-xs space-y-2">
+                <li>
+                  <Link to="/categoria/fertilizantes" className="hover:text-[#4aa036] transition">
+                    Fertilizantes y Bioestimulantes
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/categoria/control-de-plagas" className="hover:text-[#4aa036] transition">
+                    Control de Plagas y Sanidad
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/categoria/sustratos-y-cultivo" className="hover:text-[#4aa036] transition">
+                    Sustratos y Enmiendas
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/categoria/indoor" className="hover:text-[#4aa036] transition">
+                    Indoor e Iluminación
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="text-[#e0a96d] hover:underline transition font-semibold">
+                    Ver Todos los Productos &rarr;
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Columna 3: Contacto Oficial */}
             <div className="space-y-3">
               <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
                 Contacto Oficial
@@ -269,31 +249,6 @@ function App() {
                   </a>
                 </li>
               </ul>
-            </div>
-
-            {/* Columna Horarios */}
-            <div className="space-y-3">
-              <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
-                Horario de Atención
-              </h4>
-              <ul className="text-xs space-y-2 text-gray-300">
-                <li><strong className="text-white">Lunes a Viernes:</strong><br/>09:00 a 12:00 • 16:30 a 19:30</li>
-                <li><strong className="text-white">Sábados:</strong><br/>08:30 a 12:00 • 16:30 a 19:00</li>
-                <li className="text-gray-400"><strong className="text-red-400">Domingos:</strong> Cerrado</li>
-              </ul>
-            </div>
-
-            {/* Columna Marcas */}
-            <div className="space-y-3">
-              <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
-                Marcas Destacadas
-              </h4>
-              <div className="flex flex-wrap gap-2 text-[11px]">
-                <span className="bg-[#122317] border border-[#1f3b25] px-2.5 py-1 rounded-md text-gray-300">Namasté Nutrientes</span>
-                <span className="bg-[#122317] border border-[#1f3b25] px-2.5 py-1 rounded-md text-gray-300">Mamboretá</span>
-                <span className="bg-[#122317] border border-[#1f3b25] px-2.5 py-1 rounded-md text-gray-300">Grower Things</span>
-                <span className="bg-[#122317] border border-[#1f3b25] px-2.5 py-1 rounded-md text-gray-300">Roots</span>
-              </div>
             </div>
           </div>
 

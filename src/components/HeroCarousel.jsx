@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
@@ -34,17 +34,24 @@ const SLIDES = [
   },
   {
     id: 3,
-    badge: 'CUMPLÍ LA LEY 27.350 • REPROCANN OFICIAL',
-    subtitle: 'Seguridad, hermeticidad y control UV',
-    titlePrefix: 'TRANSPORTÁ LEGAL, ',
-    titleHighlight: 'TRANSPORTÁ SEGURO',
-    description: 'Contenedores herméticos Grower (GT5, GT25, GT40) de alto impacto con filtro UV, código QR de normativa legal y sellado anti-olor para curado y transporte óptimo.',
-    ctaText: 'Ver Contenedores',
-    ctaLink: '/categoria/transporte-legal',
-    whatsappMessage: 'Hola CultiShop! Quiero consultar por los Contenedores herméticos Grower de Ley 27.350',
-    whatsappText: 'Consultar Transporte',
-    image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=1800',
-    accentColor: '#4aa036'
+    badge: 'LOCAL OFICIAL EN POSADAS • ATENCIÓN PERSONALIZADA',
+    subtitle: 'Av. López y Planes 2919 (entre Lavalle y Santa Catalina)',
+    titlePrefix: 'VISITANOS EN NUESTRO LOCAL • ',
+    titleHighlight: 'HORARIOS DE ATENCIÓN',
+    description: 'Vení a conocernos, descubrí todo nuestro catálogo en exhibición y recibí asesoramiento técnico profesional para tu cultivo.',
+    schedule: {
+      weekdays: 'Lun a Vie: 09:00 a 12:00 y 16:30 a 19:30',
+      saturday: 'Sábados: 08:30 a 12:00 y 16:30 a 19:00',
+      sunday: 'Domingos: Cerrado',
+      address: 'Av. López y Planes 2919, Posadas'
+    },
+    ctaText: 'Cómo Llegar (Google Maps)',
+    ctaLink: 'https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas',
+    isExternalCta: true,
+    whatsappMessage: 'Hola CultiShop! Quiero consultar los horarios de atención y visita al local',
+    whatsappText: 'Consultar por WhatsApp',
+    image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1800',
+    accentColor: '#e0a96d'
   },
   {
     id: 4,
@@ -177,15 +184,57 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                     {slide.description}
                   </p>
 
+                  {/* Cuadro destacado de horarios si la diapositiva lo incluye */}
+                  {slide.schedule && (
+                    <div className="bg-[#0b160e]/90 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-3.5 sm:p-4 max-w-xl shadow-xl space-y-2.5">
+                      <div className="flex items-center gap-2 text-[#e0a96d] text-xs font-bold uppercase tracking-wider">
+                        <Clock size={15} className="shrink-0" />
+                        <span>Horarios en Nuestro Local</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="bg-[#122416] p-2.5 rounded-lg border border-[#1f3b25]">
+                          <span className="text-gray-400 block font-semibold text-[11px]">Lunes a Viernes</span>
+                          <span className="text-white font-bold text-xs sm:text-sm">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
+                        </div>
+                        <div className="bg-[#122416] p-2.5 rounded-lg border border-[#1f3b25]">
+                          <span className="text-gray-400 block font-semibold text-[11px]">Sábados</span>
+                          <span className="text-white font-bold text-xs sm:text-sm">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
+                        <span className="text-red-400 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-900/50">
+                          Domingos: Cerrado
+                        </span>
+                        <span className="text-gray-300 flex items-center gap-1 font-medium">
+                          <MapPin size={13} className="text-[#e0a96d]" />
+                          Av. López y Planes 2919, Posadas
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Botones de acción */}
                   <div className="pt-2 sm:pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                    <Link
-                      to={slide.ctaLink}
-                      className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-7 py-3.5 sm:py-4 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
-                    >
-                      <span>{slide.ctaText}</span>
-                      <ArrowRight size={17} />
-                    </Link>
+                    {slide.isExternalCta ? (
+                      <a
+                        href={slide.ctaLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-7 py-3.5 sm:py-4 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                      >
+                        <MapPin size={16} className="text-[#e0a96d]" />
+                        <span>{slide.ctaText}</span>
+                        <ExternalLink size={15} />
+                      </a>
+                    ) : (
+                      <Link
+                        to={slide.ctaLink}
+                        className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-7 py-3.5 sm:py-4 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                      >
+                        <span>{slide.ctaText}</span>
+                        <ArrowRight size={17} />
+                      </Link>
+                    )}
 
                     <a
                       href={`https://wa.me/5493764356995?text=${encodeURIComponent(slide.whatsappMessage)}`}

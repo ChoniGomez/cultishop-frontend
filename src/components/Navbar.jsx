@@ -4,7 +4,6 @@ import {
   ShoppingBag, 
   Heart, 
   User, 
-  Instagram, 
   ChevronDown, 
   ChevronRight, 
   ArrowRight,
@@ -152,24 +151,6 @@ export const Navbar = () => {
 
   return (
     <header ref={navRef} className="w-full bg-[#0d1a11] text-gray-200 border-b border-[#1f3b25] sticky top-0 z-40 backdrop-blur-md">
-      {/* Barra superior de información y redes */}
-      <div className="bg-[#08100a] text-xs text-gray-300 border-b border-[#162a1b]">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center gap-4">
-          <a 
-            href="https://instagram.com/culti.shopp" 
-            target="_blank" 
-            rel="noreferrer" 
-            className="flex items-center gap-1 hover:text-[#e0a96d] transition font-medium"
-          >
-            <Instagram size={14} className="text-[#e0a96d]" />
-            <span>@culti.shopp</span>
-          </a>
-          <span className="text-gray-700">|</span>
-          <Link to="/sobre-nosotros" className="hover:text-[#4aa036] transition">Sobre Nosotros</Link>
-          <Link to="/faq" className="hover:text-[#4aa036] transition">Preguntas</Link>
-        </div>
-      </div>
-
       {/* Barra principal de navegación */}
       <div className="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="w-full md:w-auto flex items-center justify-between">
@@ -636,20 +617,6 @@ export const Navbar = () => {
                 >
                   <User size={16} className={user ? 'text-[#4aa036]' : 'text-[#e0a96d]'} />
                   <span>{user ? `Hola, ${user.name.split(' ')[0]}` : 'Mi Cuenta / Ingresar'}</span>
-                </Link>
-                <Link
-                  to="/sobre-nosotros"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-1.5 text-xs text-gray-400 hover:text-white transition"
-                >
-                  Sobre Nosotros
-                </Link>
-                <Link
-                  to="/faq"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-1.5 text-xs text-gray-400 hover:text-white transition"
-                >
-                  Preguntas Frecuentes
                 </Link>
               </div>
             </div>
