@@ -1293,11 +1293,11 @@ export const AdminDashboard = () => {
 
                         {/* Vista Previa Horizontal */}
                         <td className="py-4 px-4">
-                          <div className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] bg-black/50 group shrink-0">
+                          <div className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] bg-[#0b1610] group shrink-0">
                             <img
                               src={banner.image_url}
                               alt={banner.title}
-                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-contain object-center transition-transform duration-300"
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=800';
                               }}
@@ -2135,11 +2135,11 @@ export const AdminDashboard = () => {
                 ) : (
                   <div className="space-y-2">
                     {/* Vista previa panorámica con simulación de portada */}
-                    <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden border border-[#2d5a27] bg-black/60 shadow-inner group">
+                    <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden border border-[#2d5a27] bg-[#0b1610] shadow-inner group">
                       <img
                         src={bannerFormImageUrl}
                         alt="Vista previa banner"
-                        className="w-full h-full object-cover object-center"
+                        className="w-full h-full object-contain object-center"
                         onError={(e) => {
                           e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1200';
                         }}

@@ -172,7 +172,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-[#07110a] border-b border-[#1f3b25] select-none"
+      className="relative w-full overflow-hidden bg-[#0b1610] border-b border-[#1f3b25] select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
@@ -181,7 +181,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       aria-label="Banner destacado rotativo"
     >
       {/* Contenedor principal de diapositivas */}
-      <div className="relative min-h-[520px] sm:min-h-[580px] md:min-h-[640px] flex items-center">
+      <div className="relative min-h-[480px] sm:min-h-[540px] md:min-h-[600px] flex items-center justify-center bg-[#0b1610]">
         {banners.map((slide, index) => {
           const isActive = index === currentSlide;
           const imageUrl = slide.image_url || slide.image;
@@ -211,28 +211,35 @@ export const HeroCarousel = ({ interval = 5000 }) => {
           return (
             <div
               key={slide.id || index}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out flex items-center ${
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out flex items-center justify-center bg-[#0b1610] ${
                 isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              {/* Imagen de fondo horizontal con gradientes oscuros CultiShop */}
-              <div className="absolute inset-0 overflow-hidden">
+              {/* Fondo ambiental difuminado / relleno armónico con paleta CultiShop (#0b1610) */}
+              <div className="absolute inset-0 overflow-hidden bg-[#0b1610]" aria-hidden="true">
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="w-full h-full object-cover object-center blur-3xl opacity-35 scale-110 pointer-events-none select-none"
+                />
+                <div className="absolute inset-0 bg-[#0b1610]/80" />
+              </div>
+
+              {/* Imagen del banner completa sin zoom ni recortes (object-fit: contain) */}
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
                 <img
                   src={imageUrl}
                   alt={title}
-                  className={`w-full h-full object-cover object-center transform transition-transform duration-10000 ease-out ${
-                    isActive ? 'scale-105' : 'scale-100'
-                  }`}
+                  className="w-full h-full object-contain object-center select-none"
                   loading={index === 0 ? 'eager' : 'lazy'}
                   onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
                   }}
                 />
-                {/* Capas de overlay para legibilidad y estética corporativa */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#07110a]/95 via-[#0a160d]/85 to-[#07110a]/60 sm:to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#07110a] via-transparent to-[#07110a]/80" />
-                <div className="absolute inset-0 bg-[#0d1a11]/40 mix-blend-multiply" />
               </div>
+
+              {/* Capa degradada lateral suave para garantizar legibilidad del texto sobre cualquier imagen */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0b1610]/90 via-[#0b1610]/50 to-transparent sm:w-2/3 pointer-events-none" />
 
               {/* Contenido textual superpuesto */}
               <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
@@ -355,7 +362,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
           <button
             onClick={prevSlide}
             aria-label="Diapositiva anterior"
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
           >
             <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
@@ -363,7 +370,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
           <button
             onClick={nextSlide}
             aria-label="Siguiente diapositiva"
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0b1610]/80 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
           >
             <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
@@ -393,7 +400,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       )}
 
       {/* Cinta de atributos inferior: CALIDAD • DURABILIDAD • EFICIENCIA */}
-      <div className="relative z-20 bg-[#09150d]/90 border-t border-[#18311d] py-2.5 px-4 backdrop-blur-md">
+      <div className="relative z-20 bg-[#0b1610] border-t border-[#18311d] py-2.5 px-4 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-12 text-[11px] sm:text-xs font-bold tracking-widest text-gray-300 uppercase">
           <span className="flex items-center gap-2">
             <span className="text-[#4aa036]">🌱</span> CALIDAD ASEGURADA
