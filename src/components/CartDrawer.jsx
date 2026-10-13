@@ -77,10 +77,11 @@ export const CartDrawer = () => {
   if (!isCartOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[9999] flex justify-end" style={{ zIndex: 9999 }}>
       {/* Overlay oscuro de fondo */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity duration-300"
+        className="fixed inset-0 z-[9998] bg-black/75 backdrop-blur-sm transition-opacity duration-300"
+        style={{ zIndex: 9998 }}
         onClick={closeCart}
         aria-hidden="true"
       />
@@ -90,7 +91,8 @@ export const CartDrawer = () => {
         role="dialog"
         aria-modal="true"
         aria-label="Carrito de compras"
-        className="relative w-full max-w-md bg-[#0a150e] border-l border-[#1f3b25] shadow-2xl flex flex-col h-full z-10 text-gray-200 animate-in slide-in-from-right duration-300"
+        className="relative w-full max-w-md bg-[#0a150e] border-l border-[#1f3b25] shadow-2xl flex flex-col h-full z-[9999] text-gray-200 animate-in slide-in-from-right duration-300"
+        style={{ zIndex: 9999 }}
       >
         {/* Cabecera del Carrito */}
         <div className="p-4 sm:p-5 border-b border-[#1b3420] bg-[#0d1c12] flex items-center justify-between">

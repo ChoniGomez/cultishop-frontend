@@ -41,7 +41,7 @@ export const AgeVerificationModal = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200" style={{ zIndex: 100000 }}>
       <div className="bg-[#0e1a12] border-2 border-[#2d5a27] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
         {/* Adorno superior sutil */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2d5a27] via-[#e0a96d] to-[#2d5a27]"></div>

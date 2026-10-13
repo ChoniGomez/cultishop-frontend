@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   ShoppingBag, 
@@ -149,8 +150,20 @@ export const Navbar = () => {
     setHoveredCategory(null);
   };
 
+  // Evitar scroll en el body cuando el menú móvil está abierto
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
-    <header ref={navRef} className="w-full bg-[#0d1a11] text-gray-200 border-b border-[#1f3b25] sticky top-0 z-40 backdrop-blur-md">
+    <header ref={navRef} className="w-full bg-[#0d1a11] text-gray-200 border-b border-[#1f3b25] sticky top-0 z-50 backdrop-blur-md">
       {/* Barra principal de navegación */}
       <div className="max-w-7xl mx-auto px-4 py-2.5 sm:py-3.5 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
         <div className="w-full md:w-auto flex items-center justify-between">
@@ -412,19 +425,27 @@ export const Navbar = () => {
         </div>
       </nav>
 
-      {/* Drawer / Menú lateral móvil con acordeones */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop con desenfoque */}
+      {/* Drawer / Menú lateral móvil con acordeones (Renderizado con Portal en document.body para z-index 9999 absoluto) */}
+      {isMobileMenuOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] lg:hidden" style={{ zIndex: 9999 }}>
+          {/* Backdrop con desenfoque de bloqueo total */}
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm transition-opacity"
+            style={{ zIndex: 9998 }}
             onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
           />
 
-          {/* Panel deslizante */}
-          <div className="fixed inset-y-0 left-0 w-full max-w-xs sm:max-w-sm bg-[#09150c] border-r border-[#1f3b25] z-50 flex flex-col shadow-2xl overflow-y-auto">
+          {/* Panel deslizante en la capa superior absoluta */}
+          <div 
+            className="fixed inset-y-0 left-0 w-full max-w-xs sm:max-w-sm bg-[#09150c] border-r border-[#1f3b25] z-[9999] flex flex-col shadow-2xl overflow-y-auto"
+            style={{ zIndex: 9999 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+          >
             {/* Header del drawer */}
-            <div className="p-4 border-b border-[#1b3420] flex items-center justify-between bg-[#07110a]">
+            <div className="p-4 border-b border-[#1b3420] flex items-center justify-between bg-[#07110a] sticky top-0 z-10">
               <div className="flex items-center gap-2.5">
                 <img src={logo} alt="CultiShop Logo" className="h-8 w-auto rounded-lg" />
                 <span className="font-heading font-black text-white text-base tracking-wider">
@@ -618,7 +639,8 @@ export const Navbar = () => {
               </a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );
