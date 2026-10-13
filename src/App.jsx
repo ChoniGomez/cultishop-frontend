@@ -16,8 +16,7 @@ import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
 import { 
   MapPin, 
-  Instagram, 
-  ExternalLink 
+  Instagram 
 } from 'lucide-react';
 
 const HomePage = () => (
@@ -29,90 +28,6 @@ const HomePage = () => (
     <div id="catalogo">
       <ProductSection />
     </div>
-
-    {/* SECCIÓN NUEVO HORARIO & UBICACIÓN (Directo del Flyer 1) */}
-    <section id="horarios" className="max-w-7xl mx-auto px-4 py-12">
-      <div className="bg-[#0e1a12] border border-[#1f3b25] rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-        {/* Fondo sutil tipo mesa de madera rústica en la base */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="flex justify-center mb-3">
-            <CultiShopLogo size="md" showText={false} />
-          </div>
-          <span className="text-xs font-extrabold tracking-widest text-[#4aa036] uppercase block mb-1">
-            ATENCIÓN EN NUESTRO LOCAL
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-[#e0a96d] font-heading tracking-wide uppercase text-glow-gold">
-            NUEVO HORARIO
-          </h2>
-        </div>
-
-        {/* Grilla de horarios de atención */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10">
-          {/* Lunes a Viernes */}
-          <div className="bg-[#122317] border border-[#23442a] p-6 rounded-2xl text-center shadow-md">
-            <span className="text-xs font-black uppercase tracking-wider text-gray-400 block mb-3">
-              Lunes a Viernes
-            </span>
-            <div className="flex justify-center items-center gap-4 text-base sm:text-lg font-black text-white font-heading">
-              <span className="bg-[#0a140d] px-3.5 py-2 rounded-xl border border-[#1f3b25] text-[#e0a96d]">
-                09:00 a 12:00
-              </span>
-              <span className="text-gray-500 font-normal">y</span>
-              <span className="bg-[#0a140d] px-3.5 py-2 rounded-xl border border-[#1f3b25] text-[#e0a96d]">
-                16:30 a 19:30
-              </span>
-            </div>
-          </div>
-
-          {/* Sábados */}
-          <div className="bg-[#122317] border border-[#23442a] p-6 rounded-2xl text-center shadow-md">
-            <span className="text-xs font-black uppercase tracking-wider text-gray-400 block mb-3">
-              Sábados
-            </span>
-            <div className="flex justify-center items-center gap-4 text-base sm:text-lg font-black text-white font-heading">
-              <span className="bg-[#0a140d] px-3.5 py-2 rounded-xl border border-[#1f3b25] text-[#e0a96d]">
-                08:30 a 12:00
-              </span>
-              <span className="text-gray-500 font-normal">y</span>
-              <span className="bg-[#0a140d] px-3.5 py-2 rounded-xl border border-[#1f3b25] text-[#e0a96d]">
-                16:30 a 19:00
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center mb-8">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-red-950/40 text-red-300 border border-red-800/40 text-xs font-bold uppercase tracking-wider">
-            Domingo Cerrado
-          </span>
-        </div>
-
-        {/* Dirección física destacada (del flyer 1) */}
-        <div className="bg-gradient-to-r from-[#23170e] via-[#3a2717] to-[#23170e] border-2 border-[#e0a96d]/40 rounded-2xl p-6 text-center max-w-2xl mx-auto shadow-xl">
-          <div className="flex items-center justify-center gap-2 text-xs font-bold text-gray-300 uppercase tracking-widest mb-1">
-            <MapPin size={16} className="text-[#e0a96d]" />
-            Visitanos en nuestro local
-          </div>
-          <h3 className="text-2xl sm:text-3xl font-black text-[#e0a96d] font-heading tracking-wider mb-3">
-            AV LOPEZ Y PLANES 2919
-          </h3>
-          <p className="text-xs text-gray-300 mb-4">
-            Posadas, Misiones, Argentina. Asesoramiento personalizado en cultivo.
-          </p>
-          <div className="flex justify-center gap-4">
-            <a
-              href="https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-[#0d1a11] hover:bg-[#152a1b] text-white px-5 py-2.5 rounded-full text-xs font-bold transition border border-[#2d5a27]"
-            >
-              <span>Abrir en Google Maps</span>
-              <ExternalLink size={14} />
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
 );
 

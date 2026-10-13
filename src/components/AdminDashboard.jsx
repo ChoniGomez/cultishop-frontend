@@ -682,12 +682,12 @@ export const AdminDashboard = () => {
               <table className="w-full text-left text-xs text-gray-300">
                 <thead className="bg-[#142619] text-gray-400 font-bold uppercase tracking-wider border-b border-[#1f3b25]">
                   <tr>
-                    <th className="py-3 px-4">Producto / Imagen</th>
-                    <th className="py-3 px-4">Categoría / Subcategoría</th>
-                    <th className="py-3 px-4">Precio</th>
-                    <th className="py-3 px-4">Stock</th>
-                    <th className="py-3 px-4">Etiqueta</th>
-                    <th className="py-3 px-4 text-right">Acciones</th>
+                    <th className="py-3 px-4 min-w-[180px]">Producto / Imagen</th>
+                    <th className="py-3 px-4 min-w-[160px]">Categoría / Subcategoría</th>
+                    <th className="py-3 px-4 min-w-[130px] whitespace-nowrap">Precio</th>
+                    <th className="py-3 px-4 min-w-[130px] whitespace-nowrap">Stock</th>
+                    <th className="py-3 px-4 min-w-[160px] whitespace-nowrap">Etiqueta</th>
+                    <th className="py-3 px-4 text-right min-w-[110px] whitespace-nowrap">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1f3b25]">
@@ -725,7 +725,7 @@ export const AdminDashboard = () => {
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 font-bold text-white font-heading">
+                        <td className="py-3 px-4 font-bold text-white font-heading whitespace-nowrap">
                           {(() => {
                             const pOpts = getProductOptions(prod);
                             if (pOpts.length > 1) {
@@ -734,20 +734,20 @@ export const AdminDashboard = () => {
                                 const min = Math.min(...prices);
                                 const max = Math.max(...prices);
                                 if (min !== max) {
-                                  return (
-                                    <div>
-                                      <span className="text-xs text-[#e0a96d] block font-heading">{formatPrice(min)} – {formatPrice(max)}</span>
-                                      <span className="text-[10px] text-gray-400 font-normal">({pOpts.length} medidas)</span>
-                                    </div>
-                                  );
+                                   return (
+                                     <div>
+                                       <span className="text-xs text-[#e0a96d] block font-heading">{formatPrice(min)} – {formatPrice(max)}</span>
+                                       <span className="text-[10px] text-gray-400 font-normal">({pOpts.length} medidas)</span>
+                                     </div>
+                                   );
                                 }
                               }
                             }
                             return typeof prod.price === 'number' ? formatPrice(prod.price) : prod.price;
                           })()}
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] inline-block ${
                             (prod.stock || 0) <= 0 
                               ? 'bg-red-950/80 text-red-400 border border-red-500/60' 
                               : (prod.stock || 0) <= 5
@@ -757,17 +757,19 @@ export const AdminDashboard = () => {
                             {(prod.stock || 0) <= 0 ? '0 un. (Sin Stock)' : `${prod.stock} un.`}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
-                          {prod.badge && (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        <td className="py-3 px-4 min-w-[160px]">
+                          {prod.badge ? (
+                            <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider text-center shadow-sm ${
                               prod.badge_type === 'red' || prod.badgeType === 'red' || prod.badge.toUpperCase() === 'SIN STOCK'
-                                ? 'bg-red-950/80 text-red-400 border border-red-500/50'
+                                ? 'bg-red-950/90 text-red-400 border border-red-500/60'
                                 : prod.badge_type === 'gold' || prod.badgeType === 'gold'
-                                  ? 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                                  ? 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/50'
                                   : 'bg-[#18311d] text-[#4aa036] border border-[#2d5a27]'
                             }`}>
                               {prod.badge}
                             </span>
+                          ) : (
+                            <span className="text-gray-500 text-[11px] italic">—</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right">

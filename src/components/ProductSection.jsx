@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, Sparkles, ArrowLeft, Search, X } from 'lucide-react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Sparkles, ArrowLeft, Search, X } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
+
+const PRODUCTS_PER_PAGE = 9;
 
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
@@ -12,6 +14,7 @@ export const ProductSection = () => {
   const { products, searchQuery, setSearchQuery, clearSearch } = useShop();
   const currentCategorySlug = category || slug;
   const [selectedCategory, setSelectedCategory] = useState('todos');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Sincronizar si hay query param en la URL
   useEffect(() => {
@@ -28,6 +31,11 @@ export const ProductSection = () => {
       setSelectedCategory('todos');
     }
   }, [currentCategorySlug, subcategory]);
+
+  // Resetear a página 1 cada vez que cambien los filtros o búsquedas
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery, currentCategorySlug, subcategory]);
 
   const matchedCategory = CATEGORIES.find(c => c.slug === currentCategorySlug);
   const matchedSubcategory = matchedCategory?.subcategories?.find(s => s.slug === subcategory);
@@ -93,6 +101,39 @@ export const ProductSection = () => {
 
     return product.category.toLowerCase().includes(active.toLowerCase());
   });
+
+  // Cálculos de Paginación (Exactamente 9 productos por defecto en cada página)
+  const totalProducts = filteredProducts.length;
+  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE) || 1;
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (validCurrentPage - 1) * PRODUCTS_PER_PAGE;
+  const endIndex = Math.min(startIndex + PRODUCTS_PER_PAGE, totalProducts);
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages || newPage === validCurrentPage) return;
+    setCurrentPage(newPage);
+    const catalogElement = document.getElementById('catalogo');
+    if (catalogElement) {
+      catalogElement.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 350, behavior: 'smooth' });
+    }
+  };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (validCurrentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+    if (validCurrentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', validCurrentPage - 1, validCurrentPage, validCurrentPage + 1, '...', totalPages];
+  };
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-14">
@@ -272,11 +313,89 @@ export const ProductSection = () => {
           </div>
         )
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {/* Grilla de productos (exactamente 9 por página en cuadrícula balanceada) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          {/* Componente de Paginación Inferior Estándar E-Commerce */}
+          {totalPages > 1 && (
+            <div className="mt-12 pt-6 border-t border-[#1f3b25] flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Información de productos mostrados */}
+              <div className="text-xs text-gray-400 font-medium">
+                Mostrando <span className="text-[#e0a96d] font-bold">{startIndex + 1}</span>–<span className="text-[#e0a96d] font-bold">{endIndex}</span> de <span className="text-white font-bold">{totalProducts}</span> productos
+              </div>
+
+              {/* Botones de navegación y números de página */}
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                {/* Botón Anterior */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(validCurrentPage - 1)}
+                  disabled={validCurrentPage === 1}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
+                    validCurrentPage === 1
+                      ? 'bg-[#0f1d13] text-gray-600 border-[#1a3321] cursor-not-allowed opacity-50'
+                      : 'bg-[#122317] hover:bg-[#1d3824] text-gray-200 hover:text-white border-[#23422a] hover:border-[#4aa036] active:scale-95 shadow-sm'
+                  }`}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft size={15} />
+                  <span>Anterior</span>
+                </button>
+
+                {/* Números de página */}
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((pageNum, idx) => {
+                    if (pageNum === '...') {
+                      return (
+                        <span key={`ellipsis-${idx}`} className="px-2 py-1 text-gray-500 text-xs font-bold select-none">
+                          ...
+                        </span>
+                      );
+                    }
+
+                    const isActive = pageNum === validCurrentPage;
+                    return (
+                      <button
+                        key={`page-${pageNum}`}
+                        type="button"
+                        onClick={() => handlePageChange(pageNum)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`min-w-9 h-9 px-3 rounded-xl text-xs font-bold transition border flex items-center justify-center ${
+                          isActive
+                            ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40 font-black scale-105'
+                            : 'bg-[#122317] hover:bg-[#1a3521] text-gray-300 hover:text-[#e0a96d] border-[#1f3b25] hover:border-[#2d5a27] active:scale-95'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botón Siguiente */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(validCurrentPage + 1)}
+                  disabled={validCurrentPage === totalPages}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
+                    validCurrentPage === totalPages
+                      ? 'bg-[#0f1d13] text-gray-600 border-[#1a3321] cursor-not-allowed opacity-50'
+                      : 'bg-[#122317] hover:bg-[#1d3824] text-gray-200 hover:text-white border-[#23422a] hover:border-[#4aa036] active:scale-95 shadow-sm'
+                  }`}
+                  aria-label="Página siguiente"
+                >
+                  <span>Siguiente</span>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Banner de confianza al pie de los productos (Directo de los flyers) */}

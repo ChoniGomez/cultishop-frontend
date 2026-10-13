@@ -212,28 +212,13 @@ export const Navbar = () => {
           </button>
         </form>
 
-        {/* WhatsApp & Carrito */}
+        {/* Acceso a Carrito */}
         <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-          <a
-            href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20un%20pedido%20o%20consulta"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] border border-[#23422a] hover:border-[#25d366]/60 px-3.5 py-2 rounded-xl transition-all group shadow-sm"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:bg-[#25d366] group-hover:text-black group-hover:scale-110 transition-all duration-200 shadow-sm">
-              <WhatsAppIcon size={18} />
-            </div>
-            <div className="text-left">
-              <span className="block text-[10px] uppercase font-bold text-gray-400 tracking-wider">WhatsApp Oficial</span>
-              <span className="font-bold text-sm text-[#e0a96d] group-hover:text-white transition">+54 9 376 435-6995</span>
-            </div>
-          </a>
-
           <button
             type="button"
             onClick={openCart}
             aria-label={`Mi Carrito, ${totalItems} productos por ${formattedTotalPrice}`}
-            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-3.5 py-2 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
+            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-4 py-2.5 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
           >
             <div className="relative">
               <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={20} />
