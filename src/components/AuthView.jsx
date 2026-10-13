@@ -12,7 +12,6 @@ import {
   LogOut, 
   ShoppingBag, 
   Heart, 
-  Sparkles,
   KeyRound,
   Shield,
   LayoutDashboard
@@ -228,7 +227,7 @@ export const AuthView = () => {
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#e0a96d]">Acceso de Gestión</span>
                   <h3 className="text-lg font-black text-white font-heading">Panel de Administración CultiShop</h3>
-                  <p className="text-xs text-gray-200">Alta, baja y modificación de productos (CRUD), stock e imágenes, y gestión de pedidos.</p>
+                  <p className="text-xs text-gray-200">Gestión completa de productos, stock, imágenes y control de pedidos de clientes.</p>
                 </div>
               </div>
               <Link
@@ -241,43 +240,45 @@ export const AuthView = () => {
             </div>
           )}
 
-          {/* Tarjetas de acciones rápidas */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
-            <Link
-              to="/favoritos"
-              className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
-            >
-              <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#e0a96d] flex items-center justify-center mb-3 group-hover:scale-105 transition">
-                <Heart size={20} />
-              </div>
-              <h3 className="font-bold text-sm text-white font-heading">Tus Favoritos</h3>
-              <p className="text-xs text-gray-400 mt-1">Revisa los artículos guardados para tu próximo pedido.</p>
-            </Link>
+          {/* Tarjetas de acciones rápidas (solo para clientes finales) */}
+          {!isAdmin && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
+              <Link
+                to="/favoritos"
+                className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#e0a96d] flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                  <Heart size={20} />
+                </div>
+                <h3 className="font-bold text-sm text-white font-heading">Tus Favoritos</h3>
+                <p className="text-xs text-gray-400 mt-1">Revisa los artículos guardados para tu próximo pedido.</p>
+              </Link>
 
-            <Link
-              to="/"
-              className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
-            >
-              <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#4aa036] flex items-center justify-center mb-3 group-hover:scale-105 transition">
-                <ShoppingBag size={20} />
-              </div>
-              <h3 className="font-bold text-sm text-white font-heading">Catálogo en Stock</h3>
-              <p className="text-xs text-gray-400 mt-1">Explorá fertilizantes, carpas indoor y parafernalia.</p>
-            </Link>
+              <Link
+                to="/"
+                className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#4aa036] flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                  <ShoppingBag size={20} />
+                </div>
+                <h3 className="font-bold text-sm text-white font-heading">Catálogo en Stock</h3>
+                <p className="text-xs text-gray-400 mt-1">Explorá fertilizantes, carpas indoor y parafernalia.</p>
+              </Link>
 
-            <a
-              href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Tengo%20una%20consulta%20sobre%20mi%20cuenta"
-              target="_blank"
-              rel="noreferrer"
-              className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#25d366]/60 transition group shadow-md"
-            >
-              <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#25d366] flex items-center justify-center mb-3 group-hover:scale-105 transition">
-                <WhatsAppIcon size={20} />
-              </div>
-              <h3 className="font-bold text-sm text-white font-heading">Atención Directa</h3>
-              <p className="text-xs text-gray-400 mt-1">Contactate con nuestro equipo en Posadas por WhatsApp.</p>
-            </a>
-          </div>
+              <a
+                href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Tengo%20una%20consulta%20sobre%20mi%20cuenta"
+                target="_blank"
+                rel="noreferrer"
+                className="p-5 rounded-2xl bg-[#122317] border border-[#23422a] hover:border-[#25d366]/60 transition group shadow-md"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#25d366] flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                  <WhatsAppIcon size={20} />
+                </div>
+                <h3 className="font-bold text-sm text-white font-heading">Atención Directa</h3>
+                <p className="text-xs text-gray-400 mt-1">Contactate con nuestro equipo en Posadas por WhatsApp.</p>
+              </a>
+            </div>
+          )}
 
           {/* SECCIÓN SEGURIDAD Y CAMBIO DE CONTRASEÑA */}
           <div className="mb-8 bg-[#122317] border border-[#23442a] rounded-2xl p-6 shadow-md">
@@ -380,22 +381,6 @@ export const AuthView = () => {
                 </div>
               </form>
             )}
-          </div>
-
-          {/* Banner de beneficios */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#142619] via-[#1a3321] to-[#142619] border border-[#2d5a27] flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Sparkles size={20} className="text-[#e0a96d] shrink-0" />
-              <p className="text-xs text-gray-200">
-                Tu cuenta está activa bajo los lineamientos oficiales de CultiShop y la Ley 27.350.
-              </p>
-            </div>
-            <Link
-              to="/"
-              className="text-xs font-bold text-[#e0a96d] hover:text-white transition whitespace-nowrap"
-            >
-              Ir a la tienda →
-            </Link>
           </div>
         </div>
       </div>

@@ -394,16 +394,6 @@ export const Navbar = () => {
                   </span>
                 )}
               </Link>
-              {user?.role === 'admin' && (
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2a1e0f] border border-[#e0a96d] text-[#e0a96d] hover:bg-[#e0a96d] hover:text-black transition text-xs font-black uppercase tracking-wider shadow-sm"
-                  title="Panel de Administración"
-                >
-                  <Shield size={12} className="fill-current" />
-                  <span>Admin</span>
-                </Link>
-              )}
               <Link to="/ingresar" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
                 <User size={15} className={user ? 'text-[#4aa036]' : ''} />
                 <span>{user ? user.name.split(' ')[0] : 'Ingresar'}</span>
