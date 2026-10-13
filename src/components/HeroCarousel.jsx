@@ -2,20 +2,25 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WhatsAppIcon } from './WhatsAppIcon';
+import { buildApiUrl } from '../config/api';
 
-const SLIDES = [
+const DEFAULT_BANNERS = [
   {
     id: 1,
     badge: 'SANIDAD VEGETAL • COMBATE EFICAZ',
     subtitle: 'Soluciones confiables para el cuidado de tus plantas',
     titlePrefix: 'PROTEGÉ TU CULTIVO CONTRA ',
     titleHighlight: 'TODO TIPO DE PLAGAS',
+    title: 'PROTEGÉ TU CULTIVO CONTRA TODO TIPO DE PLAGAS',
     description: 'Fungicidas, insecticidas y acaricidas Mamboretá oficiales (D, CONFI, FOLI, ABA, OIL). Resultados comprobados para mantener tu jardín sano, fuerte y productivo.',
     ctaText: 'Ver Control de Plagas',
+    button_text: 'Ver Control de Plagas',
     ctaLink: '/categoria/control-de-plagas',
+    link_url: '/categoria/control-de-plagas',
     whatsappMessage: 'Hola CultiShop! Quiero consultar por productos Mamboretá para control de plagas',
     whatsappText: 'Consultar Mamboretá',
     image: 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800',
+    image_url: 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800',
     accentColor: '#4aa036'
   },
   {
@@ -24,12 +29,16 @@ const SLIDES = [
     subtitle: 'Grow • Cultiva • Crece en Posadas',
     titlePrefix: 'EXPLOSIÓN DE RESINA, FLORES Y ',
     titleHighlight: 'RAÍCES FUERTES',
+    title: 'EXPLOSIÓN DE RESINA, FLORES Y RAÍCES FUERTES',
     description: 'Línea completa Namasté Nutrientes: Oro Negro, Amazonia Micorrizas, Flora Booster y Trico+. Todo lo que tu jardín necesita lo tenemos en stock permanente.',
     ctaText: 'Ver Fertilizantes',
+    button_text: 'Ver Fertilizantes',
     ctaLink: '/categoria/fertilizantes',
+    link_url: '/categoria/fertilizantes',
     whatsappMessage: 'Hola CultiShop! Consulto por la línea de fertilizantes Namasté Nutrientes',
     whatsappText: 'Pedir Fertilizantes',
     image: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1800',
+    image_url: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1800',
     accentColor: '#e0a96d'
   },
   {
@@ -38,6 +47,7 @@ const SLIDES = [
     subtitle: 'Av. López y Planes 2919 (entre Lavalle y Santa Catalina)',
     titlePrefix: 'VISITANOS EN NUESTRO LOCAL • ',
     titleHighlight: 'HORARIOS DE ATENCIÓN',
+    title: 'VISITANOS EN NUESTRO LOCAL • HORARIOS DE ATENCIÓN',
     description: 'Vení a conocernos, descubrí todo nuestro catálogo en exhibición y recibí asesoramiento técnico profesional para tu cultivo.',
     schedule: {
       weekdays: 'Lun a Vie: 09:00 a 12:00 y 16:30 a 19:30',
@@ -46,11 +56,14 @@ const SLIDES = [
       address: 'Av. López y Planes 2919, Posadas'
     },
     ctaText: 'Cómo Llegar (Google Maps)',
+    button_text: 'Cómo Llegar (Google Maps)',
     ctaLink: 'https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas',
+    link_url: 'https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas',
     isExternalCta: true,
     whatsappMessage: 'Hola CultiShop! Quiero consultar los horarios de atención y visita al local',
     whatsappText: 'Consultar por WhatsApp',
     image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1800',
+    image_url: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1800',
     accentColor: '#e0a96d'
   },
   {
@@ -59,29 +72,67 @@ const SLIDES = [
     subtitle: 'Tecnología y precisión para tu espacio',
     titlePrefix: 'CARPAS, MEDICIÓN Y KITS ',
     titleHighlight: 'COMPLETOS DE CULTIVO',
+    title: 'CARPAS, MEDICIÓN Y KITS COMPLETOS DE CULTIVO',
     description: 'Equipate con lo mejor: carpas indoor, paneles LED de alta eficiencia, instrumentos de medición PH/EC, ventilación y kits completos para iniciar o potenciar tu cosecha.',
     ctaText: 'Explorar Indoor',
+    button_text: 'Explorar Indoor',
     ctaLink: '/categoria/indoor',
+    link_url: '/categoria/indoor',
     whatsappMessage: 'Hola CultiShop! Quiero asesoramiento para equipamiento y carpas de cultivo Indoor',
     whatsappText: 'Armar Mi Espacio',
     image: 'https://images.unsplash.com/photo-1624990833801-56c1b6a56ba7?auto=format&fit=crop&q=80&w=1800',
+    image_url: 'https://images.unsplash.com/photo-1624990833801-56c1b6a56ba7?auto=format&fit=crop&q=80&w=1800',
     accentColor: '#e0a96d'
   }
 ];
 
 export const HeroCarousel = ({ interval = 5000 }) => {
+  const [banners, setBanners] = useState(DEFAULT_BANNERS);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+  // Cargar banners activos desde el backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchActiveBanners = async () => {
+      try {
+        const res = await fetch(buildApiUrl('banners'));
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : (data?.banners || data?.data || []);
+          if (isMounted && Array.isArray(list) && list.length > 0) {
+            setBanners(list);
+          }
+        }
+      } catch (err) {
+        console.warn('HeroCarousel: utilizando banners locales predeterminados.', err);
+      }
+    };
+
+    fetchActiveBanners();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  const totalSlides = banners.length || 1;
+
+  // Garantizar que currentSlide no exceda la cantidad de banners al actualizarse
+  useEffect(() => {
+    if (currentSlide >= totalSlides) {
+      setCurrentSlide(0);
+    }
+  }, [currentSlide, totalSlides]);
+
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  }, [totalSlides]);
+
   const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-  }, []);
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+  }, [totalSlides]);
 
   const goToSlide = (index) => {
     setCurrentSlide(index);
@@ -89,16 +140,16 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
   // Rotación automática con pausa en hover
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || totalSlides <= 1) return;
 
     const timer = setInterval(() => {
       nextSlide();
     }, interval);
 
     return () => clearInterval(timer);
-  }, [isPaused, interval, nextSlide]);
+  }, [isPaused, interval, nextSlide, totalSlides]);
 
-  // Soporte para gestos táctiles (swipe en móviles)
+  // Soporte para gestos táctiles (swipe en dispositivos móviles)
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -131,25 +182,51 @@ export const HeroCarousel = ({ interval = 5000 }) => {
     >
       {/* Contenedor principal de diapositivas */}
       <div className="relative min-h-[520px] sm:min-h-[580px] md:min-h-[640px] flex items-center">
-        {SLIDES.map((slide, index) => {
+        {banners.map((slide, index) => {
           const isActive = index === currentSlide;
+          const imageUrl = slide.image_url || slide.image;
+          const title = slide.title || (slide.titlePrefix ? `${slide.titlePrefix}${slide.titleHighlight || ''}` : 'CultiShop');
+          const subtitle = slide.subtitle || '';
+          const description = slide.description || '';
+          const ctaLink = slide.link_url || slide.ctaLink || '/tienda';
+          const ctaText = slide.button_text || slide.ctaText || 'Ver Más';
+          const isExternalCta = Boolean(slide.isExternalCta || (typeof ctaLink === 'string' && ctaLink.startsWith('http')));
+          const whatsappMessage = slide.whatsappMessage || `Hola CultiShop! Quiero consultar sobre: ${title}`;
+          const whatsappText = slide.whatsappText || 'Consultar por WhatsApp';
+
+          // Detectar si la diapositiva corresponde a los horarios o al local oficial
+          const isSchedule = Boolean(
+            slide.schedule ||
+            (title + ' ' + subtitle + ' ' + description).toLowerCase().includes('horario') ||
+            (title + ' ' + subtitle + ' ' + description).toLowerCase().includes('local') ||
+            (title + ' ' + subtitle + ' ' + description).toLowerCase().includes('visitanos')
+          );
+
+          const badgeText = slide.badge || (
+            isSchedule 
+              ? 'LOCAL OFICIAL EN POSADAS • ATENCIÓN PERSONALIZADA' 
+              : 'CULTISHOP OFICIAL • POSADAS'
+          );
 
           return (
             <div
-              key={slide.id}
+              key={slide.id || index}
               className={`absolute inset-0 transition-opacity duration-1000 ease-in-out flex items-center ${
                 isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              {/* Imagen de fondo con gradientes oscuros CultiShop */}
+              {/* Imagen de fondo horizontal con gradientes oscuros CultiShop */}
               <div className="absolute inset-0 overflow-hidden">
                 <img
-                  src={slide.image}
-                  alt={slide.subtitle}
+                  src={imageUrl}
+                  alt={title}
                   className={`w-full h-full object-cover object-center transform transition-transform duration-10000 ease-out ${
                     isActive ? 'scale-105' : 'scale-100'
                   }`}
                   loading={index === 0 ? 'eager' : 'lazy'}
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
+                  }}
                 />
                 {/* Capas de overlay para legibilidad y estética corporativa */}
                 <div className="absolute inset-0 bg-gradient-to-r from-[#07110a]/95 via-[#0a160d]/85 to-[#07110a]/60 sm:to-transparent" />
@@ -163,29 +240,46 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                   {/* Badge temático */}
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[11px] sm:text-xs font-bold text-[#e0a96d] uppercase tracking-widest shadow-lg backdrop-blur-md animate-in fade-in duration-500">
                     <Sparkles size={13} className="text-[#e0a96d] shrink-0" />
-                    <span>{slide.badge}</span>
+                    <span>{badgeText}</span>
                   </div>
 
-                  {/* Subtítulo corporativo */}
-                  <p className="text-[#e0a96d] text-sm sm:text-base font-semibold tracking-wide">
-                    {slide.subtitle}
-                  </p>
+                  {/* Subtítulo previo si hay descripción separada */}
+                  {description && subtitle && (
+                    <p className="text-[#e0a96d] text-sm sm:text-base font-semibold tracking-wide">
+                      {subtitle}
+                    </p>
+                  )}
 
                   {/* Título principal con tono mostaza/dorado */}
                   <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white font-heading leading-[1.15] tracking-tight">
-                    {slide.titlePrefix}
-                    <span className="text-[#e0a96d] text-glow-gold block sm:inline">
-                      {slide.titleHighlight}
-                    </span>
+                    {slide.titlePrefix && slide.titleHighlight ? (
+                      <>
+                        {slide.titlePrefix}
+                        <span className="text-[#e0a96d] text-glow-gold block sm:inline">
+                          {slide.titleHighlight}
+                        </span>
+                      </>
+                    ) : title.includes('•') ? (
+                      <>
+                        {title.split('•')[0].trim()}{' '}
+                        <span className="text-[#e0a96d] text-glow-gold block sm:inline">
+                          • {title.split('•').slice(1).join('•').trim()}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-white">{title}</span>
+                    )}
                   </h1>
 
-                  {/* Descripción detallada */}
-                  <p className="text-gray-200 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl text-shadow-sm">
-                    {slide.description}
-                  </p>
+                  {/* Bajada o descripción detallada */}
+                  {(description || subtitle) && (
+                    <p className="text-gray-200 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl text-shadow-sm">
+                      {description || subtitle}
+                    </p>
+                  )}
 
                   {/* Cuadro destacado de horarios si la diapositiva lo incluye */}
-                  {slide.schedule && (
+                  {isSchedule && (
                     <div className="bg-[#0b160e]/90 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-3.5 sm:p-4 max-w-xl shadow-xl space-y-2.5">
                       <div className="flex items-center gap-2 text-[#e0a96d] text-xs font-bold uppercase tracking-wider">
                         <Clock size={15} className="shrink-0" />
@@ -215,29 +309,29 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
                   {/* Botones de acción */}
                   <div className="pt-2 sm:pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                    {slide.isExternalCta ? (
+                    {isExternalCta ? (
                       <a
-                        href={slide.ctaLink}
+                        href={ctaLink}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-7 py-3.5 sm:py-4 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                       >
-                        <MapPin size={16} className="text-[#e0a96d]" />
-                        <span>{slide.ctaText}</span>
+                        {ctaLink.includes('maps') && <MapPin size={16} className="text-[#e0a96d]" />}
+                        <span>{ctaText}</span>
                         <ExternalLink size={15} />
                       </a>
                     ) : (
                       <Link
-                        to={slide.ctaLink}
+                        to={ctaLink}
                         className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-7 py-3.5 sm:py-4 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                       >
-                        <span>{slide.ctaText}</span>
+                        <span>{ctaText}</span>
                         <ArrowRight size={17} />
                       </Link>
                     )}
 
                     <a
-                      href={`https://wa.me/5493764356995?text=${encodeURIComponent(slide.whatsappMessage)}`}
+                      href={`https://wa.me/5493764356995?text=${encodeURIComponent(whatsappMessage)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-6 py-3.5 sm:py-4 rounded-full transition-all border border-[#23442a] hover:border-[#25d366]/60 flex items-center justify-center gap-2.5 text-xs sm:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
@@ -245,7 +339,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                       <div className="w-6 h-6 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
                         <WhatsAppIcon size={14} />
                       </div>
-                      <span>{slide.whatsappText}</span>
+                      <span>{whatsappText}</span>
                     </a>
                   </div>
                 </div>
@@ -256,41 +350,47 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       </div>
 
       {/* Flechas de navegación manual (Anterior / Siguiente) */}
-      <button
-        onClick={prevSlide}
-        aria-label="Diapositiva anterior"
-        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
-      >
-        <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
-      </button>
+      {totalSlides > 1 && (
+        <>
+          <button
+            onClick={prevSlide}
+            aria-label="Diapositiva anterior"
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+          >
+            <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
+          </button>
 
-      <button
-        onClick={nextSlide}
-        aria-label="Siguiente diapositiva"
-        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
-      >
-        <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform" />
-      </button>
+          <button
+            onClick={nextSlide}
+            aria-label="Siguiente diapositiva"
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0a160d]/70 hover:bg-[#2d5a27] text-gray-300 hover:text-white border border-[#234428] hover:border-[#4aa036] flex items-center justify-center transition-all duration-200 backdrop-blur-md shadow-xl hover:scale-110 active:scale-90 group"
+          >
+            <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </>
+      )}
 
       {/* Indicadores de puntos / Dots en la parte inferior */}
-      <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 z-20 flex items-center justify-center gap-2.5 sm:gap-3">
-        {SLIDES.map((slide, index) => {
-          const isActive = index === currentSlide;
+      {totalSlides > 1 && (
+        <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 z-20 flex items-center justify-center gap-2.5 sm:gap-3">
+          {banners.map((slide, index) => {
+            const isActive = index === currentSlide;
 
-          return (
-            <button
-              key={slide.id}
-              onClick={() => goToSlide(index)}
-              aria-label={`Ir a diapositiva ${index + 1}`}
-              className={`h-2.5 rounded-full transition-all duration-300 ${
-                isActive
-                  ? 'w-8 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
-                  : 'w-2.5 bg-white/30 hover:bg-white/60'
-              }`}
-            />
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={slide.id || index}
+                onClick={() => goToSlide(index)}
+                aria-label={`Ir a diapositiva ${index + 1}`}
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  isActive
+                    ? 'w-8 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
+                    : 'w-2.5 bg-white/30 hover:bg-white/60'
+                }`}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Cinta de atributos inferior: CALIDAD • DURABILIDAD • EFICIENCIA */}
       <div className="relative z-20 bg-[#09150d]/90 border-t border-[#18311d] py-2.5 px-4 backdrop-blur-md">
@@ -311,4 +411,3 @@ export const HeroCarousel = ({ interval = 5000 }) => {
     </section>
   );
 };
-

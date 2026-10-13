@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -23,9 +23,14 @@ import {
   ExternalLink,
   ChevronRight,
   Layers,
-  Droplets,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  Sliders,
+  Image as ImageIcon,
+  EyeOff,
+  Link as LinkIcon,
+  Droplets,
+  Upload
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +90,87 @@ export const AdminDashboard = () => {
     { name: '500 cc', price: '28000' }
   ]);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Estados para Banners Publicitarios (Hero Carousel)
+  const [banners, setBanners] = useState([]);
+  const [loadingBanners, setLoadingBanners] = useState(false);
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [bannerModalMode, setBannerModalMode] = useState('create'); // 'create' | 'edit'
+  const [currentBanner, setCurrentBanner] = useState(null);
+  const [deleteBannerConfirmId, setDeleteBannerConfirmId] = useState(null);
+  const [isSavingBanner, setIsSavingBanner] = useState(false);
+
+  // Formulario de Banners
+  const [bannerFormTitle, setBannerFormTitle] = useState('');
+  const [bannerFormSubtitle, setBannerFormSubtitle] = useState('');
+  const [bannerFormImageUrl, setBannerFormImageUrl] = useState('');
+  const [bannerFormLinkUrl, setBannerFormLinkUrl] = useState('');
+  const [bannerFormButtonText, setBannerFormButtonText] = useState('Ver Más');
+  const [bannerFormOrder, setBannerFormOrder] = useState('1');
+  const [bannerFormIsActive, setBannerFormIsActive] = useState(true);
+
+  // Referencias a inputs de archivos locales e información de archivo
+  const productFileInputRef = useRef(null);
+  const bannerFileInputRef = useRef(null);
+  const [productImageFileName, setProductImageFileName] = useState('');
+  const [bannerImageFileName, setBannerImageFileName] = useState('');
+
+  // Colecciones seguras para evitar errores de renderizado si están cargando o vacías
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeBanners = Array.isArray(banners) ? banners : [];
+
+  // Helper para procesar archivos de imagen local, optimizarlos y generar Data URL
+  const handleImageFileChange = (file, setUrlState, setFileNameState) => {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      showNotification('error', 'Por favor, selecciona un archivo de imagen válido (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (setFileNameState) {
+      setFileNameState(file.name);
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result;
+      if (!dataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimized = canvas.toDataURL('image/jpeg', 0.80);
+          setUrlState(optimized);
+        } else {
+          setUrlState(dataUrl);
+        }
+      };
+      img.onerror = () => {
+        setUrlState(dataUrl);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Manejo de cambio de stock con asignación automática de "SIN STOCK"
   const handleStockChange = (val) => {
@@ -147,26 +233,26 @@ export const AdminDashboard = () => {
   const [formShippingInfo, setFormShippingInfo] = useState('');
 
   // Subcategorías dinámicas dependientes de la categoría principal seleccionada
-  const activeCategoryData = categories.find(
+  const activeCategoryData = safeCategories.find(
     (c) =>
-      c.name.toLowerCase() === formCategory.toLowerCase() ||
-      c.slug.toLowerCase() === formCategory.toLowerCase()
+      (c?.name && c.name.toLowerCase() === formCategory.toLowerCase()) ||
+      (c?.slug && c.slug.toLowerCase() === formCategory.toLowerCase())
   );
-  const activeSubcategories = activeCategoryData?.subcategories || [];
+  const activeSubcategories = Array.isArray(activeCategoryData?.subcategories) ? activeCategoryData.subcategories : [];
 
   // Cambio de Categoría Principal en el formulario
   const handleCategoryChange = (newCatName) => {
     setFormCategory(newCatName);
-    const newCatObj = categories.find(
+    const newCatObj = safeCategories.find(
       (c) =>
-        c.name.toLowerCase() === newCatName.toLowerCase() ||
-        c.slug.toLowerCase() === newCatName.toLowerCase()
+        (c?.name && c.name.toLowerCase() === newCatName.toLowerCase()) ||
+        (c?.slug && c.slug.toLowerCase() === newCatName.toLowerCase())
     );
-    const newSubs = newCatObj?.subcategories || [];
+    const newSubs = Array.isArray(newCatObj?.subcategories) ? newCatObj.subcategories : [];
     const isCurrentSubValid = newSubs.some(
       (s) =>
-        s.name.toLowerCase() === formSubcategory.toLowerCase() ||
-        s.slug.toLowerCase() === formSubcategory.toLowerCase()
+        (s?.name && s.name.toLowerCase() === formSubcategory.toLowerCase()) ||
+        (s?.slug && s.slug.toLowerCase() === formSubcategory.toLowerCase())
     );
     if (!isCurrentSubValid) {
       setFormSubcategory('');
@@ -195,7 +281,39 @@ export const AdminDashboard = () => {
     }
   };
 
+  // 2. Cargar banners publicitarios desde el Backend
+  const fetchBannersAdmin = async () => {
+    setLoadingBanners(true);
+    try {
+      const headers = {
+        'Accept': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      let res = await fetch(buildApiUrl('banners?all=true'), { headers });
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('banners/admin/all'), { headers });
+      }
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('banners'), { headers });
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.banners || data.data || []);
+        setBanners(list);
+      }
+    } catch (err) {
+      console.error('Error al cargar banners:', err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
   useEffect(() => {
+    fetchBannersAdmin();
     if (isAdmin) {
       fetchProducts();
       fetchOrders();
@@ -210,6 +328,123 @@ export const AdminDashboard = () => {
     }, 4000);
   };
 
+  // Handlers para Gestión de Banners Publicitarios
+  const handleOpenCreateBannerModal = () => {
+    setBannerModalMode('create');
+    setCurrentBanner(null);
+    setBannerFormTitle('');
+    setBannerFormSubtitle('');
+    setBannerFormImageUrl('');
+    setBannerImageFileName('');
+    setBannerFormLinkUrl('/categoria/control-de-plagas');
+    setBannerFormButtonText('Ver Más');
+    setBannerFormOrder(String((safeBanners?.length || 0) + 1));
+    setBannerFormIsActive(true);
+    setIsBannerModalOpen(true);
+  };
+
+  const handleOpenEditBannerModal = (banner) => {
+    if (!banner) return;
+    setBannerModalMode('edit');
+    setCurrentBanner(banner);
+    setBannerFormTitle(banner.title || '');
+    setBannerFormSubtitle(banner.subtitle || '');
+    setBannerFormImageUrl(banner.image_url || '');
+    setBannerImageFileName(banner.title ? `${banner.title}.jpg` : '');
+    setBannerFormLinkUrl(banner.link_url || '');
+    setBannerFormButtonText(banner.button_text || 'Ver Más');
+    setBannerFormOrder(String(banner.display_order ?? 0));
+    setBannerFormIsActive(banner.is_active !== false);
+    setIsBannerModalOpen(true);
+  };
+
+  const handleSaveBannerSubmit = async (e) => {
+    e.preventDefault();
+    if (!bannerFormTitle.trim() || !bannerFormImageUrl.trim()) {
+      showNotification('error', 'El título y la URL de la imagen horizontal son obligatorios.');
+      return;
+    }
+
+    setIsSavingBanner(true);
+    const payload = {
+      title: bannerFormTitle.trim(),
+      subtitle: bannerFormSubtitle.trim(),
+      image_url: bannerFormImageUrl.trim(),
+      link_url: bannerFormLinkUrl.trim(),
+      button_text: bannerFormButtonText.trim() || 'Ver Más',
+      display_order: parseInt(bannerFormOrder, 10) || 0,
+      is_active: bannerFormIsActive
+    };
+
+    try {
+      const url = bannerModalMode === 'create'
+        ? buildApiUrl('banners')
+        : buildApiUrl(`banners/${currentBanner.id}`);
+      const method = bannerModalMode === 'create' ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al guardar el banner.');
+      }
+
+      showNotification('success', bannerModalMode === 'create' ? '¡Banner creado exitosamente!' : '¡Banner actualizado correctamente!');
+      setIsBannerModalOpen(false);
+      await fetchBannersAdmin();
+    } catch (err) {
+      console.error('Error guardando banner:', err);
+      showNotification('error', err.message || 'Error al procesar el banner.');
+    } finally {
+      setIsSavingBanner(false);
+    }
+  };
+
+  const handleToggleBanner = async (banner) => {
+    try {
+      const res = await fetch(buildApiUrl(`banners/${banner.id}/toggle`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showNotification('success', `Banner ${banner.is_active ? 'desactivado' : 'activado'} correctamente.`);
+        await fetchBannersAdmin();
+      }
+    } catch (err) {
+      console.error('Error al cambiar visibilidad:', err);
+      showNotification('error', 'Error al modificar estado del banner.');
+    }
+  };
+
+  const handleDeleteBanner = async (bannerId) => {
+    try {
+      const res = await fetch(buildApiUrl(`banners/${bannerId}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showNotification('success', 'Banner eliminado del sistema.');
+        await fetchBannersAdmin();
+      }
+    } catch (err) {
+      console.error('Error al eliminar banner:', err);
+      showNotification('error', 'Error al eliminar el banner.');
+    } finally {
+      setDeleteBannerConfirmId(null);
+    }
+  };
+
   // Abrir Modal para Crear Producto
   const handleOpenCreateModal = () => {
     setModalMode('create');
@@ -218,10 +453,11 @@ export const AdminDashboard = () => {
     setFormDescription('');
     setFormPrice('6000');
     setFormStock('20');
-    const firstCat = categories[0]?.name || 'Fertilizantes';
+    const firstCat = safeCategories[0]?.name || 'Fertilizantes';
     setFormCategory(firstCat);
     setFormSubcategory('');
-    setFormImageUrl('https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600');
+    setFormImageUrl('');
+    setProductImageFileName('');
     setFormBadge('STOCK DISPONIBLE');
     setFormBadgeType('gold');
     setFormVariants([
@@ -251,6 +487,7 @@ export const AdminDashboard = () => {
 
   // Abrir Modal para Editar Producto
   const handleOpenEditModal = (prod) => {
+    if (!prod) return;
     setModalMode('edit');
     setCurrentProduct(prod);
     setFormTitle(prod.title || '');
@@ -263,6 +500,7 @@ export const AdminDashboard = () => {
     setFormCategory(prod.category || 'Fertilizantes');
     setFormSubcategory(prod.subcategory || '');
     setFormImageUrl(prod.image_url || prod.image || '');
+    setProductImageFileName(prod.title ? `${prod.title}.jpg` : '');
     const isZeroStock = (prod.stock !== undefined && Number(prod.stock) <= 0) || prod.badge === 'SIN STOCK';
     setFormBadge(isZeroStock ? 'SIN STOCK' : (prod.badge || 'STOCK DISPONIBLE'));
     setFormBadgeType(isZeroStock ? 'red' : (prod.badge_type || prod.badgeType || 'gold'));
@@ -318,8 +556,13 @@ export const AdminDashboard = () => {
   // Guardar Producto (Alta o Edición) con persistencia garantizada
   const handleSaveProductSubmit = async (e) => {
     e.preventDefault();
-    if (!formTitle) {
+    if (!formTitle.trim()) {
       showNotification('error', 'Por favor, completa el título del producto.');
+      return;
+    }
+
+    if (!formImageUrl || !formImageUrl.trim()) {
+      showNotification('error', 'Por favor, selecciona una imagen desde tu equipo para el producto.');
       return;
     }
 
@@ -350,18 +593,18 @@ export const AdminDashboard = () => {
     }
 
     // Resolver IDs de categoría y subcategoría según lo seleccionado
-    const catObj = categories.find(
-      c => c.name.toLowerCase() === formCategory.toLowerCase() ||
-           c.slug.toLowerCase() === formCategory.toLowerCase()
+    const catObj = safeCategories.find(
+      c => (c?.name && c.name.toLowerCase() === formCategory.toLowerCase()) ||
+           (c?.slug && c.slug.toLowerCase() === formCategory.toLowerCase())
     );
     const categoryId = catObj ? catObj.id : null;
 
     let subcategoryId = null;
     if (catObj && formSubcategory) {
-      const subObj = catObj.subcategories?.find(
-        s => s.name.toLowerCase() === formSubcategory.toLowerCase() ||
-             s.slug.toLowerCase() === formSubcategory.toLowerCase()
-      );
+      const subObj = Array.isArray(catObj.subcategories) ? catObj.subcategories.find(
+        s => (s?.name && s.name.toLowerCase() === formSubcategory.toLowerCase()) ||
+             (s?.slug && s.slug.toLowerCase() === formSubcategory.toLowerCase())
+      ) : null;
       if (subObj) {
         subcategoryId = subObj.id;
       }
@@ -469,25 +712,25 @@ export const AdminDashboard = () => {
   // ==========================================
   // FILTRADO DE PRODUCTOS Y PEDIDOS
   // ==========================================
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = safeProducts.filter(p => {
     const matchesCategory = selectedProductCategory === 'todas' || 
-      (p.category || '').toLowerCase() === selectedProductCategory.toLowerCase();
+      (p?.category || '').toLowerCase() === selectedProductCategory.toLowerCase();
     const query = productSearch.toLowerCase();
     const matchesSearch = !query || 
-      (p.title || '').toLowerCase().includes(query) ||
-      (p.description || '').toLowerCase().includes(query);
+      (p?.title || '').toLowerCase().includes(query) ||
+      (p?.description || '').toLowerCase().includes(query);
     return matchesCategory && matchesSearch;
   });
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = safeOrders.filter(o => {
     if (orderStatusFilter === 'todos') return true;
-    return o.status === orderStatusFilter;
+    return o?.status === orderStatusFilter;
   });
 
   // Métricas
-  const totalRevenue = orders.reduce((acc, o) => acc + (parseFloat(o.total_amount) || 0), 0);
-  const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
-  const lowStockCount = products.filter(p => (parseInt(p.stock, 10) || 0) <= 5).length;
+  const totalRevenue = safeOrders.reduce((acc, o) => acc + (parseFloat(o?.total_amount) || 0), 0);
+  const pendingOrdersCount = safeOrders.filter(o => o?.status === 'pending').length;
+  const lowStockCount = safeProducts.filter(p => (parseInt(p?.stock, 10) || 0) <= 5).length;
 
   // Render si NO es Administrador
   if (!authLoading && !isAdmin) {
@@ -572,7 +815,7 @@ export const AdminDashboard = () => {
             <span>Total Productos</span>
             <Package size={16} className="text-[#4aa036]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{products.length}</div>
+          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{safeProducts.length}</div>
           <span className="text-[10px] text-gray-500 mt-1 block">Catálogo en inventario</span>
         </div>
 
@@ -581,7 +824,7 @@ export const AdminDashboard = () => {
             <span>Pedidos Totales</span>
             <ShoppingBag size={16} className="text-[#e0a96d]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{orders.length}</div>
+          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{safeOrders.length}</div>
           <span className="text-[10px] text-gray-500 mt-1 block">{pendingOrdersCount} pendientes de entrega</span>
         </div>
 
@@ -615,7 +858,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <Package size={16} />
-          <span>Productos del Catálogo ({products.length})</span>
+          <span>Productos del Catálogo ({safeProducts.length})</span>
         </button>
 
         <button
@@ -627,12 +870,24 @@ export const AdminDashboard = () => {
           }`}
         >
           <ShoppingBag size={16} />
-          <span>Gestión de Pedidos ({orders.length})</span>
+          <span>Gestión de Pedidos ({safeOrders.length})</span>
           {pendingOrdersCount > 0 && (
             <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#e0a96d] text-black text-[9px] font-black">
               {pendingOrdersCount}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('banners')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'banners'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <Sliders size={16} />
+          <span>Banners Publicitarios ({safeBanners.length})</span>
         </button>
       </div>
 
@@ -964,6 +1219,179 @@ export const AdminDashboard = () => {
       )}
 
       {/* ============================================================ */}
+      {/* SECCIÓN 3: GESTIÓN DE BANNERS PUBLICITARIOS (HERO CAROUSEL) */}
+      {/* ============================================================ */}
+      {activeTab === 'banners' && (
+        <div className="space-y-6">
+          {/* Barra de Controles y Botón de Creación */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0e1c12] border border-[#1f3b25] p-5 rounded-2xl">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading flex items-center gap-2">
+                <Sliders className="text-[#e0a96d]" size={22} />
+                <span>Gestión de Banners Publicitarios</span>
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Configura las diapositivas horizontales del Slider / Hero Carousel de la portada principal de CultiShop.
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenCreateBannerModal}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-lg shrink-0"
+            >
+              <Plus size={16} />
+              <span>Alta de Banner</span>
+            </button>
+          </div>
+
+          {/* Listado de Banners */}
+          {loadingBanners ? (
+            <div className="p-12 text-center bg-[#0e1c12] border border-[#1f3b25] rounded-2xl">
+              <RefreshCw className="animate-spin text-[#e0a96d] mx-auto mb-3" size={28} />
+              <p className="text-xs text-gray-400">Cargando banners publicitarios desde la base de datos...</p>
+            </div>
+          ) : safeBanners.length === 0 ? (
+            <div className="p-12 text-center bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-4">
+              <div className="w-16 h-16 rounded-full bg-[#142619] border border-[#23422a] flex items-center justify-center text-[#e0a96d] mx-auto">
+                <ImageIcon size={28} />
+              </div>
+              <h3 className="text-lg font-black text-white font-heading">No hay banners registrados</h3>
+              <p className="text-xs text-gray-400 max-w-md mx-auto">
+                Crea el primer banner publicitario para mostrar promociones, lanzamientos o información importante en el slider principal.
+              </p>
+              <button
+                onClick={handleOpenCreateBannerModal}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold uppercase tracking-wider transition shadow-md"
+              >
+                <Plus size={15} />
+                <span>Crear Primer Banner</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-[#0e1c12] border border-[#1f3b25] rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[#1f3b25] bg-[#07110a] text-gray-400 uppercase font-black tracking-wider text-[11px]">
+                      <th className="py-4 px-4 text-center w-16">Orden</th>
+                      <th className="py-4 px-4 w-44">Vista Previa</th>
+                      <th className="py-4 px-4">Contenido (Título & Subtítulo)</th>
+                      <th className="py-4 px-4">Enlace / Botón</th>
+                      <th className="py-4 px-4 text-center w-28">Estado</th>
+                      <th className="py-4 px-4 text-right w-36">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#182e1c]">
+                    {safeBanners.map((banner) => (
+                      <tr key={banner.id} className="hover:bg-[#142619]/60 transition">
+                        {/* Orden */}
+                        <td className="py-4 px-4 text-center">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#142619] border border-[#23422a] text-[#e0a96d] font-black text-xs">
+                            #{banner.display_order ?? 0}
+                          </span>
+                        </td>
+
+                        {/* Vista Previa Horizontal */}
+                        <td className="py-4 px-4">
+                          <div className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] bg-black/50 group shrink-0">
+                            <img
+                              src={banner.image_url}
+                              alt={banner.title}
+                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=800';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-1">
+                              <span className="text-[9px] text-gray-300 font-mono truncate px-1">
+                                Horizontal
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Contenido (Título & Subtítulo) */}
+                        <td className="py-4 px-4 space-y-1">
+                          <div className="text-sm font-bold text-white font-heading leading-tight line-clamp-1">
+                            {banner.title}
+                          </div>
+                          <div className="text-gray-400 text-xs line-clamp-2 leading-relaxed">
+                            {banner.subtitle || <span className="italic text-gray-500">Sin subtítulo</span>}
+                          </div>
+                        </td>
+
+                        {/* Enlace y Botón */}
+                        <td className="py-4 px-4">
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#142619] border border-[#23422a] text-gray-200 font-bold text-[11px]">
+                              <span>{banner.button_text || 'Ver Más'}</span>
+                            </div>
+                            {banner.link_url && (
+                              <div className="flex items-center gap-1 text-[11px] text-[#e0a96d] truncate max-w-[200px]" title={banner.link_url}>
+                                <LinkIcon size={12} className="shrink-0" />
+                                <span className="truncate">{banner.link_url}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Estado (Activo / Inactivo) */}
+                        <td className="py-4 px-4 text-center">
+                          <button
+                            onClick={() => handleToggleBanner(banner)}
+                            title={banner.is_active ? 'Clic para desactivar' : 'Clic para activar'}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition ${
+                              banner.is_active
+                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900'
+                                : 'bg-gray-800/80 text-gray-400 border border-gray-600/50 hover:bg-gray-700'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${banner.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                            <span>{banner.is_active ? 'Activo' : 'Inactivo'}</span>
+                          </button>
+                        </td>
+
+                        {/* Acciones */}
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleToggleBanner(banner)}
+                              className={`p-2 rounded-xl border transition ${
+                                banner.is_active
+                                  ? 'bg-[#142619] text-gray-300 hover:text-white border-[#23422a] hover:bg-[#1f3b25]'
+                                  : 'bg-[#142619] text-[#e0a96d] border-[#23422a] hover:bg-[#1f3b25]'
+                              }`}
+                              title={banner.is_active ? 'Ocultar banner' : 'Mostrar banner'}
+                            >
+                              {banner.is_active ? <Eye size={15} /> : <EyeOff size={15} />}
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditBannerModal(banner)}
+                              className="p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition"
+                              title="Editar banner"
+                            >
+                              <Edit size={15} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteBannerConfirmId(banner.id)}
+                              className="p-2 rounded-xl bg-[#142619] hover:bg-red-950/50 text-gray-400 hover:text-red-400 border border-[#23422a] hover:border-red-900 transition"
+                              title="Eliminar banner"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
       {/* MODAL PARA ALTA / MODIFICACIÓN DE PRODUCTOS */}
       {/* ============================================================ */}
       {isModalOpen && (
@@ -1204,33 +1632,95 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* URL de Imagen con Previsualizador */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 mb-1">
-                      URL de la Imagen del Producto *
-                    </label>
+                  {/* Selector de Archivo Local para Imagen del Producto */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider">
+                        Imagen del Producto *
+                      </label>
+                      <span className="text-[10px] text-[#e0a96d] font-semibold">
+                        Archivo local (.jpg, .png, .webp)
+                      </span>
+                    </div>
+
+                    {/* Input tipo file oculto accionado por el botón o zona de carga */}
                     <input
-                      type="url"
-                      required
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
+                      ref={productFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageFileChange(file, setFormImageUrl, setProductImageFileName);
+                        }
+                      }}
                     />
-                    
-                    {formImageUrl && (
-                      <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-[#0a140d] rounded-xl border border-[#1f3b25]">
-                        <img
-                          src={formImageUrl}
-                          alt="Previsualización"
-                          className="w-14 h-14 rounded-lg object-cover border border-[#2d5a27]"
-                          onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
-                          }}
-                        />
-                        <div className="text-xs">
-                          <span className="font-bold text-white block">Previsualización de Imagen</span>
-                          <span className="text-[11px] text-gray-400">Verifica que la imagen cargue correctamente y tenga buena resolución.</span>
+
+                    {!formImageUrl ? (
+                      <div
+                        onClick={() => productFileInputRef.current?.click()}
+                        className="border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] rounded-2xl p-6 bg-[#0a140d] hover:bg-[#122317] transition cursor-pointer flex flex-col items-center justify-center text-center space-y-2 group shadow-inner"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-[#183520] group-hover:bg-[#234b2d] text-[#e0a96d] flex items-center justify-center transition shadow-md">
+                          <Upload size={22} />
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold text-white block">
+                            Elegir Imagen desde tu Equipo
+                          </span>
+                          <span className="text-[11px] text-gray-400 block">
+                            Haz clic aquí para abrir tu explorador de archivos
+                          </span>
+                        </div>
+                        <span className="px-3.5 py-1 rounded-full bg-[#1e3c25] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider">
+                          Examinar Archivos
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-[#0a140d] rounded-2xl border border-[#2d5a27] space-y-3 shadow-md">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#2d5a27] bg-black/60 shrink-0 shadow-inner">
+                            <img
+                              src={formImageUrl}
+                              alt="Previsualización"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-white mb-0.5">
+                              <CheckCircle2 size={14} className="text-[#25d366]" />
+                              <span>Imagen cargada correctamente</span>
+                            </div>
+                            <p className="text-[11px] text-gray-400 truncate">
+                              {productImageFileName || 'Imagen de producto'}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => productFileInputRef.current?.click()}
+                                className="px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                              >
+                                <Upload size={13} />
+                                <span>Cambiar archivo</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormImageUrl('');
+                                  setProductImageFileName('');
+                                  if (productFileInputRef.current) productFileInputRef.current.value = '';
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                                <span>Quitar</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1554,6 +2044,295 @@ export const AdminDashboard = () => {
               </button>
               <button
                 onClick={() => handleDeleteProduct(deleteConfirmId)}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition shadow-md"
+              >
+                Confirmar Eliminación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL PARA ALTA / MODIFICACIÓN DE BANNERS */}
+      {/* ============================================================ */}
+      {isBannerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-5 sm:p-7 shadow-2xl my-6 flex flex-col max-h-[92vh]">
+            {/* Cabecera del Modal */}
+            <div className="flex items-start justify-between pb-3 border-b border-[#1f3b25] shrink-0">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    bannerModalMode === 'create' ? 'bg-[#2d5a27] text-white' : 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                  }`}>
+                    {bannerModalMode === 'create' ? 'Nuevo Banner' : 'Edición de Banner'}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading">
+                  {bannerModalMode === 'create' ? 'Alta de Banner Publicitario' : `Modificar: ${currentBanner?.title || 'Banner'}`}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Gestiona las imágenes panorámicas y los mensajes del carrusel principal de la portada.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsBannerModalOpen(false)}
+                className="p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-400 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Contenido / Formulario */}
+            <form onSubmit={handleSaveBannerSubmit} className="space-y-4 pt-4 overflow-y-auto pr-1 flex-1">
+              {/* Selector de Archivo Local para Banner Horizontal */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                    Imagen Horizontal del Banner *
+                  </label>
+                  <span className="text-[10px] text-[#e0a96d] font-bold">
+                    Recomendado: 1920x600 o proporción panorámica
+                  </span>
+                </div>
+
+                {/* Input tipo file oculto */}
+                <input
+                  ref={bannerFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImageFileChange(file, setBannerFormImageUrl, setBannerImageFileName);
+                    }
+                  }}
+                />
+
+                {!bannerFormImageUrl ? (
+                  <div
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] rounded-2xl p-6 bg-[#0a140d] hover:bg-[#122317] transition cursor-pointer flex flex-col items-center justify-center text-center space-y-2 group shadow-inner"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-[#183520] group-hover:bg-[#234b2d] text-[#e0a96d] flex items-center justify-center transition shadow-md">
+                      <Upload size={22} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-white block">
+                        Elegir Imagen Panorámica desde tu Equipo
+                      </span>
+                      <span className="text-[11px] text-gray-400 block">
+                        Haz clic aquí para abrir tu explorador de archivos local
+                      </span>
+                    </div>
+                    <span className="px-3.5 py-1 rounded-full bg-[#1e3c25] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider">
+                      Examinar Archivos
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Vista previa panorámica con simulación de portada */}
+                    <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden border border-[#2d5a27] bg-black/60 shadow-inner group">
+                      <img
+                        src={bannerFormImageUrl}
+                        alt="Vista previa banner"
+                        className="w-full h-full object-cover object-center"
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1200';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent flex flex-col justify-end p-4">
+                        <span className="text-[10px] text-[#e0a96d] font-bold uppercase tracking-wider">
+                          {bannerFormButtonText || 'Ver Más'}
+                        </span>
+                        <h4 className="text-sm sm:text-base font-black text-white font-heading truncate">
+                          {bannerFormTitle || 'Título del Banner'}
+                        </h4>
+                        <p className="text-[11px] text-gray-300 line-clamp-1">
+                          {bannerFormSubtitle || 'Subtítulo o descripción breve'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 bg-[#0a140d] rounded-xl border border-[#1f3b25] text-xs">
+                      <div className="flex items-center gap-2 text-gray-300 truncate mr-2">
+                        <CheckCircle2 size={14} className="text-[#25d366] shrink-0" />
+                        <span className="truncate text-[11px]">{bannerImageFileName || 'Imagen panorámica cargada'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => bannerFileInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <Upload size={13} />
+                          <span>Cambiar imagen</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerFormImageUrl('');
+                            setBannerImageFileName('');
+                            if (bannerFileInputRef.current) bannerFileInputRef.current.value = '';
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                          <span>Quitar</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Título Principal */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Título Principal del Banner *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={bannerFormTitle}
+                  onChange={(e) => setBannerFormTitle(e.target.value)}
+                  placeholder="Ej: EXPLOSIÓN DE RESINA, FLORES Y RAÍCES FUERTES"
+                  className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                />
+              </div>
+
+              {/* Subtítulo / Bajada Descriptiva */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Subtítulo / Bajada Descriptiva
+                </label>
+                <textarea
+                  rows={2}
+                  value={bannerFormSubtitle}
+                  onChange={(e) => setBannerFormSubtitle(e.target.value)}
+                  placeholder="Ej: Línea completa Namasté Nutrientes: Oro Negro, Amazonia Micorrizas y más..."
+                  className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#4aa036] resize-none"
+                />
+              </div>
+
+              {/* Enlace de Destino y Texto del Botón */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Enlace de Destino (Ruta o URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={bannerFormLinkUrl}
+                    onChange={(e) => setBannerFormLinkUrl(e.target.value)}
+                    placeholder="Ej: /categoria/fertilizantes o https://..."
+                    className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Texto del Botón CTA
+                  </label>
+                  <input
+                    type="text"
+                    value={bannerFormButtonText}
+                    onChange={(e) => setBannerFormButtonText(e.target.value)}
+                    placeholder="Ej: Ver Fertilizantes, Explorar Indoor"
+                    className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+              </div>
+
+              {/* Orden y Visibilidad */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Orden de Visualización
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={bannerFormOrder}
+                    onChange={(e) => setBannerFormOrder(e.target.value)}
+                    className="w-full bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#4aa036]"
+                  />
+                  <span className="text-[10px] text-gray-500 mt-1 block">Número menor se muestra primero en el carrusel</span>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">
+                    Visibilidad en Portada
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer p-2.5 bg-[#07110a] border border-[#23422a] rounded-xl hover:border-[#4aa036] transition">
+                    <input
+                      type="checkbox"
+                      checked={bannerFormIsActive}
+                      onChange={(e) => setBannerFormIsActive(e.target.checked)}
+                      className="w-4 h-4 accent-[#2d5a27] rounded"
+                    />
+                    <span className="text-xs text-gray-200 font-bold">
+                      Banner Activo en la Portada
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+                <button
+                  type="button"
+                  onClick={() => setIsBannerModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-bold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingBanner}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider transition shadow-lg flex items-center gap-2"
+                >
+                  {isSavingBanner ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>{bannerModalMode === 'create' ? 'Crear Banner' : 'Guardar Cambios'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR BANNER */}
+      {/* ============================================================ */}
+      {deleteBannerConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0e1c12] border-2 border-red-600/50 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-red-950/60 border border-red-500/50 flex items-center justify-center text-red-400 mx-auto">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-xl font-black text-white font-heading">¿Eliminar este banner publicitario?</h3>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Esta acción eliminará permanentemente la diapositiva del carrusel de inicio.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setDeleteBannerConfirmId(null)}
+                className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-bold transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteBanner(deleteBannerConfirmId)}
                 className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition shadow-md"
               >
                 Confirmar Eliminación
