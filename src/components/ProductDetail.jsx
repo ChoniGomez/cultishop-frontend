@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
-  ShoppingBag, 
   Heart, 
   Share2, 
   Check, 
@@ -12,7 +11,6 @@ import {
   Sparkles, 
   ChevronRight, 
   ArrowLeft, 
-  Star, 
   Plus, 
   Minus, 
   CheckCircle2, 
@@ -174,33 +172,6 @@ export const ProductDetail = () => {
     setTimeout(() => {
       setIsAdded(false);
     }, 1500);
-  };
-
-  // Comprar ahora (agrega y abre WhatsApp)
-  const handleBuyNow = () => {
-    if (isOutOfStock) return;
-
-    if (priceInfo.hasMultipleOptions && !selectedOption) {
-      setValidationError('Por favor, seleccioná una presentación antes de realizar la compra.');
-      return;
-    }
-
-    setValidationError('');
-    addToCart(product, selectedOption, quantity);
-    const phoneNumber = '5493764356995';
-    const message = [
-      '🌿 *¡HOLA CULTISHOP! QUIERO COMPRAR ESTE PRODUCTO AHORA:*',
-      '',
-      `📦 *Producto:* ${product.title}`,
-      `📌 *Variante/Presentación:* ${selectedOption || 'Estándar'}`,
-      `🔢 *Cantidad:* ${quantity} unidad(es)`,
-      `💰 *Precio unitario:* ${formatPrice(currentUnitPrice)}`,
-      `💵 *Total estimado:* ${subtotalPrice}`,
-      '',
-      '¿Tienen disponibilidad para retiro inmediato en Posadas o envío en el día?',
-    ].join('\n');
-
-    window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   // Copiar enlace al portapapeles
@@ -370,17 +341,6 @@ export const ProductDetail = () => {
               <h1 className="text-2xl sm:text-3xl font-black text-white font-heading leading-tight tracking-tight">
                 {product.title}
               </h1>
-
-              {/* Rating / Opiniones */}
-              <div className="flex items-center gap-2 mt-2.5">
-                <div className="flex items-center text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} className="fill-current" />
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-gray-300">4.9</span>
-                <span className="text-xs text-gray-500">• 24 cultivadores lo recomiendan</span>
-              </div>
             </div>
 
             {/* PRECIO DESTACADO */}
@@ -563,40 +523,28 @@ export const ProductDetail = () => {
                   </a>
                 </>
               ) : (
-                <>
-                  {/* Botón: Añadir al carrito */}
-                  <button
-                    type="button"
-                    onClick={handleAddToCart}
-                    className={`w-full py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-200 shadow-xl border cursor-pointer ${
-                      isAdded
-                        ? 'bg-[#38761d] text-white border-[#4aa036] scale-102 shadow-[#4aa036]/20'
-                        : 'bg-[#2d5a27] hover:bg-[#38761d] text-white border-[#4aa036]/50 hover:border-[#4aa036] shadow-black/40 hover:scale-[1.02] active:scale-98'
-                    }`}
-                  >
-                    {isAdded ? (
-                      <>
-                        <Check size={18} className="animate-bounce" />
-                        <span>¡Añadido al Carrito!</span>
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart size={18} />
-                        <span>Añadir al Carrito</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Botón: Comprar Ahora */}
-                  <button
-                    type="button"
-                    onClick={handleBuyNow}
-                    className="w-full py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#d4af37] via-[#e0a96d] to-[#d4af37] hover:brightness-110 text-black shadow-lg shadow-[#e0a96d]/20 transition-all duration-200 hover:scale-[1.02] active:scale-98 cursor-pointer"
-                  >
-                    <ShoppingBag size={18} className="fill-current text-black" />
-                    <span>Comprar Ahora por WhatsApp</span>
-                  </button>
-                </>
+                /* Botón: Añadir al carrito */
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className={`w-full py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-200 shadow-xl border cursor-pointer ${
+                    isAdded
+                      ? 'bg-[#38761d] text-white border-[#4aa036] scale-102 shadow-[#4aa036]/20'
+                      : 'bg-[#2d5a27] hover:bg-[#38761d] text-white border-[#4aa036]/50 hover:border-[#4aa036] shadow-black/40 hover:scale-[1.02] active:scale-98'
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Check size={18} className="animate-bounce" />
+                      <span>¡Añadido al Carrito!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart size={18} />
+                      <span>Añadir al Carrito</span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
 

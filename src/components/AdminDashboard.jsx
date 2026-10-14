@@ -67,6 +67,7 @@ export const AdminDashboard = () => {
 
   // Filtro de pedidos
   const [orderStatusFilter, setOrderStatusFilter] = useState('todos');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
 
   // Estados de Modales de Producto (Alta / Edición / Baja)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -732,12 +733,26 @@ export const AdminDashboard = () => {
   });
 
   const filteredOrders = safeOrders.filter(o => {
-    if (orderStatusFilter === 'todos') return true;
-    return o?.status === orderStatusFilter;
+    const matchesStatus = orderStatusFilter === 'todos' || o?.status === orderStatusFilter;
+    if (!matchesStatus) return false;
+
+    if (!orderSearchQuery.trim()) return true;
+
+    const query = orderSearchQuery.trim().toLowerCase().replace(/^#/, '');
+    const orderIdStr = String(o?.id || '').toLowerCase();
+    const customerName = (o?.customer_name || '').toLowerCase();
+    const customerEmail = (o?.customer_email || '').toLowerCase();
+    const customerPhone = (o?.customer_phone || '').toLowerCase();
+
+    return (
+      orderIdStr.includes(query) ||
+      customerName.includes(query) ||
+      customerEmail.includes(query) ||
+      customerPhone.includes(query)
+    );
   });
 
   // Métricas
-  const totalRevenue = safeOrders.reduce((acc, o) => acc + (parseFloat(o?.total_amount) || 0), 0);
   const pendingOrdersCount = safeOrders.filter(o => o?.status === 'pending').length;
   const lowStockCount = safeProducts.filter(p => (parseInt(p?.stock, 10) || 0) <= 5).length;
 
@@ -818,7 +833,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Tarjetas de Métricas Resumen */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-md">
           <div className="flex items-center justify-between text-gray-400 text-xs mb-2">
             <span>Total Productos</span>
@@ -844,15 +859,6 @@ export const AdminDashboard = () => {
           </div>
           <div className="text-2xl sm:text-3xl font-black text-amber-400 font-heading">{lowStockCount}</div>
           <span className="text-[10px] text-gray-500 mt-1 block">Insumos por reponer</span>
-        </div>
-
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-md">
-          <div className="flex items-center justify-between text-gray-400 text-xs mb-2">
-            <span>Ventas Acumuladas</span>
-            <Sparkles size={16} className="text-[#25d366]" />
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-[#25d366] font-heading">{formatPrice(totalRevenue)}</div>
-          <span className="text-[10px] text-gray-500 mt-1 block">Monto total estimado</span>
         </div>
       </div>
 
@@ -1069,34 +1075,59 @@ export const AdminDashboard = () => {
       {/* ============================================================ */}
       {activeTab === 'pedidos' && (
         <div className="space-y-6">
-          {/* Filtros de estado de pedidos */}
-          <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400 font-bold uppercase mr-2">Filtrar por:</span>
-              {[
-                { id: 'todos', label: 'Todos' },
-                { id: 'pending', label: 'Pendientes' },
-                { id: 'confirmed', label: 'Confirmados' },
-                { id: 'delivered', label: 'Entregados' },
-                { id: 'cancelled', label: 'Cancelados' }
-              ].map(st => (
-                <button
-                  key={st.id}
-                  onClick={() => setOrderStatusFilter(st.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
-                    orderStatusFilter === st.id
-                      ? 'bg-[#2d5a27] text-white border-[#4aa036]'
-                      : 'bg-[#142619] text-gray-300 border-[#23422a] hover:text-white'
-                  }`}
-                >
-                  {st.label}
-                </button>
-              ))}
+          {/* Filtros de estado y buscador de pedidos */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow max-w-3xl">
+              {/* Buscador de Pedidos por #ID o Cliente */}
+              <div className="relative flex-grow sm:max-w-xs">
+                <input
+                  type="text"
+                  value={orderSearchQuery}
+                  onChange={(e) => setOrderSearchQuery(e.target.value)}
+                  placeholder="Buscar por Nº de pedido (#12)..."
+                  className="w-full py-2.5 pl-9 pr-8 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036]"
+                />
+                <Search size={14} className="absolute left-3 top-3 text-gray-400" />
+                {orderSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setOrderSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 p-0.5 text-gray-400 hover:text-white rounded-full transition"
+                    title="Limpiar búsqueda"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro de estado */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-gray-400 font-bold uppercase mr-1 hidden sm:inline">Estado:</span>
+                {[
+                  { id: 'todos', label: 'Todos' },
+                  { id: 'pending', label: 'Pendientes' },
+                  { id: 'confirmed', label: 'Confirmados' },
+                  { id: 'delivered', label: 'Entregados' },
+                  { id: 'cancelled', label: 'Cancelados' }
+                ].map(st => (
+                  <button
+                    key={st.id}
+                    onClick={() => setOrderStatusFilter(st.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition border ${
+                      orderStatusFilter === st.id
+                        ? 'bg-[#2d5a27] text-white border-[#4aa036]'
+                        : 'bg-[#142619] text-gray-300 border-[#23422a] hover:text-white'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button
               onClick={fetchOrders}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white text-xs font-bold border border-[#23422a]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white text-xs font-bold border border-[#23422a] shrink-0 transition"
             >
               <RefreshCw size={13} />
               <span>Actualizar Pedidos</span>
@@ -1109,8 +1140,26 @@ export const AdminDashboard = () => {
               <div className="w-12 h-12 rounded-full bg-[#18311d] flex items-center justify-center text-[#e0a96d] mx-auto">
                 <ShoppingBag size={22} />
               </div>
-              <h3 className="text-lg font-bold text-white font-heading">No hay pedidos en esta categoría</h3>
-              <p className="text-xs text-gray-400">Los nuevos pedidos realizados por los clientes aparecerán listados aquí en tiempo real.</p>
+              <h3 className="text-lg font-bold text-white font-heading">
+                {orderSearchQuery
+                  ? `No se encontraron pedidos con "${orderSearchQuery}"`
+                  : 'No hay pedidos en esta categoría'}
+              </h3>
+              <p className="text-xs text-gray-400 max-w-md mx-auto">
+                {orderSearchQuery
+                  ? 'Verificá el número de pedido o limpiá el buscador para ver los demás pedidos.'
+                  : 'Los nuevos pedidos realizados por los clientes aparecerán listados aquí en tiempo real.'}
+              </p>
+              {orderSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setOrderSearchQuery('')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#142619] border border-[#23422a] text-xs font-bold text-emerald-400 hover:text-emerald-300 transition"
+                >
+                  <X size={13} />
+                  <span>Restablecer búsqueda</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
