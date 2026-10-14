@@ -492,48 +492,6 @@ export const ProductDetail = () => {
                     />
                   </div>
                 </div>
-
-                {/* Botones de selección rápida de presentación */}
-                <div className="flex flex-wrap gap-2">
-                  {priceInfo.options.map((opt, idx) => {
-                    const optStock = opt.stock !== undefined && opt.stock !== null ? Number(opt.stock) : 10;
-                    const isOptZero = optStock <= 0;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        disabled={isOutOfStock}
-                        onClick={() => {
-                          setSelectedOption(opt.name);
-                          if (validationError) setValidationError('');
-                        }}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 cursor-pointer ${
-                          isOptZero
-                            ? selectedOption === opt.name
-                              ? 'bg-red-950/80 text-red-300 border-red-500 shadow-md scale-102'
-                              : 'bg-[#150d0d] text-gray-400 border-red-900/40 hover:border-red-500/50'
-                            : selectedOption === opt.name
-                              ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40 scale-102'
-                              : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
-                        }`}
-                      >
-                        <span className={isOptZero ? 'line-through opacity-75' : ''}>{opt.name}</span>
-                        <span className="text-[11px] opacity-80 text-[#e0a96d]">
-                          {formatPrice(opt.price)}
-                        </span>
-                        {isOptZero ? (
-                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800/60">
-                            Agotado
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                            {optStock} un.
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
