@@ -10,6 +10,7 @@ import {
   ShieldCheck, 
   Sparkles, 
   ChevronRight, 
+  ChevronDown, 
   ArrowLeft, 
   Plus, 
   Minus, 
@@ -402,7 +403,7 @@ export const ProductDetail = () => {
                 </div>
 
                 {/* Desplegable obligatorio */}
-                <div>
+                <div className="relative">
                   <select
                     value={selectedOption}
                     onChange={(e) => {
@@ -410,23 +411,47 @@ export const ProductDetail = () => {
                       if (validationError) setValidationError('');
                     }}
                     disabled={isOutOfStock}
-                    className={`w-full text-xs font-semibold rounded-xl p-3 transition cursor-pointer ${
+                    className={`w-full appearance-none text-xs font-semibold rounded-xl py-3 pl-4 pr-11 border transition-all duration-200 cursor-pointer shadow-sm focus:outline-none ${
                       isOutOfStock
                         ? 'bg-[#0a140d]/60 border-[#1f3b25] text-gray-500 cursor-not-allowed'
                         : validationError
                           ? 'bg-red-950/40 border-red-500 text-white ring-2 ring-red-500/50 animate-pulse'
                           : selectedOption
-                            ? 'bg-[#102416] border-[#4aa036] text-white shadow-sm'
-                            : 'bg-[#0a140d] border-[#23422a] text-gray-200 focus:outline-none focus:border-[#4aa036]'
+                            ? 'bg-[#102416] border-[#4aa036] text-[#e0a96d] shadow-[#4aa036]/10 focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
+                            : 'bg-[#0b1610] border-[#23422a] text-gray-200 hover:border-[#38761d] focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
                     }`}
+                    style={{
+                      backgroundColor: isOutOfStock ? '#0a140d' : selectedOption ? '#102416' : '#0b1610',
+                      color: isOutOfStock ? '#6b7280' : selectedOption ? '#e0a96d' : '#e5e7eb'
+                    }}
                   >
-                    <option value="">Elegí una opción...</option>
+                    <option
+                      value=""
+                      style={{ backgroundColor: '#0b1610', color: '#9ca3af' }}
+                      className="bg-[#0b1610] text-gray-400 py-2"
+                    >
+                      Elegí una opción...
+                    </option>
                     {priceInfo.options.map((opt, idx) => (
-                      <option key={idx} value={opt.name} className="bg-[#0e1c12] text-white py-1">
+                      <option
+                        key={idx}
+                        value={opt.name}
+                        style={{ backgroundColor: '#0b1610', color: '#f3f4f6' }}
+                        className="bg-[#0b1610] text-gray-100 py-2"
+                      >
                         {opt.name} — {formatPrice(opt.price)}
                       </option>
                     ))}
                   </select>
+
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                    <ChevronDown
+                      size={17}
+                      className={`transition-colors duration-200 ${
+                        selectedOption ? 'text-[#e0a96d]' : 'text-[#4aa036]'
+                      }`}
+                    />
+                  </div>
                 </div>
 
                 {/* Botones de selección rápida de presentación */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check, Heart, XCircle, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 
@@ -172,30 +172,46 @@ export const ProductCard = ({ product }) => {
         {priceInfo.hasMultipleOptions ? (
           <div className="space-y-1">
             <label className="sr-only">Seleccionar medida o presentación</label>
-            <select 
-              value={selectedOption}
-              onChange={(e) => {
-                setSelectedOption(e.target.value);
-                if (validationError) setValidationError('');
-              }}
-              disabled={isOutOfStock}
-              className={`w-full text-xs rounded-lg p-2 transition cursor-pointer font-medium ${
-                isOutOfStock 
-                  ? 'bg-[#0a140d]/60 border-[#1f3b25] text-gray-500 cursor-not-allowed'
-                  : validationError
-                    ? 'bg-red-950/40 border-red-500 text-white ring-1 ring-red-500 animate-pulse'
-                    : selectedOption
-                      ? 'bg-[#0e2114] border-[#4aa036] text-[#e0a96d]'
-                      : 'bg-[#0a140d] border-[#23422a] text-gray-300 focus:outline-none focus:border-[#4aa036]'
-              }`}
-            >
-              <option value="">Elegí una opción...</option>
-              {priceInfo.options.map((opt, idx) => (
-                <option key={idx} value={opt.name} className="bg-[#0e1c12] text-white">
-                  {opt.name} — {formatPrice(opt.price)}
+            <div className="relative">
+              <select 
+                value={selectedOption}
+                onChange={(e) => {
+                  setSelectedOption(e.target.value);
+                  if (validationError) setValidationError('');
+                }}
+                disabled={isOutOfStock}
+                className={`w-full appearance-none text-xs rounded-xl py-2 pl-3 pr-8 transition cursor-pointer font-medium border ${
+                  isOutOfStock 
+                    ? 'bg-[#0a140d]/60 border-[#1f3b25] text-gray-500 cursor-not-allowed'
+                    : validationError
+                      ? 'bg-red-950/40 border-red-500 text-white ring-1 ring-red-500 animate-pulse'
+                      : selectedOption
+                        ? 'bg-[#0e2114] border-[#4aa036] text-[#e0a96d]'
+                        : 'bg-[#0b1610] border-[#23422a] text-gray-300 hover:border-[#38761d] focus:outline-none focus:border-[#4aa036]'
+                }`}
+                style={{
+                  backgroundColor: isOutOfStock ? '#0a140d' : selectedOption ? '#0e2114' : '#0b1610',
+                  color: isOutOfStock ? '#6b7280' : selectedOption ? '#e0a96d' : '#e5e7eb'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#0b1610', color: '#9ca3af' }} className="bg-[#0b1610] text-gray-400">
+                  Elegí una opción...
                 </option>
-              ))}
-            </select>
+                {priceInfo.options.map((opt, idx) => (
+                  <option
+                    key={idx}
+                    value={opt.name}
+                    style={{ backgroundColor: '#0b1610', color: '#f3f4f6' }}
+                    className="bg-[#0b1610] text-white"
+                  >
+                    {opt.name} — {formatPrice(opt.price)}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+                <ChevronDown size={14} className={selectedOption ? 'text-[#e0a96d]' : 'text-[#4aa036]'} />
+              </div>
+            </div>
             {validationError && (
               <div className="flex items-center gap-1 text-[10px] text-red-400 font-bold px-1 animate-fade-in">
                 <AlertCircle size={11} className="shrink-0" />

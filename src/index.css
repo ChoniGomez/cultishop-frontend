@@ -68,3 +68,14 @@ h1, h2, h3, h4, .font-heading {
   scrollbar-width: none;
 }
 
+/* Soporte de tema oscuro consistente para elementos select y options nativos */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #0b1610;
+  color: #f3f4f6;
+  padding: 8px 12px;
+}
+
