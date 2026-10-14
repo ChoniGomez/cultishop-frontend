@@ -132,7 +132,7 @@ export const ProductDetail = () => {
   const stockCount = typeof product.stock === 'number' ? product.stock : 25;
   const imageUrl = product.image || product.image_url;
 
-  // Precios calculados dinámicos
+  // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption
     ? priceInfo.options.find((o) => o.name === selectedOption)
     : null;
@@ -144,14 +144,28 @@ export const ProductDetail = () => {
     : priceInfo.formattedPrice;
   const subtotalPrice = formatPrice(currentUnitPrice * quantity);
 
+  // Stock específico de la medida seleccionada o acumulado de opciones
+  const currentVariantStock = selectedVariant && selectedVariant.stock !== undefined && selectedVariant.stock !== null
+    ? Number(selectedVariant.stock)
+    : (priceInfo.hasMultipleOptions && !selectedOption
+      ? priceInfo.options.reduce((acc, o) => acc + (Number(o.stock) || 0), 0)
+      : stockCount);
+
   // Manejo de cantidades
   const handleIncreaseQty = () => {
-    if (quantity < stockCount) setQuantity((prev) => prev + 1);
+    if (quantity < currentVariantStock) setQuantity((prev) => prev + 1);
   };
 
   const handleDecreaseQty = () => {
     if (quantity > 1) setQuantity((prev) => prev - 1);
   };
+
+  // Sincronizar cantidad si la variante seleccionada tiene menor stock
+  useEffect(() => {
+    if (currentVariantStock > 0 && quantity > currentVariantStock) {
+      setQuantity(currentVariantStock);
+    }
+  }, [selectedOption, currentVariantStock]);
 
   // Añadir al carrito
   const handleAddToCart = () => {
@@ -159,6 +173,11 @@ export const ProductDetail = () => {
 
     if (priceInfo.hasMultipleOptions && !selectedOption) {
       setValidationError('Por favor, seleccioná una presentación o medida antes de agregar al carrito.');
+      return;
+    }
+
+    if (selectedVariant && currentVariantStock <= 0) {
+      setValidationError(`La presentación "${selectedOption}" no cuenta con stock disponible en este momento.`);
       return;
     }
 
@@ -235,7 +254,7 @@ export const ProductDetail = () => {
                     SIN STOCK
                   </span>
                 </div>
-              ) : product.badge ? (
+              ) : (product.badge && product.badge.trim() !== '' && product.badge.toLowerCase() !== 'sin etiqueta') ? (
                 <div className="absolute top-4 left-4 z-20">
                   <span className={`text-[11px] font-black tracking-wider px-3 py-1 rounded-lg uppercase shadow-lg ${
                     product.badgeType === 'red' || product.badge.toUpperCase() === 'SIN STOCK'
@@ -362,15 +381,23 @@ export const ProductDetail = () => {
               </p>
             </div>
 
-            {/* INDICADOR DE STOCK */}
-            {isOutOfStock ? (
-              <div className="flex items-center gap-2 text-xs text-red-400 p-3 rounded-2xl bg-red-950/40 border border-red-500/40">
+            {/* INDICADOR DE STOCK DINÁMICO */}
+            {isOutOfStock || (selectedVariant && currentVariantStock <= 0) ? (
+              <div className="flex items-center gap-2 text-xs text-red-400 p-3 rounded-2xl bg-red-950/40 border border-red-500/40 animate-fade-in shadow-md">
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </span>
                 <div>
-                  <span className="font-bold block">Sin Stock disponible</span>
-                  <span className="text-gray-400 text-[11px]">Artículo temporalmente agotado. Podés consultar reposición por WhatsApp.</span>
+                  <span className="font-bold block">
+                    {selectedVariant && currentVariantStock <= 0
+                      ? `Sin stock en presentación "${selectedOption}"`
+                      : 'Sin stock disponible'}
+                  </span>
+                  <span className="text-gray-400 text-[11px]">
+                    {selectedVariant && currentVariantStock <= 0
+                      ? 'Esta medida específica se encuentra temporalmente agotada. Elegí otra presentación o consultanos por WhatsApp.'
+                      : 'Artículo temporalmente agotado. Podés consultar reposición por WhatsApp.'}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -380,7 +407,9 @@ export const ProductDetail = () => {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#25d366]"></span>
                 </span>
                 <span className="font-bold text-white">Hay stock disponible</span>
-                <span className="text-gray-400">({stockCount} unidades listas para entrega)</span>
+                <span className="text-emerald-400 font-semibold">
+                  ({currentVariantStock} {currentVariantStock === 1 ? 'unidad lista' : 'unidades listas'} para entrega{selectedOption ? ` en ${selectedOption}` : ''})
+                </span>
               </div>
             )}
 
@@ -416,13 +445,15 @@ export const ProductDetail = () => {
                         ? 'bg-[#0a140d]/60 border-[#1f3b25] text-gray-500 cursor-not-allowed'
                         : validationError
                           ? 'bg-red-950/40 border-red-500 text-white ring-2 ring-red-500/50 animate-pulse'
-                          : selectedOption
-                            ? 'bg-[#102416] border-[#4aa036] text-[#e0a96d] shadow-[#4aa036]/10 focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
-                            : 'bg-[#0b1610] border-[#23422a] text-gray-200 hover:border-[#38761d] focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
+                          : selectedVariant && currentVariantStock <= 0
+                            ? 'bg-red-950/30 border-red-500/70 text-red-300 shadow-[#ef4444]/10 focus:border-red-500'
+                            : selectedOption
+                              ? 'bg-[#102416] border-[#4aa036] text-[#e0a96d] shadow-[#4aa036]/10 focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
+                              : 'bg-[#0b1610] border-[#23422a] text-gray-200 hover:border-[#38761d] focus:border-[#4aa036] focus:ring-1 focus:ring-[#4aa036]'
                     }`}
                     style={{
-                      backgroundColor: isOutOfStock ? '#0a140d' : selectedOption ? '#102416' : '#0b1610',
-                      color: isOutOfStock ? '#6b7280' : selectedOption ? '#e0a96d' : '#e5e7eb'
+                      backgroundColor: isOutOfStock ? '#0a140d' : (selectedVariant && currentVariantStock <= 0 ? '#1f0d0d' : (selectedOption ? '#102416' : '#0b1610')),
+                      color: isOutOfStock ? '#6b7280' : (selectedVariant && currentVariantStock <= 0 ? '#fca5a5' : (selectedOption ? '#e0a96d' : '#e5e7eb'))
                     }}
                   >
                     <option
@@ -432,23 +463,31 @@ export const ProductDetail = () => {
                     >
                       Elegí una opción...
                     </option>
-                    {priceInfo.options.map((opt, idx) => (
-                      <option
-                        key={idx}
-                        value={opt.name}
-                        style={{ backgroundColor: '#0b1610', color: '#f3f4f6' }}
-                        className="bg-[#0b1610] text-gray-100 py-2"
-                      >
-                        {opt.name} — {formatPrice(opt.price)}
-                      </option>
-                    ))}
+                    {priceInfo.options.map((opt, idx) => {
+                      const optStock = opt.stock !== undefined && opt.stock !== null ? Number(opt.stock) : 10;
+                      const isOptZero = optStock <= 0;
+                      return (
+                        <option
+                          key={idx}
+                          value={opt.name}
+                          style={{ backgroundColor: '#0b1610', color: isOptZero ? '#ef4444' : '#f3f4f6' }}
+                          className={`bg-[#0b1610] py-2 ${isOptZero ? 'text-red-400' : 'text-gray-100'}`}
+                        >
+                          {opt.name} — {formatPrice(opt.price)} {isOptZero ? '• (Agotado)' : `• (${optStock} en stock)`}
+                        </option>
+                      );
+                    })}
                   </select>
 
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
                     <ChevronDown
                       size={17}
                       className={`transition-colors duration-200 ${
-                        selectedOption ? 'text-[#e0a96d]' : 'text-[#4aa036]'
+                        selectedVariant && currentVariantStock <= 0
+                          ? 'text-red-400'
+                          : selectedOption
+                            ? 'text-[#e0a96d]'
+                            : 'text-[#4aa036]'
                       }`}
                     />
                   </div>
@@ -456,27 +495,44 @@ export const ProductDetail = () => {
 
                 {/* Botones de selección rápida de presentación */}
                 <div className="flex flex-wrap gap-2">
-                  {priceInfo.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      disabled={isOutOfStock}
-                      onClick={() => {
-                        setSelectedOption(opt.name);
-                        if (validationError) setValidationError('');
-                      }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 cursor-pointer ${
-                        selectedOption === opt.name
-                          ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40 scale-102'
-                          : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
-                      }`}
-                    >
-                      <span>{opt.name}</span>
-                      <span className="text-[11px] opacity-80 text-[#e0a96d]">
-                        {formatPrice(opt.price)}
-                      </span>
-                    </button>
-                  ))}
+                  {priceInfo.options.map((opt, idx) => {
+                    const optStock = opt.stock !== undefined && opt.stock !== null ? Number(opt.stock) : 10;
+                    const isOptZero = optStock <= 0;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={() => {
+                          setSelectedOption(opt.name);
+                          if (validationError) setValidationError('');
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 cursor-pointer ${
+                          isOptZero
+                            ? selectedOption === opt.name
+                              ? 'bg-red-950/80 text-red-300 border-red-500 shadow-md scale-102'
+                              : 'bg-[#150d0d] text-gray-400 border-red-900/40 hover:border-red-500/50'
+                            : selectedOption === opt.name
+                              ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-md shadow-black/40 scale-102'
+                              : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
+                        }`}
+                      >
+                        <span className={isOptZero ? 'line-through opacity-75' : ''}>{opt.name}</span>
+                        <span className="text-[11px] opacity-80 text-[#e0a96d]">
+                          {formatPrice(opt.price)}
+                        </span>
+                        {isOptZero ? (
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800/60">
+                            Agotado
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                            {optStock} un.
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -497,7 +553,7 @@ export const ProductDetail = () => {
                   <button
                     type="button"
                     onClick={handleDecreaseQty}
-                    disabled={quantity <= 1 || isOutOfStock}
+                    disabled={quantity <= 1 || isOutOfStock || (selectedVariant && currentVariantStock <= 0)}
                     className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1a3521] disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
                   >
                     <Minus size={14} />
@@ -508,7 +564,7 @@ export const ProductDetail = () => {
                   <button
                     type="button"
                     onClick={handleIncreaseQty}
-                    disabled={quantity >= stockCount || isOutOfStock}
+                    disabled={quantity >= currentVariantStock || isOutOfStock || (selectedVariant && currentVariantStock <= 0)}
                     className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1a3521] disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
                   >
                     <Plus size={14} />
@@ -525,7 +581,7 @@ export const ProductDetail = () => {
 
             {/* BOTONES PRINCIPALES DE ACCIÓN */}
             <div className="space-y-2.5 pt-2">
-              {isOutOfStock ? (
+              {isOutOfStock || (selectedVariant && currentVariantStock <= 0) ? (
                 <>
                   <button
                     type="button"
@@ -533,11 +589,15 @@ export const ProductDetail = () => {
                     className="w-full py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl border bg-[#1a0f0f] text-red-400 border-red-900/60 cursor-not-allowed opacity-80"
                   >
                     <XCircle size={18} />
-                    <span>Sin Stock Disponible</span>
+                    <span>
+                      {selectedVariant && currentVariantStock <= 0
+                        ? `Sin Stock en Presentación "${selectedOption}"`
+                        : 'Sin Stock Disponible'}
+                    </span>
                   </button>
                   <a
                     href={`https://wa.me/5493764356995?text=${encodeURIComponent(
-                      `Hola CultiShop! Me interesa el producto ${product.title} que figura sin stock. ¿Cuándo estiman que volverá a ingresar?`
+                      `Hola CultiShop! Me interesa el producto "${product.title}"${selectedOption ? ` (presentación: ${selectedOption})` : ''} que figura sin stock. ¿Cuándo estiman que volverá a ingresar?`
                     )}`}
                     target="_blank"
                     rel="noreferrer"

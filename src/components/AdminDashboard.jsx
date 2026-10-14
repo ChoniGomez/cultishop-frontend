@@ -86,9 +86,9 @@ export const AdminDashboard = () => {
   const [formBadge, setFormBadge] = useState('STOCK DISPONIBLE');
   const [formBadgeType, setFormBadgeType] = useState('gold');
   const [formVariants, setFormVariants] = useState([
-    { name: '100 cc', price: '6000' },
-    { name: '250 cc', price: '14500' },
-    { name: '500 cc', price: '28000' }
+    { name: '100 cc', price: '6000', stock: '10' },
+    { name: '250 cc', price: '14500', stock: '10' },
+    { name: '500 cc', price: '28000', stock: '10' }
   ]);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
@@ -187,11 +187,11 @@ export const AdminDashboard = () => {
     }
   };
 
-  // Manejo de filas de variantes con precio independiente
+  // Manejo de filas de variantes con precio y stock independiente
   const handleAddVariant = () => {
     setFormVariants((prev) => [
       ...prev,
-      { name: '', price: formPrice || '0' }
+      { name: '', price: formPrice || '0', stock: '10' }
     ]);
   };
 
@@ -471,9 +471,9 @@ export const AdminDashboard = () => {
     setFormBadge('STOCK DISPONIBLE');
     setFormBadgeType('gold');
     setFormVariants([
-      { name: '100 cc', price: '6000' },
-      { name: '250 cc', price: '14500' },
-      { name: '500 cc', price: '28000' }
+      { name: '100 cc', price: '6000', stock: '10' },
+      { name: '250 cc', price: '14500', stock: '10' },
+      { name: '500 cc', price: '28000', stock: '10' }
     ]);
     // Reinicio de secciones de pestañas
     setModalDetailTab('desc');
@@ -512,17 +512,25 @@ export const AdminDashboard = () => {
     setFormImageUrl(prod.image_url || prod.image || '');
     setProductImageFileName(prod.title ? `${prod.title}.jpg` : '');
     const isZeroStock = (prod.stock !== undefined && Number(prod.stock) <= 0) || prod.badge === 'SIN STOCK';
-    setFormBadge(isZeroStock ? 'SIN STOCK' : (prod.badge || 'STOCK DISPONIBLE'));
+    const initialBadge = isZeroStock
+      ? 'SIN STOCK'
+      : (prod.badge && prod.badge.trim() !== '' && prod.badge.toLowerCase() !== 'sin etiqueta' ? prod.badge : '');
+    setFormBadge(initialBadge);
     setFormBadgeType(isZeroStock ? 'red' : (prod.badge_type || prod.badgeType || 'gold'));
 
     const opts = getProductOptions(prod);
     if (opts && opts.length > 0) {
       setFormVariants(opts.map((o) => ({
         name: o.name,
-        price: o.price !== undefined ? String(o.price) : (rawPrice ? String(rawPrice) : '0')
+        price: o.price !== undefined ? String(o.price) : (rawPrice ? String(rawPrice) : '0'),
+        stock: o.stock !== undefined ? String(o.stock) : (prod.stock !== undefined ? String(prod.stock) : '10')
       })));
     } else {
-      setFormVariants([{ name: 'Estándar', price: rawPrice ? String(rawPrice) : '0' }]);
+      setFormVariants([{
+        name: 'Estándar',
+        price: rawPrice ? String(rawPrice) : '0',
+        stock: prod.stock !== undefined ? String(prod.stock) : '10'
+      }]);
     }
 
     // Especificaciones y detalles enriquecidos
@@ -582,20 +590,30 @@ export const AdminDashboard = () => {
       .filter((v) => v.name.trim().length > 0)
       .map((v) => ({
         name: v.name.trim(),
-        price: parseFloat(String(v.price).replace(/[^0-9.-]/g, '')) || 0
+        price: parseFloat(String(v.price).replace(/[^0-9.-]/g, '')) || 0,
+        stock: parseInt(String(v.stock !== undefined && v.stock !== '' ? v.stock : formStock), 10) || 0
       }));
 
     const finalVariants = validVariants.length > 0
       ? validVariants
-      : [{ name: 'Estándar', price: parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0 }];
+      : [{
+          name: 'Estándar',
+          price: parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0,
+          stock: parseInt(formStock, 10) || 0
+        }];
 
     const variantPrices = finalVariants.map((v) => v.price).filter((p) => p > 0);
     const finalBasePrice = variantPrices.length > 0
       ? Math.min(...variantPrices)
       : (parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0);
 
-    const numStock = parseInt(formStock, 10) || 0;
+    const totalVariantStock = finalVariants.reduce((acc, v) => acc + (v.stock || 0), 0);
+    const numStock = finalVariants.length > 1 ? totalVariantStock : (parseInt(formStock, 10) || totalVariantStock);
+
     let finalBadge = formBadge.trim();
+    if (finalBadge === 'none' || finalBadge.toLowerCase() === 'sin etiqueta' || finalBadge === '') {
+      finalBadge = '';
+    }
     let finalBadgeType = formBadgeType;
     if (numStock <= 0) {
       finalBadge = 'SIN STOCK';
@@ -1028,7 +1046,7 @@ export const AdminDashboard = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 min-w-[160px]">
-                          {prod.badge ? (
+                          {prod.badge && prod.badge.trim() !== '' && prod.badge.toLowerCase() !== 'sin etiqueta' ? (
                             <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider text-center shadow-sm ${
                               prod.badge_type === 'red' || prod.badgeType === 'red' || prod.badge.toUpperCase() === 'SIN STOCK'
                                 ? 'bg-red-950/90 text-red-400 border border-red-500/60'
@@ -1039,7 +1057,7 @@ export const AdminDashboard = () => {
                               {prod.badge}
                             </span>
                           ) : (
-                            <span className="text-gray-500 text-[11px] italic">—</span>
+                            <span className="text-gray-500 text-[11px] italic">Sin etiqueta</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -1613,22 +1631,83 @@ export const AdminDashboard = () => {
 
                   {/* Etiqueta Promocional (Badge) y Tipo */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300 mb-1">
-                        Etiqueta Promocional (Badge)
-                      </label>
-                      <input
-                        type="text"
-                        value={formBadge}
-                        onChange={(e) => setFormBadge(e.target.value)}
-                        placeholder="Ej: STOCK DISPONIBLE, TOP VENTAS, LEY 27.350, SIN STOCK"
-                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition ${
-                          formBadge.toUpperCase() === 'SIN STOCK'
-                            ? 'bg-red-950/30 border-red-500/80 text-red-200 font-bold'
-                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
-                        }`}
-                      />
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-gray-300">
+                          Etiqueta Promocional (Badge)
+                        </label>
+                        {formBadge && (
+                          <button
+                            type="button"
+                            onClick={() => setFormBadge('')}
+                            className="text-[11px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+                          >
+                            Quitar etiqueta (Sin etiqueta)
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <select
+                          value={
+                            !formBadge
+                              ? 'none'
+                              : ['STOCK DISPONIBLE', 'TOP VENTAS', 'LEY 27.350', 'OFERTA ESPECIAL', 'NUEVO INGRESO', 'SIN STOCK'].includes(formBadge.toUpperCase())
+                                ? formBadge.toUpperCase()
+                                : 'custom'
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'none') {
+                              setFormBadge('');
+                            } else if (val === 'STOCK DISPONIBLE') {
+                              setFormBadge('STOCK DISPONIBLE');
+                              setFormBadgeType('gold');
+                            } else if (val === 'TOP VENTAS') {
+                              setFormBadge('TOP VENTAS');
+                              setFormBadgeType('gold');
+                            } else if (val === 'LEY 27.350') {
+                              setFormBadge('LEY 27.350');
+                              setFormBadgeType('green');
+                            } else if (val === 'OFERTA ESPECIAL') {
+                              setFormBadge('OFERTA ESPECIAL');
+                              setFormBadgeType('gold');
+                            } else if (val === 'NUEVO INGRESO') {
+                              setFormBadge('NUEVO INGRESO');
+                              setFormBadgeType('green');
+                            } else if (val === 'SIN STOCK') {
+                              setFormBadge('SIN STOCK');
+                              setFormBadgeType('red');
+                            }
+                          }}
+                          className="w-full px-3 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition cursor-pointer"
+                        >
+                          <option value="none">Sin etiqueta (Ninguna)</option>
+                          <option value="STOCK DISPONIBLE">STOCK DISPONIBLE</option>
+                          <option value="TOP VENTAS">TOP VENTAS</option>
+                          <option value="LEY 27.350">LEY 27.350</option>
+                          <option value="OFERTA ESPECIAL">OFERTA ESPECIAL</option>
+                          <option value="NUEVO INGRESO">NUEVO INGRESO</option>
+                          <option value="SIN STOCK">SIN STOCK (Agotado)</option>
+                          <option value="custom">Personalizada / Otro texto...</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          value={formBadge}
+                          onChange={(e) => setFormBadge(e.target.value)}
+                          placeholder="Texto personalizado o vacío"
+                          className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none transition ${
+                            formBadge.toUpperCase() === 'SIN STOCK'
+                              ? 'bg-red-950/30 border-red-500/80 text-red-200 font-bold'
+                              : !formBadge
+                                ? 'bg-[#0a140d] border-[#1f3b25] text-gray-400 placeholder:italic'
+                                : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
+                          }`}
+                        />
+                      </div>
                     </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 mb-1">
                         Color Etiqueta
@@ -1636,7 +1715,12 @@ export const AdminDashboard = () => {
                       <select
                         value={formBadgeType}
                         onChange={(e) => setFormBadgeType(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition cursor-pointer"
+                        disabled={!formBadge}
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition cursor-pointer ${
+                          !formBadge
+                            ? 'bg-[#0a140d] border-[#1f3b25] text-gray-500 cursor-not-allowed'
+                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
+                        }`}
                       >
                         <option value="gold">Dorado Mostaza</option>
                         <option value="green">Verde Hoja</option>
@@ -1645,15 +1729,15 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Gestor de Medidas y Precios Independientes */}
+                  {/* Gestor de Medidas, Precios y Stock Independientes */}
                   <div className="p-3.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25] space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                          Medidas y Precios Independientes
+                          Medidas, Precios y Stock Independiente
                         </label>
                         <p className="text-[10px] text-gray-400">
-                          Configurá cada presentación (ej: 100ml, 500ml, 2 Litros) con su propio precio de venta específico.
+                          Configurá cada presentación con su propio precio de venta y unidades de stock disponibles.
                         </p>
                       </div>
                       <button
@@ -1667,19 +1751,29 @@ export const AdminDashboard = () => {
                     </div>
 
                     <div className="space-y-2">
+                      <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-gray-400 uppercase px-2 hidden sm:grid">
+                        <span className="col-span-5">Medida / Presentación</span>
+                        <span className="col-span-3">Precio ($)</span>
+                        <span className="col-span-3">Stock (Unidades)</span>
+                        <span className="col-span-1 text-right">Acción</span>
+                      </div>
+
                       {formVariants.map((variant, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-[#122317] p-2 rounded-xl border border-[#1f3b25]">
-                          <div className="flex-1">
+                        <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-[#122317] p-2.5 rounded-xl border border-[#1f3b25] items-center">
+                          <div className="sm:col-span-5">
+                            <label className="text-[10px] text-gray-400 sm:hidden block mb-0.5">Medida</label>
                             <input
                               type="text"
                               required
                               value={variant.name}
                               onChange={(e) => handleVariantChange(idx, 'name', e.target.value)}
-                              placeholder="Medida / Presentación (ej: 100 ml, 500 ml)"
+                              placeholder="Ej: 100 ml, 500 ml"
                               className="w-full px-3 py-2 rounded-lg bg-[#0a140d] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                             />
                           </div>
-                          <div className="w-36">
+
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] text-gray-400 sm:hidden block mb-0.5">Precio</label>
                             <div className="relative">
                               <span className="absolute left-2.5 top-2 text-xs text-gray-400 font-bold">$</span>
                               <input
@@ -1693,15 +1787,31 @@ export const AdminDashboard = () => {
                               />
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            disabled={formVariants.length <= 1}
-                            onClick={() => handleRemoveVariant(idx)}
-                            title={formVariants.length <= 1 ? "Mínimo 1 opción requerida" : "Eliminar esta presentación"}
-                            className="p-2 rounded-lg bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] text-gray-400 sm:hidden block mb-0.5">Stock</label>
+                            <input
+                              type="number"
+                              min="0"
+                              required
+                              value={variant.stock !== undefined ? variant.stock : '10'}
+                              onChange={(e) => handleVariantChange(idx, 'stock', e.target.value)}
+                              placeholder="Stock"
+                              className="w-full px-3 py-2 rounded-lg bg-[#0a140d] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-1 flex justify-end">
+                            <button
+                              type="button"
+                              disabled={formVariants.length <= 1}
+                              onClick={() => handleRemoveVariant(idx)}
+                              title={formVariants.length <= 1 ? "Mínimo 1 opción requerida" : "Eliminar esta presentación"}
+                              className="p-2 rounded-lg bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

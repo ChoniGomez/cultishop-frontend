@@ -92,7 +92,7 @@ export const ProductCard = ({ product }) => {
               SIN STOCK
             </span>
           </div>
-        ) : product.badge ? (
+        ) : (product.badge && product.badge.trim() !== '' && product.badge.toLowerCase() !== 'sin etiqueta') ? (
           <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
             <span className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md ${
               product.badgeType === 'red' || product.badge.toUpperCase() === 'SIN STOCK'

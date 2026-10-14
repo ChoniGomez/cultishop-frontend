@@ -38,7 +38,7 @@ export const formatPrice = (amount) => {
 
 /**
  * Normaliza las opciones / medidas de un producto al formato estándar:
- * [{ name: string, price: number }]
+ * [{ name: string, price: number, stock: number }]
  * Soporta retrocompatibilidad con arrays de strings (ej: ["100 cc", "250 cc"]).
  */
 export const getProductOptions = (product) => {
@@ -63,33 +63,51 @@ export const getProductOptions = (product) => {
     ? product.numericPrice
     : (typeof product.price === 'number' ? product.price : parsePrice(product.price));
 
+  const baseStock = product.stock !== undefined && product.stock !== null && !isNaN(Number(product.stock))
+    ? Number(product.stock)
+    : 10;
+
   return list.map((item, idx) => {
     if (typeof item === 'object' && item !== null) {
       const name = String(item.name || item.title || item.option || `Opción ${idx + 1}`).trim();
       const price = typeof item.price === 'number'
         ? item.price
         : (item.price ? parsePrice(item.price) : basePrice);
-      return { name, price: isNaN(price) ? basePrice : price };
+      const stock = item.stock !== undefined && item.stock !== null && item.stock !== ''
+        ? parseInt(String(item.stock), 10)
+        : baseStock;
+      return {
+        name,
+        price: isNaN(price) ? basePrice : price,
+        stock: isNaN(stock) ? baseStock : stock
+      };
     }
     const name = String(item).trim();
-    return { name, price: basePrice };
+    return { name, price: basePrice, stock: baseStock };
   }).filter((opt) => opt.name.length > 0);
 };
 
 /**
  * Determina si un producto está agotado / sin stock.
- * Se considera sin stock si su stock es 0 (o menor) o su badge es 'SIN STOCK'.
+ * Se considera sin stock si su stock es 0 (o menor), si todas sus variantes tienen 0 stock, o su badge es 'SIN STOCK'.
  */
 export const isProductOutOfStock = (product) => {
   if (!product) return false;
-  if (product.stock !== undefined && product.stock !== null) {
-    const num = Number(product.stock);
-    if (!isNaN(num) && num <= 0) return true;
-  }
+
   const badgeStr = (product.badge || '').trim().toUpperCase();
   if (badgeStr === 'SIN STOCK' || badgeStr === 'SIN-STOCK' || badgeStr === 'AGOTADO') {
     return true;
   }
+
+  const options = getProductOptions(product);
+  if (options.length > 0) {
+    const hasAnyStock = options.some((opt) => (Number(opt.stock) || 0) > 0);
+    if (!hasAnyStock) return true;
+  } else if (product.stock !== undefined && product.stock !== null) {
+    const num = Number(product.stock);
+    if (!isNaN(num) && num <= 0) return true;
+  }
+
   return false;
 };
 
@@ -634,21 +652,36 @@ export const ShopProvider = ({ children }) => {
       };
     }
 
-    // 3. Resolución de nombre de opción y precio unitario específico
+    // 3. Resolución de nombre de opción, precio unitario y stock específico
     let finalOptionName = 'Estándar';
     let unitPrice = priceInfo.minPrice;
+    let optionStock = product.stock !== undefined && !isNaN(Number(product.stock)) ? Number(product.stock) : 10;
 
     if (priceInfo.hasMultipleOptions) {
       finalOptionName = selectedOption;
       const matched = priceInfo.options.find((o) => o.name === selectedOption);
       if (matched) {
         unitPrice = matched.price;
+        if (matched.stock !== undefined && matched.stock !== null && !isNaN(Number(matched.stock))) {
+          optionStock = Number(matched.stock);
+        }
       }
     } else if (priceInfo.options.length === 1) {
       finalOptionName = priceInfo.options[0].name;
       unitPrice = priceInfo.options[0].price;
+      if (priceInfo.options[0].stock !== undefined && priceInfo.options[0].stock !== null && !isNaN(Number(priceInfo.options[0].stock))) {
+        optionStock = Number(priceInfo.options[0].stock);
+      }
     } else if (selectedOption) {
       finalOptionName = selectedOption;
+    }
+
+    if (optionStock <= 0) {
+      return {
+        success: false,
+        reason: 'out_of_stock',
+        message: `La presentación "${finalOptionName}" se encuentra actualmente sin stock disponible.`
+      };
     }
 
     const cartId = `${product.id}__${finalOptionName}`;
