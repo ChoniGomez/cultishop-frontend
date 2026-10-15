@@ -11,13 +11,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
-import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/api';
-import { WhatsAppIcon } from './WhatsAppIcon';
 import { Link } from 'react-router-dom';
 
 export const CartDrawer = () => {
-  const { user, token } = useAuth();
   const {
     cart,
     isCartOpen,
@@ -28,28 +24,7 @@ export const CartDrawer = () => {
     totalItems,
     totalPrice,
     formattedTotalPrice,
-    getWhatsAppCheckoutUrl,
   } = useShop();
-
-  const handleCheckoutClick = async () => {
-    try {
-      await fetch(buildApiUrl('orders'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          items: cart,
-          total_amount: totalPrice,
-          customer_name: user?.name || 'Cliente Web CultiShop',
-          customer_email: user?.email || null
-        })
-      });
-    } catch (err) {
-      console.warn('Error al registrar pedido en backend:', err);
-    }
-  };
 
   // Cerrar con la tecla Escape
   useEffect(() => {
@@ -279,18 +254,6 @@ export const CartDrawer = () => {
               <span>Finalizar la Compra</span>
               <ArrowRight size={17} className="text-[#e0a96d] group-hover:translate-x-1 transition-transform" />
             </Link>
-
-            {/* Botón Secundario Oficial de Pedido por WhatsApp */}
-            <a
-              href={getWhatsAppCheckoutUrl()}
-              onClick={handleCheckoutClick}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-2.5 px-4 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#25d366] hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all border border-[#23422a] hover:border-[#25d366]/50 group"
-            >
-              <WhatsAppIcon size={16} className="shrink-0 text-[#25d366] group-hover:scale-110 transition-transform" />
-              <span>Pedir directo por WhatsApp</span>
-            </a>
 
             <button
               type="button"

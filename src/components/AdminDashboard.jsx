@@ -1260,6 +1260,11 @@ export const AdminDashboard = () => {
                       <div>
                         <span className="text-gray-400 block font-semibold">Dirección de Entrega:</span>
                         <span className="text-white font-medium">{order.shipping_address || 'Entrega a convenir en local de Posadas'}</span>
+                        {order.shipping_method && (
+                          <span className="text-[11px] text-emerald-400 block font-semibold mt-1">
+                            Modalidad: {order.shipping_method === 'retiro_local' ? '🏪 Retiro en Local Oficial' : order.shipping_method === 'envio_posadas' ? '🛵 Envío a Domicilio (Posadas)' : '📦 Envío Nacional'}
+                          </span>
+                        )}
                         {order.notes && <span className="text-gray-400 block mt-1">Nota: {order.notes}</span>}
                       </div>
                     </div>
