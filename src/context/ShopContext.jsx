@@ -7,7 +7,8 @@ const ShopContext = createContext();
 
 const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
-const PRODUCTS_STORAGE_KEY = 'cultishop_products_v2';
+const PRODUCTS_STORAGE_KEY = 'cultishop_products_v3';
+const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché local
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
@@ -224,29 +225,53 @@ export const ShopProvider = ({ children }) => {
   // ============================================================
   // GESTIÓN Y PERSISTENCIA DE PRODUCTOS (CATÁLOGO DINÁMICO)
   // ============================================================
+  // Helper para persistir productos en LocalStorage con timestamp de control de expiración
+  const saveProductsCache = (productsList) => {
+    try {
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        products: productsList
+      }));
+    } catch (e) {
+      console.warn('Error guardando productos en LocalStorage:', e);
+    }
+  };
+
   const [products, setProducts] = useState(() => {
     try {
+      // Limpiar versiones obsoletas sin expiración
+      localStorage.removeItem('cultishop_products_v2');
+      localStorage.removeItem('cultishop_products_v1');
+
       const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (parsed && typeof parsed === 'object' && parsed.timestamp && Array.isArray(parsed.products)) {
+          const isFresh = Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS;
+          if (isFresh && parsed.products.length > 0) {
+            return parsed.products;
+          }
         }
       }
     } catch (err) {
       console.error('Error al leer productos de LocalStorage:', err);
     }
-    return FALLBACK_PRODUCTS.map((p) => ({
-      ...p,
-      image: p.image || p.image_url,
-      image_url: p.image || p.image_url,
-      badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
-      stock: p.stock ?? 25,
-      numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
-    }));
+    return [];
   });
 
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.timestamp && Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS && parsed.products?.length > 0) {
+          return false;
+        }
+      }
+    } catch (e) {}
+    return true;
+  });
+
   const [categories, setCategories] = useState(CATEGORIES);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
@@ -268,14 +293,14 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // Sincronizar con Backend y persistir en LocalStorage
+  // Sincronizar con Backend y persistir en LocalStorage con control de versión
   const fetchProducts = async () => {
     setLoadingProducts(true);
     try {
       const res = await fetch(buildApiUrl('products'));
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.products) && data.products.length > 0) {
+        if (Array.isArray(data.products)) {
           const apiProducts = data.products.map((p) => ({
             ...p,
             image: p.image_url || p.image,
@@ -302,38 +327,26 @@ export const ShopProvider = ({ children }) => {
             subcategory_slug: p.subcategory_slug || null
           }));
 
-          setProducts((prevProducts) => {
-            // Combinar inteligentemente respetando ediciones locales recientes
-            const merged = apiProducts.map((dbProd) => {
-              const localMatch = prevProducts.find(
-                (lp) => lp.id === dbProd.id || String(lp.id) === String(dbProd.id)
-              );
-              if (localMatch && localMatch._localUpdated) {
-                const isLocalNewer =
-                  !dbProd.updated_at ||
-                  new Date(localMatch._localUpdated) > new Date(dbProd.updated_at);
-                if (isLocalNewer) {
-                  return { ...dbProd, ...localMatch };
-                }
-              }
-              return dbProd;
-            });
-
-            const apiIds = new Set(apiProducts.map((p) => String(p.id)));
-            const extraLocal = prevProducts.filter((lp) => !apiIds.has(String(lp.id)));
-            const finalProducts = [...merged, ...extraLocal];
-
-            try {
-              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
-            } catch (e) {
-              console.error('Error guardando productos en LocalStorage:', e);
-            }
-            return finalProducts;
-          });
+          setProducts(apiProducts);
+          saveProductsCache(apiProducts);
         }
       }
     } catch (err) {
       console.warn('API /api/products no disponible temporalmente, catálogo local activo:', err);
+      // Solo en caso de error y si no hay productos cargados en memoria, usar el fallback
+      setProducts((current) => {
+        if (current.length === 0) {
+          return FALLBACK_PRODUCTS.map((p) => ({
+            ...p,
+            image: p.image || p.image_url,
+            image_url: p.image || p.image_url,
+            badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
+            stock: p.stock ?? 25,
+            numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
+          }));
+        }
+        return current;
+      });
     } finally {
       setLoadingProducts(false);
     }
@@ -370,7 +383,7 @@ export const ShopProvider = ({ children }) => {
         return p;
       });
       try {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+        saveProductsCache(next);
       } catch (err) {
         console.error('Error al guardar productos en LocalStorage:', err);
       }
@@ -455,7 +468,7 @@ export const ShopProvider = ({ children }) => {
           setProducts((prev) => {
             const next = prev.map((p) => (p.id === id || String(p.id) === String(id) ? { ...p, ...dbProd } : p));
             try {
-              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+              saveProductsCache(next);
             } catch (e) {}
             return next;
           });
@@ -489,7 +502,7 @@ export const ShopProvider = ({ children }) => {
     setProducts((prev) => {
       const next = [optimisticProd, ...prev];
       try {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+        saveProductsCache(next);
       } catch (e) {}
       return next;
     });
@@ -534,7 +547,7 @@ export const ShopProvider = ({ children }) => {
           setProducts((prev) => {
             const next = prev.map((p) => (p.id === tempId ? dbProd : p));
             try {
-              localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+              saveProductsCache(next);
             } catch (e) {}
             return next;
           });
@@ -554,7 +567,7 @@ export const ShopProvider = ({ children }) => {
     setProducts((prev) => {
       const next = prev.filter((p) => p.id !== id && String(p.id) !== String(id));
       try {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+        saveProductsCache(next);
       } catch (e) {}
       return next;
     });

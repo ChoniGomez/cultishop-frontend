@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Sparkles, ArrowLeft, Search, X } from 'lucide-react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Sparkles, ArrowLeft, Search, X, RefreshCw } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -11,7 +11,7 @@ const PRODUCTS_PER_PAGE = 9;
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
-  const { products, searchQuery, setSearchQuery, clearSearch } = useShop();
+  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch } = useShop();
   const currentCategorySlug = category || slug;
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
@@ -237,8 +237,52 @@ export const ProductSection = () => {
         </div>
       </div>
 
-      {/* Grilla de productos o mensaje de estado vacío */}
-      {filteredProducts.length === 0 ? (
+      {/* Indicador de sincronización en segundo plano si ya hay productos visibles */}
+      {loadingProducts && products.length > 0 && (
+        <div className="mb-4 flex items-center justify-end">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-[#102315] border border-[#23422a] px-3.5 py-1 rounded-full shadow-sm">
+            <RefreshCw size={11} className="animate-spin text-[#e0a96d]" />
+            <span>Sincronizando con el servidor...</span>
+          </span>
+        </div>
+      )}
+
+      {/* Grilla de productos, esqueletos de carga o estados vacíos */}
+      {loadingProducts && products.length === 0 ? (
+        /* Esqueleto de Carga en Cuadrícula (Skeletons) */
+        <div className="space-y-6">
+          <div className="p-3 rounded-2xl bg-[#102315]/80 border border-[#23422a] flex items-center justify-center gap-2.5 text-xs text-emerald-300 font-medium shadow-sm">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#4aa036] animate-ping" />
+            <span>Consultando catálogo de productos en tiempo real...</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {[...Array(6)].map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl bg-[#0e1c12] border border-[#1b3422] p-4 flex flex-col space-y-4 animate-pulse shadow-lg"
+              >
+                <div className="w-full h-56 rounded-xl bg-[#142619] relative overflow-hidden flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-[#1b3422]/60 flex items-center justify-center text-[#2d5a27]">
+                    <Sparkles size={20} className="animate-spin text-[#4aa036]/50" style={{ animationDuration: '4s' }} />
+                  </div>
+                </div>
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 w-24 bg-[#1b3422] rounded-full" />
+                  <div className="h-5 w-4/5 bg-[#1b3422] rounded-lg" />
+                  <div className="h-3 w-3/5 bg-[#142619] rounded-full" />
+                </div>
+                <div className="pt-2 border-t border-[#1a3320] flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="h-2.5 w-12 bg-[#142619] rounded-full" />
+                    <div className="h-6 w-24 bg-[#1b3422] rounded-lg" />
+                  </div>
+                  <div className="h-9 w-28 bg-[#1b3422] rounded-xl" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : filteredProducts.length === 0 ? (
         isSearchActive ? (
           /* Estado vacío temático cuando la búsqueda no arroja resultados */
           <div className="p-10 sm:p-14 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-5 max-w-xl mx-auto my-8 shadow-2xl">

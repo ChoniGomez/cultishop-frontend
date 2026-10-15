@@ -979,7 +979,18 @@ export const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1f3b25]">
-                  {filteredProducts.length === 0 ? (
+                  {loadingProducts ? (
+                    <tr>
+                      <td colSpan="6" className="py-16 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin" />
+                          <span className="text-xs text-gray-400 font-semibold">
+                            Cargando catálogo de productos en tiempo real desde Neon DB...
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="py-12 text-center text-gray-400">
                         No se encontraron productos que coincidan con la búsqueda.
@@ -1153,7 +1164,12 @@ export const AdminDashboard = () => {
           </div>
 
           {/* Listado de Pedidos */}
-          {filteredOrders.length === 0 ? (
+          {loadingOrders ? (
+            <div className="p-16 text-center bg-[#0e1c12] border border-[#1f3b25] rounded-3xl space-y-4 shadow-xl">
+              <div className="w-8 h-8 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-gray-400 font-medium">Cargando pedidos en tiempo real desde la base de datos...</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
             <div className="p-12 text-center bg-[#0e1c12] border border-[#1f3b25] rounded-3xl space-y-3">
               <div className="w-12 h-12 rounded-full bg-[#18311d] flex items-center justify-center text-[#e0a96d] mx-auto">
                 <ShoppingBag size={22} />

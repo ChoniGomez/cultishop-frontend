@@ -86,14 +86,46 @@ const DEFAULT_BANNERS = [
   }
 ];
 
+const BANNERS_STORAGE_KEY = 'cultishop_banners_cache_v2';
+const BANNERS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de validez máxima para caché local
+
 export const HeroCarousel = ({ interval = 5000 }) => {
-  const [banners, setBanners] = useState(DEFAULT_BANNERS);
+  const [banners, setBanners] = useState(() => {
+    try {
+      const saved = localStorage.getItem(BANNERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.timestamp && Array.isArray(parsed.banners)) {
+          if (Date.now() - parsed.timestamp < BANNERS_CACHE_TTL_MS && parsed.banners.length > 0) {
+            return parsed.banners;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error leyendo caché de banners:', e);
+    }
+    return [];
+  });
+
+  const [loadingBanners, setLoadingBanners] = useState(() => {
+    try {
+      const saved = localStorage.getItem(BANNERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.timestamp && Date.now() - parsed.timestamp < BANNERS_CACHE_TTL_MS && parsed.banners?.length > 0) {
+          return false;
+        }
+      }
+    } catch (e) {}
+    return true;
+  });
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
-  // Cargar banners activos desde el backend
+  // Cargar banners activos desde el backend (prioriza respuesta fresca de la API)
   useEffect(() => {
     let isMounted = true;
     const fetchActiveBanners = async () => {
@@ -102,12 +134,31 @@ export const HeroCarousel = ({ interval = 5000 }) => {
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : (data?.banners || data?.data || []);
-          if (isMounted && Array.isArray(list) && list.length > 0) {
-            setBanners(list);
+          if (isMounted) {
+            if (Array.isArray(list) && list.length > 0) {
+              setBanners(list);
+              try {
+                localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify({
+                  timestamp: Date.now(),
+                  banners: list
+                }));
+              } catch (e) {}
+            } else if (banners.length === 0) {
+              setBanners(DEFAULT_BANNERS);
+            }
           }
+        } else if (banners.length === 0) {
+          setBanners(DEFAULT_BANNERS);
         }
       } catch (err) {
-        console.warn('HeroCarousel: utilizando banners locales predeterminados.', err);
+        console.warn('HeroCarousel: utilizando banners de contingencia.', err);
+        if (banners.length === 0) {
+          setBanners(DEFAULT_BANNERS);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingBanners(false);
+        }
       }
     };
 
@@ -169,6 +220,32 @@ export const HeroCarousel = ({ interval = 5000 }) => {
     touchStartX.current = null;
     touchEndX.current = null;
   };
+
+  // Renderizar Esqueleto de Carga si está obteniendo los banners del backend
+  if (loadingBanners && banners.length === 0) {
+    return (
+      <section
+        className="relative w-full overflow-hidden bg-[#0b1610] border-b border-[#1f3b25] min-h-[280px] sm:min-h-[340px] md:min-h-[400px] md:h-[400px] flex items-center justify-center select-none"
+        aria-label="Cargando banner destacado"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b1610] via-[#102416] to-[#0b1610] animate-pulse" />
+        <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 space-y-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-[#142619] border border-[#23422a] flex items-center justify-center text-[#e0a96d] shadow-lg">
+            <Sparkles size={22} className="animate-spin text-[#4aa036]" style={{ animationDuration: '3s' }} />
+          </div>
+          <div className="space-y-2 w-full flex flex-col items-center">
+            <div className="h-3 w-32 bg-[#18311d] rounded-full animate-pulse" />
+            <div className="h-7 w-4/5 bg-[#1b3621] rounded-xl animate-pulse" />
+            <div className="h-3 w-1/2 bg-[#18311d] rounded-full animate-pulse" />
+          </div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-[#09150d]/90 px-4 py-1.5 rounded-full border border-[#1f3b25] shadow-inner">
+            <div className="w-2 h-2 rounded-full bg-[#4aa036] animate-ping" />
+            <span>Cargando novedades en tiempo real...</span>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

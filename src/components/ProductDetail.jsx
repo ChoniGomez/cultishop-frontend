@@ -37,6 +37,7 @@ export const ProductDetail = () => {
   const navigate = useNavigate();
   const { 
     products, 
+    loadingProducts,
     addToCart, 
     openCart, 
     isFavorite, 
@@ -93,6 +94,22 @@ export const ProductDetail = () => {
 
   // Si el catálogo está cargando o no se encuentra el producto
   if (!product) {
+    if (loadingProducts) {
+      return (
+        <div className="max-w-4xl mx-auto px-4 py-28 text-center animate-pulse">
+          <div className="w-16 h-16 rounded-2xl bg-[#122317] border border-[#2d5a27] flex items-center justify-center text-[#e0a96d] mx-auto mb-6 shadow-xl">
+            <div className="w-8 h-8 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white font-heading mb-2">
+            Cargando producto en tiempo real...
+          </h2>
+          <p className="text-gray-400 text-xs max-w-sm mx-auto leading-relaxed">
+            Obteniendo especificaciones botánicas, presentaciones y stock actualizado desde CultiShop.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto px-4 py-24 text-center">
         <div className="w-20 h-20 rounded-full bg-[#122317] border-2 border-[#2d5a27] flex items-center justify-center text-[#e0a96d] mx-auto mb-6 shadow-xl">
