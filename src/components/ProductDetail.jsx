@@ -8,7 +8,8 @@ import {
   Truck, 
   MapPin, 
   ShieldCheck, 
-  Sparkles, 
+  ZoomIn,
+  Info,
   ChevronRight, 
   ChevronDown, 
   ArrowLeft, 
@@ -330,7 +331,7 @@ export const ProductDetail = () => {
                 {/* Indicador de ayuda al pie de la foto */}
                 <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
                   <span className="text-[10px] font-bold text-gray-400 bg-black/70 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm flex items-center gap-1.5 shadow-sm">
-                    <Sparkles size={11} className="text-[#e0a96d]" />
+                    <ZoomIn size={12} className="text-[#e0a96d]" />
                     Pasa el cursor para hacer zoom o haz clic para ampliar
                   </span>
                 </div>
@@ -936,7 +937,7 @@ export const ProductDetail = () => {
                 {details.shippingInfo && (
                   <div className="p-4 rounded-2xl bg-[#142619] border border-[#2d5a27] space-y-1.5 shadow-md">
                     <h4 className="font-bold text-[#e0a96d] text-xs uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles size={14} className="text-[#e0a96d]" />
+                      <Info size={14} className="text-[#e0a96d]" />
                       Condiciones Específicas de este Insumo
                     </h4>
                     <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">

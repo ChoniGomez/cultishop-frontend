@@ -19,7 +19,6 @@ import {
   Check, 
   ShieldCheck, 
   HelpCircle, 
-  Sparkles,
   ExternalLink,
   UserPlus
 } from 'lucide-react';

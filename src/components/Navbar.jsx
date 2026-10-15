@@ -10,7 +10,7 @@ import {
   ArrowRight,
   Menu,
   X,
-  Sparkles,
+  Layers,
   Shield
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -521,7 +521,7 @@ export const Navbar = () => {
 
               <div className="pt-2">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-2 mb-2 flex items-center gap-1.5">
-                  <Sparkles size={13} className="text-[#e0a96d]" />
+                  <Layers size={13} className="text-[#e0a96d]" />
                   <span>Categorías de la Tienda</span>
                 </div>
 

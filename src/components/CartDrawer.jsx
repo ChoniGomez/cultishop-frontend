@@ -6,7 +6,6 @@ import {
   Plus, 
   Minus, 
   ArrowRight, 
-  Sparkles,
   ShieldCheck,
   CheckCircle2
 } from 'lucide-react';

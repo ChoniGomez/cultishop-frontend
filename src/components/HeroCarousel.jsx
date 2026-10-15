@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Leaf, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { buildApiUrl } from '../config/api';
@@ -230,8 +230,8 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-[#0b1610] via-[#102416] to-[#0b1610] animate-pulse" />
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 space-y-4 max-w-md mx-auto">
-          <div className="w-12 h-12 rounded-2xl bg-[#142619] border border-[#23422a] flex items-center justify-center text-[#e0a96d] shadow-lg">
-            <Sparkles size={22} className="animate-spin text-[#4aa036]" style={{ animationDuration: '3s' }} />
+          <div className="w-12 h-12 rounded-2xl bg-[#142619] border border-[#23422a] flex items-center justify-center text-[#4aa036] shadow-lg">
+            <Leaf size={22} className="animate-pulse text-[#4aa036]" />
           </div>
           <div className="space-y-2 w-full flex flex-col items-center">
             <div className="h-3 w-32 bg-[#18311d] rounded-full animate-pulse" />
@@ -348,7 +348,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                   <div className="space-y-2 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
                     {/* Badge temático centrado */}
                     <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-0.5 sm:py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[9px] sm:text-[11px] md:text-xs font-bold text-[#e0a96d] uppercase tracking-wider sm:tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
-                      <Sparkles size={11} className="text-[#e0a96d] shrink-0" />
+                      <Leaf size={11} className="text-[#4aa036] shrink-0" />
                       <span>{badgeText}</span>
                     </div>
 

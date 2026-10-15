@@ -19,7 +19,6 @@ import {
   KeyRound, 
   AlertTriangle,
   X,
-  Sparkles,
   ExternalLink,
   ChevronRight,
   Layers,
@@ -1937,7 +1936,7 @@ export const AdminDashboard = () => {
                 <div className="pt-3 border-t border-[#1f3b25] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Sparkles size={16} className="text-[#e0a96d]" />
+                      <FileText size={16} className="text-[#e0a96d]" />
                       <h4 className="text-xs font-bold uppercase tracking-wider text-white">
                         Pestañas de Información Detallada del Producto
                       </h4>

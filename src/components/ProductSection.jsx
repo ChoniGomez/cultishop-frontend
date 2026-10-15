@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Sparkles, ArrowLeft, Search, X, RefreshCw } from 'lucide-react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Leaf, Package, ArrowLeft, Search, X, RefreshCw } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -263,7 +263,7 @@ export const ProductSection = () => {
               >
                 <div className="w-full h-56 rounded-xl bg-[#142619] relative overflow-hidden flex items-center justify-center">
                   <div className="w-10 h-10 rounded-full bg-[#1b3422]/60 flex items-center justify-center text-[#2d5a27]">
-                    <Sparkles size={20} className="animate-spin text-[#4aa036]/50" style={{ animationDuration: '4s' }} />
+                    <Leaf size={20} className="text-[#4aa036]/50 animate-pulse" />
                   </div>
                 </div>
                 <div className="space-y-2 flex-1">
@@ -329,7 +329,7 @@ export const ProductSection = () => {
           /* Estado vacío para categorías sin productos */
           <div className="p-12 text-center bg-[#0d1a11] border border-[#1f3b25] rounded-3xl space-y-4 max-w-xl mx-auto my-8 shadow-xl">
             <div className="w-14 h-14 rounded-full bg-[#2d5a27]/30 border border-[#4aa036]/50 flex items-center justify-center text-[#e0a96d] mx-auto">
-              <Sparkles size={24} />
+              <Package size={24} />
             </div>
             <h3 className="text-xl font-bold text-white font-heading">
               Estamos sumando más stock a esta categoría

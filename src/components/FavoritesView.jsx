@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Heart, 
-  Sparkles, 
+  Bookmark, 
   ArrowRight, 
   Trash2, 
   ShoppingBag, 
@@ -107,7 +107,7 @@ export const FavoritesView = () => {
           {/* Contador de elementos */}
           <div className="mb-6 flex items-center justify-between text-xs text-gray-400">
             <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-[#e0a96d]" />
+              <Bookmark size={14} className="text-[#e0a96d]" />
               <span>Guardados: <strong className="text-white font-bold">{favoritesCount}</strong> {favoritesCount === 1 ? 'producto' : 'productos'}</span>
             </div>
             <span className="text-gray-500 hidden sm:inline">Hacé clic en el corazón para quitarlo o en Añadir para sumar al carrito</span>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Home, 
   Compass, 
-  Sparkles, 
+  WifiOff, 
   Sprout, 
   ArrowRight, 
   ShoppingBag,
@@ -42,9 +42,9 @@ export const NotFound = () => {
                   </span>
                 </div>
 
-                {/* Humito o partículas de cultivo */}
+                {/* Indicador de señal */}
                 <div className="flex items-center gap-1 mt-1 text-[11px] text-[#e0a96d] font-bold">
-                  <Sparkles size={12} />
+                  <WifiOff size={12} />
                   <span>Sin señal</span>
                 </div>
               </div>
