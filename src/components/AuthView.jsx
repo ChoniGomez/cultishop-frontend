@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -14,19 +14,67 @@ import {
   Heart, 
   KeyRound,
   Shield,
-  LayoutDashboard
+  LayoutDashboard,
+  Package,
+  Clock,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { formatPrice } from '../context/ShopContext';
+import { buildApiUrl } from '../config/api';
 import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '104719283749-demo-cultishop-client.apps.googleusercontent.com';
 
 export const AuthView = () => {
-  const { user, login, register, loginWithGoogle, logout, changePassword, loading } = useAuth();
+  const { user, token, login, register, loginWithGoogle, logout, changePassword, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Estados para Mis Pedidos / Seguimiento de Compras
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+  const [expandedOrders, setExpandedOrders] = useState({});
+
+  const fetchUserOrders = async () => {
+    if (!token && !user) return;
+    setLoadingOrders(true);
+    setOrdersError('');
+    try {
+      const headers = {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+
+      let res = await fetch(buildApiUrl('orders/my-orders'), { headers });
+      if (!res.ok && user?.id) {
+        res = await fetch(buildApiUrl(`orders/user/${user.id}`), { headers });
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
+      } else {
+        throw new Error('No se pudieron obtener los pedidos.');
+      }
+    } catch (err) {
+      console.warn('Error al obtener pedidos del cliente:', err);
+      setOrdersError('No se pudieron sincronizar tus pedidos en este momento.');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUserOrders();
+    }
+  }, [user?.id, token]);
 
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [showPassword, setShowPassword] = useState(false);
@@ -242,7 +290,31 @@ export const AuthView = () => {
 
           {/* Tarjetas de acciones rápidas (solo para clientes finales) */}
           {!isAdmin && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-8">
+              {/* Tarjeta 1: Mis Pedidos */}
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('seccion-mis-pedidos');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md text-left cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#1a3321] text-[#e0a96d] flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                  <Package size={20} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-white font-heading">Mis Pedidos</h3>
+                  {orders.length > 0 && (
+                    <span className="bg-[#2d5a27] text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-[#4aa036]/50">
+                      {orders.length}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Seguimiento de compras y envíos en tiempo real.</p>
+              </button>
+
+              {/* Tarjeta 2: Tus Favoritos */}
               <Link
                 to="/favoritos"
                 className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
@@ -254,6 +326,7 @@ export const AuthView = () => {
                 <p className="text-xs text-gray-400 mt-1">Revisa los artículos guardados para tu próximo pedido.</p>
               </Link>
 
+              {/* Tarjeta 3: Catálogo en Stock */}
               <Link
                 to="/"
                 className="p-5 rounded-2xl bg-[#122317] border border-[#23442a] hover:border-[#4aa036] transition group shadow-md"
@@ -265,6 +338,7 @@ export const AuthView = () => {
                 <p className="text-xs text-gray-400 mt-1">Explorá fertilizantes, carpas indoor y parafernalia.</p>
               </Link>
 
+              {/* Tarjeta 4: Atención Directa */}
               <a
                 href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Tengo%20una%20consulta%20sobre%20mi%20cuenta"
                 target="_blank"
@@ -279,6 +353,247 @@ export const AuthView = () => {
               </a>
             </div>
           )}
+
+          {/* ======================================================== */}
+          {/* SECCIÓN: MIS COMPRAS Y SEGUIMIENTO DE PEDIDOS */}
+          {/* ======================================================== */}
+          <div id="seccion-mis-pedidos" className="mb-8 bg-[#122317] border border-[#23442a] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+            {/* Encabezado de la sección */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#1f3b25]">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#1c3623] border border-[#2d5a27] text-[#e0a96d] flex items-center justify-center shadow-inner">
+                  <Package size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white font-heading">
+                      Mis Compras / Seguimiento de Pedidos
+                    </h3>
+                    {orders.length > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#2d5a27] text-white text-[11px] font-bold border border-[#4aa036]/50">
+                        {orders.length}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Historial de compras registradas y estado de preparación en tiempo real.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchUserOrders}
+                disabled={loadingOrders}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#18311d] hover:bg-[#23442a] text-gray-200 hover:text-white border border-[#2d5a27] text-xs font-bold transition shadow-sm"
+              >
+                <RefreshCw size={14} className={loadingOrders ? 'animate-spin text-[#e0a96d]' : 'text-[#4aa036]'} />
+                <span>{loadingOrders ? 'Actualizando...' : 'Actualizar Pedidos'}</span>
+              </button>
+            </div>
+
+            {/* Error si no se pudieron cargar */}
+            {ordersError && (
+              <div className="p-3.5 bg-red-950/60 border border-red-500/50 rounded-2xl text-xs text-red-200 flex items-center gap-2">
+                <AlertCircle size={16} className="text-red-400 shrink-0" />
+                <span>{ordersError}</span>
+              </div>
+            )}
+
+            {/* Estado de carga */}
+            {loadingOrders && orders.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <div className="w-9 h-9 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-gray-400 font-medium">Consultando tus pedidos en tiempo real con Neon DB...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              /* Estado sin pedidos */
+              <div className="py-10 text-center space-y-3 max-w-md mx-auto">
+                <div className="w-14 h-14 rounded-2xl bg-[#18311d] border border-[#2d5a27] text-[#e0a96d] flex items-center justify-center mx-auto shadow-inner">
+                  <ShoppingBag size={24} className="text-[#4aa036]" />
+                </div>
+                <h4 className="text-base font-bold text-white font-heading">
+                  Aún no registras compras con tu cuenta
+                </h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Cuando finalices un pedido en CultiShop, podrás ver aquí su número de orden, los productos solicitados y el estado de preparación y despacho en tiempo real.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold uppercase tracking-wider transition shadow-lg hover:scale-105 active:scale-95"
+                  >
+                    <span>Explorar Catálogo de Productos</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              /* Listado de pedidos del usuario */
+              <div className="space-y-4">
+                {orders.map((order) => {
+                  const itemsList = Array.isArray(order.items) ? order.items : [];
+                  const isExpanded = expandedOrders[order.id] !== false; // Abierto por defecto
+                  const formattedDate = new Date(order.created_at || Date.now()).toLocaleString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+
+                  // Badge de estado temático
+                  const statusInfo = 
+                    order.status === 'confirmed' ? {
+                      label: '📦 Confirmado / En preparación',
+                      cls: 'bg-blue-950/80 text-blue-300 border border-blue-500/50'
+                    } : order.status === 'delivered' ? {
+                      label: '✅ Entregado',
+                      cls: 'bg-emerald-950/80 text-[#25d366] border border-[#25d366]/50'
+                    } : order.status === 'cancelled' ? {
+                      label: '❌ Cancelado',
+                      cls: 'bg-red-950/80 text-red-400 border border-red-500/50'
+                    } : {
+                      label: '⏳ Pendiente de confirmación',
+                      cls: 'bg-amber-950/80 text-[#e0a96d] border border-[#e0a96d]/50'
+                    };
+
+                  const waConsultUrl = `https://wa.me/5493764356995?text=${encodeURIComponent(
+                    `Hola CultiShop! Te escribo con respecto a mi Pedido #${order.id}. ¿Me podrían indicar el estado actual de entrega? ¡Muchas gracias!`
+                  )}`;
+
+                  return (
+                    <div
+                      key={order.id}
+                      className="rounded-2xl bg-[#0a150e] border border-[#1f3b25] p-5 sm:p-6 shadow-xl space-y-4 transition hover:border-[#2d5a27]"
+                    >
+                      {/* Fila superior: ID, Fecha y Badge de estado */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1b3420]">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-lg font-black text-white font-heading tracking-wide">
+                            Pedido #{order.id}
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusInfo.cls}`}>
+                            {statusInfo.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <Clock size={13} className="text-[#4aa036]" />
+                          <span>{formattedDate} hs</span>
+                        </div>
+                      </div>
+
+                      {/* Datos de Entrega, Pago y Monto Total */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-[#102315] p-3.5 rounded-xl border border-[#1f3b25]">
+                        {/* Modalidad de entrega */}
+                        <div>
+                          <span className="text-gray-400 block font-semibold">Modalidad de Entrega:</span>
+                          <span className="text-white font-bold block mt-0.5">
+                            {order.shipping_method === 'retiro_local' ? '🏪 Retiro en Local Oficial' :
+                             order.shipping_method === 'envio_posadas' ? '🛵 Envío a Domicilio (Posadas/Garupá)' : '📦 Envío Nacional'}
+                          </span>
+                          <span className="text-[11px] text-gray-300 block mt-0.5 line-clamp-2">
+                            {order.shipping_address || 'Av. López y Planes 2919, Posadas'}
+                          </span>
+                        </div>
+
+                        {/* Medio de pago */}
+                        <div>
+                          <span className="text-gray-400 block font-semibold">Medio de Pago:</span>
+                          <span className="text-[#e0a96d] font-bold block mt-0.5">
+                            {order.payment_method === 'transferencia' ? '🏦 Transferencia Bancaria / Alias' :
+                             order.payment_method === 'efectivo' ? '💵 Efectivo al retirar' : '💬 A coordinar por WhatsApp'}
+                          </span>
+                          {order.notes && (
+                            <span className="text-[11px] text-gray-400 block mt-0.5 italic">
+                              Nota: {order.notes}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Total abonado */}
+                        <div>
+                          <span className="text-gray-400 block font-semibold">Total del Pedido:</span>
+                          <span className="text-xl font-black text-[#e0a96d] font-heading block mt-0.5">
+                            {formatPrice(parseFloat(order.total_amount) || 0)}
+                          </span>
+                          <span className="text-[11px] text-gray-400 block mt-0.5">
+                            {itemsList.reduce((acc, it) => acc + (it.quantity || 1), 0)} unidad(es) en total
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Desglose de productos del pedido */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                            Productos Solicitados ({itemsList.length}):
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandedOrders(prev => ({
+                                ...prev,
+                                [order.id]: !isExpanded
+                              }));
+                            }}
+                            className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{isExpanded ? 'Ocultar productos' : 'Ver productos'}</span>
+                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          </button>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="divide-y divide-[#1b3420] bg-[#0c1810] rounded-xl p-3 border border-[#1b3420]">
+                            {itemsList.map((item, idx) => (
+                              <div key={idx} className="py-2 flex items-center justify-between text-xs gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className="px-2 py-0.5 rounded-md bg-[#162f1c] text-[#e0a96d] font-bold text-xs border border-[#2d5a27] shrink-0">
+                                    {item.quantity}x
+                                  </span>
+                                  <div className="min-w-0">
+                                    <span className="text-white font-medium block truncate">
+                                      {item.title}
+                                    </span>
+                                    {(item.selectedOption || item.option) && (
+                                      <span className="text-[11px] text-gray-400 block">
+                                        Presentación: <strong className="text-gray-300 font-semibold">{item.selectedOption || item.option}</strong>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <span className="font-bold text-white shrink-0">
+                                  {formatPrice(parseFloat(item.unitPrice || item.price || 0) * (item.quantity || 1))}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Acciones del Pedido: Contacto directo por WhatsApp */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#1b3420]">
+                        <span className="text-[11px] text-gray-400">
+                          ¿Dudas o coordinación sobre este pedido?
+                        </span>
+                        <a
+                          href={waConsultUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#25d366] hover:text-white border border-[#23422a] hover:border-[#25d366]/50 text-xs font-bold transition shadow-sm w-full sm:w-auto justify-center"
+                        >
+                          <WhatsAppIcon size={15} />
+                          <span>Consultar Pedido #{order.id} por WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* SECCIÓN SEGURIDAD Y CAMBIO DE CONTRASEÑA */}
           <div className="mb-8 bg-[#122317] border border-[#23442a] rounded-2xl p-6 shadow-md">

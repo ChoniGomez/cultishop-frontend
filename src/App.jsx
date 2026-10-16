@@ -76,6 +76,7 @@ function App() {
               <Route path="/finalizar-compra" element={<CheckoutView />} />
               <Route path="/checkout" element={<CheckoutView />} />
               <Route path="/ingresar" element={<AuthView />} />
+              <Route path="/perfil" element={<AuthView />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/*" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
