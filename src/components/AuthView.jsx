@@ -71,10 +71,10 @@ export const AuthView = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !isAdmin) {
       fetchUserOrders();
     }
-  }, [user?.id, token]);
+  }, [user?.id, token, isAdmin]);
 
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [showPassword, setShowPassword] = useState(false);
@@ -355,10 +355,11 @@ export const AuthView = () => {
           )}
 
           {/* ======================================================== */}
-          {/* SECCIÓN: MIS COMPRAS Y SEGUIMIENTO DE PEDIDOS */}
+          {/* SECCIÓN: MIS COMPRAS Y SEGUIMIENTO DE PEDIDOS (Solo para clientes) */}
           {/* ======================================================== */}
-          <div id="seccion-mis-pedidos" className="mb-8 bg-[#122317] border border-[#23442a] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-            {/* Encabezado de la sección */}
+          {!isAdmin && (
+            <div id="seccion-mis-pedidos" className="mb-8 bg-[#122317] border border-[#23442a] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+              {/* Encabezado de la sección */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#1f3b25]">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-[#1c3623] border border-[#2d5a27] text-[#e0a96d] flex items-center justify-center shadow-inner">
@@ -594,6 +595,7 @@ export const AuthView = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* SECCIÓN SEGURIDAD Y CAMBIO DE CONTRASEÑA */}
           <div className="mb-8 bg-[#122317] border border-[#23442a] rounded-2xl p-6 shadow-md">

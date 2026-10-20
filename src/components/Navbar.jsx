@@ -34,8 +34,7 @@ export const Navbar = () => {
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeDropdown, setActiveDropdown] = useState(null); // ID de la categoría abierta por clic
-  const [hoveredCategory, setHoveredCategory] = useState(null); // ID de la categoría abierta por hover
+  const [openDropdown, setOpenDropdown] = useState(null); // ID de la categoría desplegada actualmente
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMobileCategory, setExpandedMobileCategory] = useState(null);
 
@@ -99,24 +98,37 @@ export const Navbar = () => {
     }
   };
 
+  const closeDropdowns = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setOpenDropdown(null);
+  };
+
   // Cerrar menús al cambiar de ruta
   useEffect(() => {
-    setActiveDropdown(null);
-    setHoveredCategory(null);
+    closeDropdowns();
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Cerrar dropdown al hacer clic fuera del navbar
+  // Cerrar dropdown al hacer clic fuera del navbar o presionar Escape
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (navRef.current && !navRef.current.contains(event.target)) {
-        setActiveDropdown(null);
-        setHoveredCategory(null);
+        closeDropdowns();
       }
     };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeDropdowns();
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -124,30 +136,31 @@ export const Navbar = () => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
-    setHoveredCategory(catId);
+    setOpenDropdown(catId);
   };
 
   const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
     hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredCategory(null);
-    }, 180);
+      setOpenDropdown(null);
+    }, 220);
   };
 
   const handleCategoryClick = (e, cat) => {
     if (cat.subcategories && cat.subcategories.length > 0) {
       e.preventDefault();
-      // Alterna el dropdown al hacer clic
-      setActiveDropdown((prev) => (prev === cat.id ? null : cat.id));
+      e.stopPropagation();
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      setOpenDropdown((prev) => (prev === cat.id ? null : cat.id));
     }
   };
 
   const toggleMobileCategory = (catId) => {
     setExpandedMobileCategory((prev) => (prev === catId ? null : catId));
-  };
-
-  const closeDropdowns = () => {
-    setActiveDropdown(null);
-    setHoveredCategory(null);
   };
 
   // Evitar scroll en el body cuando el menú móvil está abierto
@@ -336,9 +349,9 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Menú horizontal de escritorio optimizado para albergar todas las categorías */}
-          <div className="hidden lg:flex items-center w-full justify-between gap-2 xl:gap-3 py-1">
-            <div className="flex items-center gap-1 xl:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth flex-grow py-1">
+          {/* Menú horizontal de escritorio optimizado con dropdowns flotantes */}
+          <div className="hidden lg:flex items-center w-full justify-between gap-1.5 xl:gap-3 py-1 relative">
+            <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1">
               <Link 
                 to="/" 
                 className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
@@ -348,7 +361,7 @@ export const Navbar = () => {
 
               {CATEGORIES.map((cat, index) => {
                 const hasSub = cat.subcategories && cat.subcategories.length > 0;
-                const isOpen = hasSub && (activeDropdown === cat.id || hoveredCategory === cat.id);
+                const isOpen = hasSub && openDropdown === cat.id;
 
                 return (
                   <div
@@ -362,7 +375,7 @@ export const Navbar = () => {
                         type="button"
                         onClick={(e) => handleCategoryClick(e, cat)}
                         aria-expanded={isOpen}
-                        className={`flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg select-none whitespace-nowrap shrink-0 ${
+                        className={`flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg select-none whitespace-nowrap shrink-0 cursor-pointer ${
                           isOpen
                             ? 'text-[#e0a96d] bg-[#122416]'
                             : 'hover:text-[#e0a96d] hover:bg-[#152a1a]/60 text-gray-200'
@@ -385,12 +398,16 @@ export const Navbar = () => {
                       </Link>
                     )}
 
-                    {/* Menú desplegable con diseño corporativo */}
+                    {/* Menú desplegable con diseño corporativo y puente de hover */}
                     {hasSub && isOpen && (
                       <div
-                        className={`absolute top-full mt-1 min-w-[220px] bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-50 py-2.5 backdrop-blur-md animate-in fade-in duration-150 ${
-                          index >= 5 ? 'right-0' : 'left-0'
+                        className={`absolute top-full mt-1.5 w-64 bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-[60] py-2.5 backdrop-blur-md animate-in fade-in duration-150 before:absolute before:-top-3 before:left-0 before:right-0 before:h-3 before:content-[''] ${
+                          index >= 4 ? 'right-0' : 'left-0'
                         }`}
+                        onMouseEnter={() => {
+                          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                        }}
+                        onMouseLeave={handleMouseLeave}
                       >
                         {/* Acento dorado superior */}
                         <div className="absolute top-0 left-3 right-3 h-[2px] bg-gradient-to-r from-transparent via-[#e0a96d] to-transparent rounded-full pointer-events-none" />
@@ -401,23 +418,24 @@ export const Navbar = () => {
                           onClick={closeDropdowns}
                           className="flex items-center justify-between px-3.5 py-1.5 text-xs font-bold text-[#e0a96d] hover:text-white hover:bg-[#162d1d] rounded-lg mx-1.5 transition group/header"
                         >
-                          <span>Ver todo {cat.name}</span>
-                          <ArrowRight size={13} className="group-hover/header:translate-x-1 transition-transform" />
+                          <span className="truncate">Ver todo {cat.name}</span>
+                          <ArrowRight size={13} className="group-hover/header:translate-x-1 transition-transform shrink-0 ml-1.5" />
                         </Link>
 
                         <div className="my-1.5 border-t border-[#1a3320]" />
 
-                        {/* Lista de subcategorías */}
-                        <div className="space-y-0.5">
+                        {/* Lista de subcategorías sin cortes de texto */}
+                        <div className="space-y-0.5 max-h-80 overflow-y-auto no-scrollbar">
                           {cat.subcategories.map((sub) => (
                             <Link
                               key={sub.slug}
                               to={`/categoria/${cat.slug}/${sub.slug}`}
                               onClick={closeDropdowns}
-                              className="flex items-center justify-between px-3.5 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#162d1d] hover:translate-x-1 transition-all rounded-lg mx-1.5 group/item"
+                              className="flex items-center justify-between px-3.5 py-1.5 text-xs text-gray-200 hover:text-white hover:bg-[#162d1d] hover:translate-x-1 transition-all rounded-lg mx-1.5 group/item"
+                              title={sub.name}
                             >
-                              <span>{sub.name}</span>
-                              <ChevronRight size={12} className="opacity-0 group-hover/item:opacity-100 text-[#4aa036] transition-opacity" />
+                              <span className="truncate font-medium">{sub.name}</span>
+                              <ChevronRight size={12} className="opacity-0 group-hover/item:opacity-100 text-[#4aa036] transition-opacity shrink-0 ml-1.5" />
                             </Link>
                           ))}
                         </div>

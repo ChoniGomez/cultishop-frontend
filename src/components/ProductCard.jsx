@@ -73,6 +73,8 @@ export const ProductCard = ({ product }) => {
     ? `Hola CultiShop! Consulto por ingreso o disponibilidad de ${product.title}`
     : `Hola CultiShop! Consulto por ${product.title}${selectedOption ? ` (${selectedOption})` : ''}`;
 
+  const productDetailUrl = `/producto/${product.id || product.slug}`;
+
   return (
     <div className={`bg-[#122317] border rounded-2xl p-4 shadow-lg hover:shadow-2xl transition duration-200 flex flex-col justify-between group relative ${
       isOutOfStock ? 'border-[#331c1c] opacity-95' : 'border-[#1f3b25] hover:border-[#38761d]'
@@ -80,7 +82,7 @@ export const ProductCard = ({ product }) => {
       {/* Imagen y Badges con enlace al detalle */}
       <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0b1610] p-2">
         <Link 
-          to={`/producto/${product.id}`}
+          to={productDetailUrl}
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
@@ -155,24 +157,29 @@ export const ProductCard = ({ product }) => {
         </div>
       </div>
 
-      {/* Datos del producto */}
-      <div className="space-y-2 flex-grow">
-        <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider block">
-          {product.category}
-        </span>
-        <Link 
-          to={`/producto/${product.id}`}
-          className="block group/link"
-          title={`Ver detalle de ${product.title}`}
-        >
-          <h3 className="font-bold text-white text-base leading-snug font-heading group-hover/link:text-[#e0a96d] transition line-clamp-2">
-            {product.title}
-          </h3>
-        </Link>
-        <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+      {/* Datos del producto con enlace directo al detalle */}
+      <Link 
+        to={productDetailUrl}
+        className="space-y-2 flex-grow block group/details cursor-pointer text-left"
+        title={`Ver detalle completo de ${product.title}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider block group-hover/details:text-emerald-400 transition-colors">
+            {product.category}
+          </span>
+          {product.subcategory && (
+            <span className="text-[10px] text-gray-400 font-normal truncate">
+              {product.subcategory}
+            </span>
+          )}
+        </div>
+        <h3 className="font-bold text-white text-base leading-snug font-heading group-hover/details:text-[#e0a96d] transition line-clamp-2">
+          {product.title}
+        </h3>
+        <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed group-hover/details:text-gray-300 transition-colors">
           {product.description}
         </p>
-      </div>
+      </Link>
 
       {/* Opciones y Botón interactivo de Compra */}
       <div className="mt-4 pt-3 border-t border-[#1a3320] space-y-3">

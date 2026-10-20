@@ -84,22 +84,44 @@ export const ProductSection = () => {
       if (!matches) return false;
     }
 
-    // 2. Filtrado por categoría
+    // 2. Filtrado por categoría y subcategoría
     // Si hay búsqueda activa pero no hay categoría fija en la URL y selectedCategory es 'todos', busca en todo el catálogo
     const active = currentCategorySlug || (isSearchActive ? (selectedCategory !== 'todos' ? selectedCategory : null) : selectedCategory);
     if (!active || active === 'todos') return true;
 
-    if (active === 'fertilizantes') {
-      if (subcategory === 'control-de-plagas') return product.category === 'Control de Plagas';
-      return product.category === 'Fertilizantes';
+    // Validación de subcategoría específica (ej: /categoria/fertilizantes/lavado-de-raices)
+    if (subcategory) {
+      const subNorm = subcategory.toLowerCase();
+      const productSubNorm = (product.subcategory_slug || product.subcategory || '').toLowerCase();
+      const productTitleNorm = (product.title || '').toLowerCase();
+      const productDescNorm = (product.description || '').toLowerCase();
+
+      if (subNorm === 'lavado-de-raices') {
+        const matchesLavado = productSubNorm.includes('lavado') || productTitleNorm.includes('lavado') || productDescNorm.includes('lavado') || product.category?.toLowerCase().includes('lavado');
+        if (!matchesLavado) return false;
+      } else if (subNorm === 'accesorios') {
+        const matchesAccesorios = productSubNorm.includes('accesorio') || productTitleNorm.includes('accesorio') || productDescNorm.includes('accesorio') || product.category?.toLowerCase().includes('accesorio');
+        if (!matchesAccesorios) return false;
+      } else if (subNorm === 'control-de-plagas') {
+        const matchesPlagas = product.category === 'Control de Plagas' || productSubNorm.includes('plagas');
+        if (!matchesPlagas) return false;
+      } else {
+        const cleanSub = subNorm.replace(/-/g, ' ');
+        const matchesGenericSub = productSubNorm.includes(subNorm) || productSubNorm.includes(cleanSub) || productTitleNorm.includes(cleanSub);
+        if (!matchesGenericSub && productSubNorm) return false;
+      }
     }
+
+    if (active === 'fertilizantes') {
+      if (subcategory === 'control-de-plagas') return product.category === 'Control de Plagas' || product.category === 'Fertilizantes';
+      return product.category === 'Fertilizantes' || product.category?.toLowerCase().includes('fertilizante');
+    }
+    if (active === 'parafernalia') return product.category === 'Parafernalia' || product.category?.toLowerCase().includes('parafernalia');
     if (active === 'control-de-plagas') return product.category === 'Control de Plagas';
     if (active === 'transporte-legal') return product.category === 'Transporte Legal';
     if (active === 'riego') return product.category === 'Riego';
     if (active === 'kits') return product.category === 'Kits';
     if (active === 'sustratos-macetas') return product.category.toLowerCase().includes('sustrato') || product.category.toLowerCase().includes('maceta');
-    if (active === 'lavado-de-raices') return product.category.toLowerCase().includes('lavado');
-    if (active === 'accesorios') return product.category.toLowerCase().includes('accesorio');
 
     return product.category.toLowerCase().includes(active.toLowerCase());
   });

@@ -9,6 +9,7 @@ export const CATEGORIES = [
       { name: 'Bases de Floración', slug: 'bases-de-floracion' },
       { name: 'Control de Plagas', slug: 'control-de-plagas' },
       { name: 'Radiculares', slug: 'radiculares' },
+      { name: 'Lavado de Raíces', slug: 'lavado-de-raices' },
     ]
   },
   {
@@ -63,6 +64,7 @@ export const CATEGORIES = [
       { name: 'Filtros', slug: 'filtros' },
       { name: 'Picadores', slug: 'picadores' },
       { name: 'Sedas', slug: 'sedas' },
+      { name: 'Accesorios', slug: 'accesorios' },
     ]
   },
   {
@@ -80,18 +82,5 @@ export const CATEGORIES = [
     name: 'Semillas',
     slug: 'semillas',
     subcategories: [] // Enlace directo sin submenú
-  },
-  {
-    id: 'lavado-de-raices',
-    name: 'Lavado de Raíces',
-    slug: 'lavado-de-raices',
-    subcategories: []
-  },
-  {
-    id: 'accesorios',
-    name: 'Accesorios',
-    slug: 'accesorios',
-    subcategories: []
   }
 ];
-
