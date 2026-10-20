@@ -44,6 +44,7 @@ import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { CultiShopLogo } from './CultiShopLogo';
+import { BannerCropperModal } from './BannerCropperModal';
 
 export const AdminDashboard = () => {
   const { user, token, isAdmin, loading: authLoading } = useAuth();
@@ -116,6 +117,10 @@ export const AdminDashboard = () => {
   const [bannerFormOrder, setBannerFormOrder] = useState('1');
   const [bannerFormIsActive, setBannerFormIsActive] = useState(true);
   const [bannerFormShowText, setBannerFormShowText] = useState(true);
+
+  // Estados para editor interactivo de zoom y encuadre de banners (estilo LinkedIn)
+  const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
+  const [rawBannerSourceImage, setRawBannerSourceImage] = useState('');
 
   // Referencias a inputs de archivos locales e información de archivo
   const productFileInputRef = useRef(null);
@@ -395,12 +400,14 @@ export const AdminDashboard = () => {
     setBannerFormTitle('');
     setBannerFormSubtitle('');
     setBannerFormImageUrl('');
+    setRawBannerSourceImage('');
     setBannerImageFileName('');
     setBannerFormLinkUrl('/categoria/control-de-plagas');
     setBannerFormButtonText('Ver Más');
     setBannerFormOrder(String((safeBanners?.length || 0) + 1));
     setBannerFormIsActive(true);
     setBannerFormShowText(true);
+    setIsBannerCropperOpen(false);
     setIsBannerModalOpen(true);
   };
 
@@ -411,12 +418,14 @@ export const AdminDashboard = () => {
     setBannerFormTitle(banner.title || '');
     setBannerFormSubtitle(banner.subtitle || '');
     setBannerFormImageUrl(banner.image_url || '');
+    setRawBannerSourceImage(banner.image_url || '');
     setBannerImageFileName(banner.title ? `${banner.title}.jpg` : '');
     setBannerFormLinkUrl(banner.link_url || '');
     setBannerFormButtonText(banner.button_text || 'Ver Más');
     setBannerFormOrder(String(banner.display_order ?? 0));
     setBannerFormIsActive(banner.is_active !== false);
     setBannerFormShowText(banner.show_text !== false);
+    setIsBannerCropperOpen(false);
     setIsBannerModalOpen(true);
   };
 
@@ -1464,20 +1473,31 @@ export const AdminDashboard = () => {
                           </span>
                         </td>
 
-                        {/* Vista Previa Horizontal */}
+                        {/* Vista Previa Horizontal con acceso directo al encuadre */}
                         <td className="py-4 px-4">
-                          <div className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] bg-[#0b1610] group shrink-0">
+                          <div
+                            onClick={() => {
+                              handleOpenEditBannerModal(banner);
+                              setIsBannerCropperOpen(true);
+                            }}
+                            className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] hover:border-[#e0a96d]/60 bg-[#0b1610] group shrink-0 cursor-pointer shadow-sm transition"
+                            title="Clic para ajustar zoom y encuadre (estilo LinkedIn)"
+                          >
                             <img
                               src={banner.image_url}
                               alt={banner.title}
-                              className="w-full h-full object-contain object-center transition-transform duration-300"
+                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=800';
                               }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-1">
-                              <span className="text-[9px] text-gray-300 font-mono truncate px-1">
-                                Horizontal
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
+                              <Sliders size={13} className="text-[#e0a96d]" />
+                              <span className="text-[10px] text-white font-bold">Ajustar Zoom</span>
+                            </div>
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                              <span className="text-[9px] text-gray-300 font-mono truncate px-1 block">
+                                16:5 Panorámico
                               </span>
                             </div>
                           </div>
@@ -1524,7 +1544,7 @@ export const AdminDashboard = () => {
                           <button
                             onClick={() => handleToggleBanner(banner)}
                             title={banner.is_active ? 'Clic para desactivar' : 'Clic para activar'}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition cursor-pointer ${
                               banner.is_active
                                 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900'
                                 : 'bg-gray-800/80 text-gray-400 border border-gray-600/50 hover:bg-gray-700'
@@ -1539,8 +1559,18 @@ export const AdminDashboard = () => {
                         <td className="py-4 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
+                              onClick={() => {
+                                handleOpenEditBannerModal(banner);
+                                setIsBannerCropperOpen(true);
+                              }}
+                              className="p-2 rounded-xl bg-[#142619] hover:bg-[#1a3821] text-[#e0a96d] border border-[#23422a] hover:border-[#e0a96d]/60 transition cursor-pointer shadow-sm"
+                              title="Ajustar encuadre y zoom estilo LinkedIn"
+                            >
+                              <Sliders size={15} />
+                            </button>
+                            <button
                               onClick={() => handleToggleBanner(banner)}
-                              className={`p-2 rounded-xl border transition ${
+                              className={`p-2 rounded-xl border transition cursor-pointer ${
                                 banner.is_active
                                   ? 'bg-[#142619] text-gray-300 hover:text-white border-[#23422a] hover:bg-[#1f3b25]'
                                   : 'bg-[#142619] text-[#e0a96d] border-[#23422a] hover:bg-[#1f3b25]'
@@ -1551,14 +1581,14 @@ export const AdminDashboard = () => {
                             </button>
                             <button
                               onClick={() => handleOpenEditBannerModal(banner)}
-                              className="p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition"
+                              className="p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition cursor-pointer"
                               title="Editar banner"
                             >
                               <Edit size={15} />
                             </button>
                             <button
                               onClick={() => setDeleteBannerConfirmId(banner.id)}
-                              className="p-2 rounded-xl bg-[#142619] hover:bg-red-950/50 text-gray-400 hover:text-red-400 border border-[#23422a] hover:border-red-900 transition"
+                              className="p-2 rounded-xl bg-[#142619] hover:bg-red-950/50 text-gray-400 hover:text-red-400 border border-[#23422a] hover:border-red-900 transition cursor-pointer"
                               title="Eliminar banner"
                             >
                               <Trash2 size={15} />
@@ -2617,39 +2647,65 @@ export const AdminDashboard = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      handleImageFileChange(file, setBannerFormImageUrl, setBannerImageFileName);
+                      handleImageFileChange(
+                        file, 
+                        (dataUrl) => {
+                          setRawBannerSourceImage(dataUrl);
+                          setBannerFormImageUrl(dataUrl);
+                          setIsBannerCropperOpen(true);
+                        }, 
+                        setBannerImageFileName
+                      );
                     }
                   }}
                 />
 
                 {!bannerFormImageUrl ? (
-                  <div
-                    onClick={() => bannerFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] rounded-2xl p-6 bg-[#0a140d] hover:bg-[#122317] transition cursor-pointer flex flex-col items-center justify-center text-center space-y-2 group shadow-inner"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#183520] group-hover:bg-[#234b2d] text-[#e0a96d] flex items-center justify-center transition shadow-md">
-                      <Upload size={22} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-bold text-white block">
-                        Elegir Imagen Panorámica desde tu Equipo
+                  <div className="space-y-3">
+                    <div
+                      onClick={() => bannerFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] rounded-2xl p-6 bg-[#0a140d] hover:bg-[#122317] transition cursor-pointer flex flex-col items-center justify-center text-center space-y-2 group shadow-inner"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#183520] group-hover:bg-[#234b2d] text-[#e0a96d] flex items-center justify-center transition shadow-md">
+                        <Upload size={22} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-white block">
+                          Elegir Imagen Panorámica desde tu Equipo
+                        </span>
+                        <span className="text-[11px] text-gray-400 block">
+                          Haz clic aquí para examinar archivos. Se abrirá la herramienta de ajuste de zoom y encuadre.
+                        </span>
+                      </div>
+                      <span className="px-3.5 py-1 rounded-full bg-[#1e3c25] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider">
+                        Examinar Archivos
                       </span>
-                      <span className="text-[11px] text-gray-400 block">
-                        Haz clic aquí para abrir tu explorador de archivos local
-                      </span>
                     </div>
-                    <span className="px-3.5 py-1 rounded-full bg-[#1e3c25] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider">
-                      Examinar Archivos
-                    </span>
+
+                    {/* Opción alternativa por URL web directa */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        value={bannerFormImageUrl.startsWith('data:') ? '' : bannerFormImageUrl}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBannerFormImageUrl(val);
+                          setRawBannerSourceImage(val);
+                          if (val) setBannerImageFileName('Imagen desde enlace web');
+                        }}
+                        placeholder="O ingresá una URL web directa (https://...)"
+                        className="flex-grow bg-[#07110a] border border-[#23422a] rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#4aa036]"
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {/* Vista previa panorámica con simulación de portada */}
-                    <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden border border-[#2d5a27] bg-[#0b1610] shadow-inner group">
+                  <div className="space-y-3">
+                    {/* Vista previa panorámica interactiva con proporción exacta 16:5 */}
+                    <div className="relative w-full h-40 sm:h-48 rounded-2xl overflow-hidden border-2 border-[#2d5a27] bg-[#0b1610] shadow-inner group">
                       <img
                         src={bannerFormImageUrl}
                         alt="Vista previa banner"
-                        className="w-full h-full object-contain object-center"
+                        className="w-full h-full object-cover object-center"
                         onError={(e) => {
                           e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1200';
                         }}
@@ -2671,30 +2727,58 @@ export const AdminDashboard = () => {
                           <span>🖼️ Modo Limpio: Solo Imagen</span>
                         </div>
                       )}
+
+                      {/* Botón flotante para reajustar zoom y encuadre */}
+                      <button
+                        type="button"
+                        onClick={() => setIsBannerCropperOpen(true)}
+                        className="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-xl bg-black/85 hover:bg-[#1a3821] text-[#e0a96d] hover:text-white border border-[#e0a96d]/60 text-xs font-bold transition flex items-center gap-1.5 shadow-xl backdrop-blur-md cursor-pointer group-hover:scale-105"
+                      >
+                        <Sliders size={13} className="text-[#e0a96d]" />
+                        <span>Ajustar Zoom y Encuadre</span>
+                      </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 bg-[#0a140d] rounded-xl border border-[#1f3b25] text-xs">
+                    {/* Barra de herramientas y controles del banner */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-[#0a140d] rounded-2xl border border-[#1f3b25] gap-3 text-xs">
                       <div className="flex items-center gap-2 text-gray-300 truncate mr-2">
-                        <CheckCircle2 size={14} className="text-[#25d366] shrink-0" />
-                        <span className="truncate text-[11px]">{bannerImageFileName || 'Imagen panorámica cargada'}</span>
+                        <CheckCircle2 size={16} className="text-[#25d366] shrink-0" />
+                        <div className="truncate">
+                          <span className="truncate text-xs font-semibold block text-white">
+                            {bannerImageFileName || 'Imagen panorámica seleccionada'}
+                          </span>
+                          <span className="text-[10px] text-[#e0a96d]">
+                            Lista para publicación o encuadre interactivo
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setIsBannerCropperOpen(true)}
+                          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1b3621] to-[#254b2d] hover:from-[#23482c] hover:to-[#2e5d37] text-[#e0a96d] hover:text-white text-xs font-bold border border-[#e0a96d]/50 transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                          title="Abrir herramienta interactiva de zoom y encuadre (estilo LinkedIn)"
+                        >
+                          <Sliders size={13} />
+                          <span>Encuadrar (LinkedIn)</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => bannerFileInputRef.current?.click()}
-                          className="px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                          className="px-3 py-1.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white text-xs font-semibold border border-[#23422a] transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                         >
                           <Upload size={13} />
-                          <span>Cambiar imagen</span>
+                          <span>Cambiar</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => {
                             setBannerFormImageUrl('');
+                            setRawBannerSourceImage('');
                             setBannerImageFileName('');
                             if (bannerFileInputRef.current) bannerFileInputRef.current.value = '';
                           }}
-                          className="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 size={13} />
                           <span>Quitar</span>
@@ -2885,6 +2969,23 @@ export const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODAL INTERACTIVO DE ENCUADRE Y ZOOM ESTILO LINKEDIN          */}
+      {/* ============================================================ */}
+      <BannerCropperModal
+        isOpen={isBannerCropperOpen}
+        imageUrl={rawBannerSourceImage || bannerFormImageUrl}
+        title={bannerFormTitle}
+        subtitle={bannerFormSubtitle}
+        buttonText={bannerFormButtonText}
+        showText={bannerFormShowText}
+        onClose={() => setIsBannerCropperOpen(false)}
+        onApply={(croppedDataUrl) => {
+          setBannerFormImageUrl(croppedDataUrl);
+          showNotification('success', '¡Encuadre y zoom del banner aplicados con éxito!');
+        }}
+      />
 
       {/* ============================================================ */}
       {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR BANNER */}
