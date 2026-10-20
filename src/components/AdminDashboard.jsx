@@ -118,7 +118,7 @@ export const AdminDashboard = () => {
   const [bannerFormIsActive, setBannerFormIsActive] = useState(true);
   const [bannerFormShowText, setBannerFormShowText] = useState(true);
 
-  // Estados para editor interactivo de zoom y encuadre de banners (estilo LinkedIn)
+  // Estados para editor interactivo de zoom y encuadre de banners
   const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
   const [rawBannerSourceImage, setRawBannerSourceImage] = useState('');
 
@@ -1481,7 +1481,7 @@ export const AdminDashboard = () => {
                               setIsBannerCropperOpen(true);
                             }}
                             className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden border border-[#23422a] hover:border-[#e0a96d]/60 bg-[#0b1610] group shrink-0 cursor-pointer shadow-sm transition"
-                            title="Clic para ajustar zoom y encuadre (estilo LinkedIn)"
+                            title="Clic para ajustar zoom y encuadre"
                           >
                             <img
                               src={banner.image_url}
@@ -1564,7 +1564,7 @@ export const AdminDashboard = () => {
                                 setIsBannerCropperOpen(true);
                               }}
                               className="p-2 rounded-xl bg-[#142619] hover:bg-[#1a3821] text-[#e0a96d] border border-[#23422a] hover:border-[#e0a96d]/60 transition cursor-pointer shadow-sm"
-                              title="Ajustar encuadre y zoom estilo LinkedIn"
+                              title="Ajustar zoom y encuadre"
                             >
                               <Sliders size={15} />
                             </button>
@@ -2757,10 +2757,10 @@ export const AdminDashboard = () => {
                           type="button"
                           onClick={() => setIsBannerCropperOpen(true)}
                           className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1b3621] to-[#254b2d] hover:from-[#23482c] hover:to-[#2e5d37] text-[#e0a96d] hover:text-white text-xs font-bold border border-[#e0a96d]/50 transition flex items-center gap-1.5 cursor-pointer shadow-md"
-                          title="Abrir herramienta interactiva de zoom y encuadre (estilo LinkedIn)"
+                          title="Abrir herramienta interactiva de zoom y encuadre"
                         >
                           <Sliders size={13} />
-                          <span>Encuadrar (LinkedIn)</span>
+                          <span>Ajustar Encuadre</span>
                         </button>
                         <button
                           type="button"
@@ -2971,7 +2971,7 @@ export const AdminDashboard = () => {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL INTERACTIVO DE ENCUADRE Y ZOOM ESTILO LINKEDIN          */}
+      {/* MODAL INTERACTIVO DE ENCUADRE Y ZOOM DE BANNER                */}
       {/* ============================================================ */}
       <BannerCropperModal
         isOpen={isBannerCropperOpen}

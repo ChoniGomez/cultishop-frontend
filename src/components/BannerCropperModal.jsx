@@ -301,7 +301,7 @@ export const BannerCropperModal = ({
                 Ajustar Encuadre y Zoom del Banner
               </h3>
               <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#18311d] text-[#e0a96d] border border-[#e0a96d]/30">
-                Estilo LinkedIn
+                Editor Panorámico
               </span>
             </div>
             <p className="text-xs text-gray-300 mt-1">
@@ -422,7 +422,7 @@ export const BannerCropperModal = ({
         </div>
 
         {/* ================================================================= */}
-        {/* CONTROLES DE ZOOM Y AJUSTES DE POSICIÓN (ESTILO LINKEDIN)        */}
+        {/* CONTROLES DE ZOOM Y AJUSTES DE POSICIÓN                         */}
         {/* ================================================================= */}
         <div className="bg-[#07110a] border border-[#1f3b25] rounded-2xl p-4 space-y-3 shadow-inner">
           {/* Fila del slider de zoom */}
@@ -557,3 +557,4 @@ export const BannerCropperModal = ({
     </div>
   );
 };
+
