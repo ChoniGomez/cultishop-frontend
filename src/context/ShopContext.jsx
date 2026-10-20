@@ -9,6 +9,15 @@ const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
 const PRODUCTS_STORAGE_KEY = 'cultishop_products_v3';
 const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché local
+const PAYMENT_SETTINGS_KEY = 'cultishop_payment_settings_v1';
+
+export const DEFAULT_PAYMENT_SETTINGS = {
+  bank_alias: 'CULTISHOP.POSADAS',
+  bank_cbu: '',
+  bank_name: 'Mercado Pago / Billeteras Virtuales',
+  account_holder: 'CultiShop Posadas',
+  payment_notes: 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.'
+};
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
@@ -293,6 +302,70 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
+  // ============================================================
+  // CONFIGURACIÓN DE DATOS DE PAGO Y ALIAS BANCARIO
+  // ============================================================
+  const [paymentSettings, setPaymentSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PAYMENT_SETTINGS_KEY);
+      return saved ? { ...DEFAULT_PAYMENT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_PAYMENT_SETTINGS;
+    } catch {
+      return DEFAULT_PAYMENT_SETTINGS;
+    }
+  });
+  const [loadingPaymentSettings, setLoadingPaymentSettings] = useState(false);
+
+  const fetchPaymentSettings = async () => {
+    setLoadingPaymentSettings(true);
+    try {
+      const res = await fetch(buildApiUrl('settings/payment'));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.payment) {
+          const merged = { ...DEFAULT_PAYMENT_SETTINGS, ...data.payment };
+          setPaymentSettings(merged);
+          try {
+            localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/settings/payment no disponible temporalmente:', err);
+    } finally {
+      setLoadingPaymentSettings(false);
+    }
+    return paymentSettings;
+  };
+
+  const updatePaymentSettings = async (newSettings, token) => {
+    try {
+      const res = await fetch(buildApiUrl('settings/payment'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newSettings)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al actualizar los datos de pago.');
+      }
+
+      const updated = { ...DEFAULT_PAYMENT_SETTINGS, ...(data.payment || newSettings) };
+      setPaymentSettings(updated);
+      try {
+        localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify(updated));
+      } catch {}
+
+      return { success: true, payment: updated, message: data.message };
+    } catch (err) {
+      return { success: false, error: err.message || 'Error al conectar con el servidor.' };
+    }
+  };
+
   // Sincronizar con Backend y persistir en LocalStorage con control de versión
   const fetchProducts = async () => {
     setLoadingProducts(true);
@@ -355,6 +428,7 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchPaymentSettings();
   }, []);
 
   /**
@@ -858,6 +932,10 @@ export const ShopProvider = ({ children }) => {
         categories,
         loadingCategories,
         fetchCategories,
+        paymentSettings,
+        loadingPaymentSettings,
+        fetchPaymentSettings,
+        updatePaymentSettings,
       }}
     >
       {children}

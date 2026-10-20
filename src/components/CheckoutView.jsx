@@ -62,7 +62,8 @@ export const CheckoutView = () => {
     totalItems, 
     totalPrice, 
     formattedTotalPrice, 
-    clearCart 
+    clearCart,
+    paymentSettings
   } = useShop();
 
   // Estados del formulario de Envío y Contacto
@@ -360,6 +361,42 @@ export const CheckoutView = () => {
                 <span>Enviar Pedido #{orderNumber} por WhatsApp</span>
               </a>
             </div>
+
+            {/* Si eligió transferencia bancaria, recordatorio de datos de pago */}
+            {completedOrder.payment_method === 'transferencia' && (
+              <div className="p-4 rounded-2xl bg-[#09150d] border border-[#e0a96d]/40 space-y-2 max-w-xl mx-auto text-left text-xs animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 font-semibold">💳 Datos para la Transferencia:</span>
+                  <span className="text-[10px] text-[#e0a96d] font-bold uppercase bg-[#281d0f] px-2 py-0.5 rounded border border-[#e0a96d]/30">
+                    Alias Oficial
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-[#122317] p-2.5 rounded-xl border border-[#23422a]">
+                  <span className="text-gray-400">Alias:</span>
+                  <div className="flex items-center gap-1.5">
+                    <code className="text-[#e0a96d] font-bold select-all">{paymentSettings?.bank_alias || 'CULTISHOP.POSADAS'}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyAlias(paymentSettings?.bank_alias || 'CULTISHOP.POSADAS')}
+                      className="p-1 text-gray-400 hover:text-white"
+                      title="Copiar alias"
+                    >
+                      {copiedAlias ? <Check size={14} className="text-[#4aa036]" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+                {paymentSettings?.bank_cbu && (
+                  <div className="flex items-center justify-between text-[11px] px-1">
+                    <span className="text-gray-400">CBU / CVU:</span>
+                    <span className="text-gray-200 font-mono select-all">{paymentSettings.bank_cbu}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-[11px] px-1">
+                  <span className="text-gray-400">Titular:</span>
+                  <span className="text-white font-medium">{paymentSettings?.account_holder || 'CultiShop Posadas'}</span>
+                </div>
+              </div>
+            )}
 
             {/* Resumen detallado del pedido confirmado */}
             <div className="border-t border-[#1b3420] pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-xs bg-[#122317] p-5 rounded-2xl border border-[#23422a]">
@@ -858,29 +895,58 @@ export const CheckoutView = () => {
 
                   {/* Detalle informativo cuando está seleccionado */}
                   {formData.paymentMethod === 'transferencia' && (
-                    <div className="mt-3.5 pt-3 border-t border-[#1b3621] space-y-2 text-xs bg-[#09150d] p-3 rounded-xl border border-[#1b3420] animate-in fade-in">
+                    <div className="mt-3.5 pt-3 border-t border-[#1b3621] space-y-2.5 text-xs bg-[#09150d] p-3.5 rounded-xl border border-[#1b3420] animate-in fade-in">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Alias Oficial:</span>
+                        <span className="text-gray-400 font-medium">Alias Oficial:</span>
                         <div className="flex items-center gap-1.5">
-                          <code className="text-[#e0a96d] font-bold bg-[#142619] px-2 py-0.5 rounded border border-[#23422a]">
-                            CULTISHOP.POSADAS
+                          <code className="text-[#e0a96d] font-bold bg-[#142619] px-2.5 py-1 rounded-lg border border-[#23422a] tracking-wide select-all">
+                            {paymentSettings?.bank_alias || 'CULTISHOP.POSADAS'}
                           </code>
                           <button
                             type="button"
-                            onClick={() => handleCopyAlias('CULTISHOP.POSADAS')}
-                            className="p-1 hover:text-white text-gray-400 transition"
+                            onClick={() => handleCopyAlias(paymentSettings?.bank_alias || 'CULTISHOP.POSADAS')}
+                            className="p-1.5 hover:text-white text-gray-300 bg-[#142619] hover:bg-[#1e3b26] border border-[#23422a] rounded-lg transition flex items-center gap-1"
                             title="Copiar alias"
                           >
                             {copiedAlias ? <Check size={14} className="text-[#4aa036]" /> : <Copy size={14} />}
+                            <span className="text-[10px] hidden sm:inline">{copiedAlias ? '¡Copiado!' : 'Copiar'}</span>
                           </button>
                         </div>
                       </div>
+
+                      {paymentSettings?.bank_cbu && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 font-medium">CBU / CVU:</span>
+                          <div className="flex items-center gap-1.5">
+                            <code className="text-gray-300 font-mono text-[11px] bg-[#142619] px-2 py-0.5 rounded border border-[#23422a] select-all">
+                              {paymentSettings.bank_cbu}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAlias(paymentSettings.bank_cbu)}
+                              className="p-1 hover:text-white text-gray-400 transition"
+                              title="Copiar CBU/CVU"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-gray-400">Titular:</span>
-                        <span className="text-white font-medium">CultiShop Posadas</span>
+                        <span className="text-gray-400">Titular de la cuenta:</span>
+                        <span className="text-white font-medium">{paymentSettings?.account_holder || 'CultiShop Posadas'}</span>
                       </div>
-                      <p className="text-[10px] text-gray-400 pt-1 border-t border-[#152a1b]">
-                        Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.
+
+                      {paymentSettings?.bank_name && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-400">Entidad / Billetera:</span>
+                          <span className="text-gray-200">{paymentSettings.bank_name}</span>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-gray-400 pt-1.5 border-t border-[#152a1b] leading-relaxed">
+                        {paymentSettings?.payment_notes || 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.'}
                       </p>
                     </div>
                   )}

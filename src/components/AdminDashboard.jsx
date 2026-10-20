@@ -29,7 +29,12 @@ import {
   EyeOff,
   Link as LinkIcon,
   Droplets,
-  Upload
+  Upload,
+  CreditCard,
+  Copy,
+  Check,
+  Save,
+  Landmark
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +56,9 @@ export const AdminDashboard = () => {
     deleteProduct,
     categories,
     loadingCategories,
-    fetchCategories
+    fetchCategories,
+    paymentSettings,
+    updatePaymentSettings
   } = useShop();
   const navigate = useNavigate();
 
@@ -115,6 +122,25 @@ export const AdminDashboard = () => {
   const bannerFileInputRef = useRef(null);
   const [productImageFileName, setProductImageFileName] = useState('');
   const [bannerImageFileName, setBannerImageFileName] = useState('');
+
+  // Estados para Configuración de Datos de Pago / Alias Bancario
+  const [bankAlias, setBankAlias] = useState('');
+  const [bankCbu, setBankCbu] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [copiedPreviewAlias, setCopiedPreviewAlias] = useState(false);
+
+  useEffect(() => {
+    if (paymentSettings) {
+      setBankAlias(paymentSettings.bank_alias || 'CULTISHOP.POSADAS');
+      setBankCbu(paymentSettings.bank_cbu || '');
+      setBankName(paymentSettings.bank_name || 'Mercado Pago / Billeteras Virtuales');
+      setAccountHolder(paymentSettings.account_holder || 'CultiShop Posadas');
+      setPaymentNotes(paymentSettings.payment_notes || 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.');
+    }
+  }, [paymentSettings]);
 
   // Colecciones seguras para evitar errores de renderizado si están cargando o vacías
   const safeCategories = Array.isArray(categories) ? categories : [];
@@ -327,6 +353,39 @@ export const AdminDashboard = () => {
     setTimeout(() => {
       setStatusMessage({ type: '', text: '' });
     }, 4000);
+  };
+
+  // Guardar configuración de pagos y alias
+  const handleSavePaymentSettings = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!bankAlias.trim()) {
+      showNotification('error', 'El Alias de transferencia no puede estar vacío.');
+      return;
+    }
+
+    setIsSavingPayment(true);
+    const res = await updatePaymentSettings({
+      bank_alias: bankAlias.trim().toUpperCase(),
+      bank_cbu: bankCbu.trim(),
+      bank_name: bankName.trim(),
+      account_holder: accountHolder.trim(),
+      payment_notes: paymentNotes.trim()
+    }, token);
+    setIsSavingPayment(false);
+
+    if (res.success) {
+      showNotification('success', '¡Datos de pago y Alias bancario guardados exitosamente!');
+    } else {
+      showNotification('error', res.error || 'Error al guardar los datos de pago.');
+    }
+  };
+
+  const handleCopyPreviewAlias = (aliasText) => {
+    if (aliasText) {
+      navigator.clipboard.writeText(aliasText);
+      setCopiedPreviewAlias(true);
+      setTimeout(() => setCopiedPreviewAlias(false), 2000);
+    }
   };
 
   // Handlers para Gestión de Banners Publicitarios
@@ -782,7 +841,7 @@ export const AdminDashboard = () => {
         </div>
         <h2 className="text-3xl font-black text-white font-heading mb-3">Acceso Exclusivo de Administrador</h2>
         <p className="text-gray-400 text-sm mb-6 leading-relaxed max-w-md mx-auto">
-          Esta sección está protegida y sólo puede ser gestionada por el usuario administrador de CultiShop ({'chonidacharygomez@gmail.com'}).
+          Esta sección está protegida y sólo puede ser gestionada por cuentas con permisos de administrador en CultiShop.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
@@ -920,6 +979,18 @@ export const AdminDashboard = () => {
         >
           <Sliders size={16} />
           <span>Banners Publicitarios ({safeBanners.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('pagos')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'pagos'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <CreditCard size={16} />
+          <span>Datos de Pago / Alias</span>
         </button>
       </div>
 
@@ -1501,6 +1572,240 @@ export const AdminDashboard = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECCIÓN 4: CONFIGURACIÓN DE DATOS DE PAGO Y ALIAS BANCARIO   */}
+      {/* ============================================================ */}
+      {activeTab === 'pagos' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Encabezado de la Sección */}
+          <div className="bg-[#0e1c12] border border-[#1f3b25] p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading flex items-center gap-2.5">
+                <Landmark className="text-[#e0a96d]" size={24} />
+                <span>Datos de Pago y Alias Bancario</span>
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Personaliza el Alias oficial, CBU/CVU y notas que se muestran a los clientes al elegir transferencia bancaria en el Checkout.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSavePaymentSettings}
+              disabled={isSavingPayment}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-lg shrink-0 disabled:opacity-50"
+            >
+              <Save size={16} className={isSavingPayment ? 'animate-spin' : ''} />
+              <span>{isSavingPayment ? 'Guardando en BD...' : 'Guardar Cambios'}</span>
+            </button>
+          </div>
+
+          {/* Cuadrícula: Formulario a la izquierda, Vista previa a la derecha */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Formulario de Configuración */}
+            <form onSubmit={handleSavePaymentSettings} className="lg:col-span-7 bg-[#0e1c12] border border-[#1f3b25] p-5 sm:p-6 rounded-2xl space-y-5">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-[#1b3420] pb-3">
+                <CreditCard size={16} className="text-[#4aa036]" />
+                <span>Parámetros de Cobro por Transferencia</span>
+              </h3>
+
+              {/* Alias Oficial */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Alias de Transferencia Bancaria <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={bankAlias}
+                  onChange={(e) => setBankAlias(e.target.value.toUpperCase())}
+                  placeholder="Ej: CULTISHOP.POSADAS"
+                  required
+                  className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white font-mono text-sm tracking-wide outline-none transition uppercase"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Es el identificador que los clientes copiarán con un solo toque desde su celular o homebanking.
+                </p>
+              </div>
+
+              {/* CBU / CVU */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  CBU o CVU (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={bankCbu}
+                  onChange={(e) => setBankCbu(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="Ej: 0000003100012345678901"
+                  maxLength={22}
+                  className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white font-mono text-sm tracking-wider outline-none transition"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Código de 22 dígitos para transferencias directas entre bancos o billeteras virtuales.
+                </p>
+              </div>
+
+              {/* Entidad / Billetera */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Entidad Financiera / Billetera Virtual
+                </label>
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  placeholder="Ej: Mercado Pago / Billeteras Virtuales o Banco Macro"
+                  className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                />
+              </div>
+
+              {/* Titular de la Cuenta */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Titular de la Cuenta
+                </label>
+                <input
+                  type="text"
+                  value={accountHolder}
+                  onChange={(e) => setAccountHolder(e.target.value)}
+                  placeholder="Ej: CultiShop Posadas / Jonathan Gomez"
+                  className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                />
+              </div>
+
+              {/* Notas e instrucciones adicionales */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Instrucciones o Notas para el Cliente
+                </label>
+                <textarea
+                  rows={3}
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Instrucciones que acompañan a los datos bancarios..."
+                  className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl p-3 text-white text-xs outline-none transition resize-none"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Se visualiza inmediatamente debajo de los datos del alias en el formulario de Checkout.
+                </p>
+              </div>
+
+              {/* Botón inferior */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingPayment}
+                  className="w-full py-3 px-6 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={16} className={isSavingPayment ? 'animate-spin' : ''} />
+                  <span>{isSavingPayment ? 'Guardando en Base de Datos Neon...' : 'Guardar y Publicar en Tienda'}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Vista Previa en Vivo */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-[#0e1c12] border border-[#1f3b25] p-5 sm:p-6 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1b3420] pb-3">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-[#e0a96d]" />
+                    <span>Vista Previa en Checkout</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-[#4aa036] bg-[#142619] px-2 py-0.5 rounded-full border border-[#23422a]">
+                    En tiempo real
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-400">
+                  Así es exactamente como los compradores visualizarán la opción de pago en el paso final de la compra:
+                </p>
+
+                {/* Caja simulada del checkout */}
+                <div className="p-4 rounded-2xl bg-[#09150d] border-2 border-[#2d5a27] space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded-full border-2 border-[#4aa036] flex items-center justify-center bg-[#4aa036]/20">
+                        <div className="w-2 h-2 rounded-full bg-[#4aa036]" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-white block">Transferencia Bancaria</span>
+                        <span className="text-[11px] text-gray-400">Transferí desde Mercado Pago o cualquier banco</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#e0a96d] bg-[#2a1e0f] px-2 py-0.5 rounded-full border border-[#e0a96d]/40">
+                      Recomendado
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#1b3621] space-y-2.5 text-xs bg-[#102014] p-3.5 rounded-xl border border-[#1b3420]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 font-medium">Alias Oficial:</span>
+                      <div className="flex items-center gap-1.5">
+                        <code className="text-[#e0a96d] font-bold bg-[#142619] px-2.5 py-1 rounded-lg border border-[#23422a] tracking-wide select-all">
+                          {bankAlias || 'CULTISHOP.POSADAS'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPreviewAlias(bankAlias || 'CULTISHOP.POSADAS')}
+                          className="p-1.5 hover:text-white text-gray-300 bg-[#142619] hover:bg-[#1e3b26] border border-[#23422a] rounded-lg transition flex items-center gap-1"
+                          title="Probar copiar alias"
+                        >
+                          {copiedPreviewAlias ? <Check size={14} className="text-[#4aa036]" /> : <Copy size={14} />}
+                          <span className="text-[10px]">{copiedPreviewAlias ? '¡Copiado!' : 'Copiar'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {bankCbu && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400 font-medium">CBU / CVU:</span>
+                        <div className="flex items-center gap-1.5">
+                          <code className="text-gray-300 font-mono text-[11px] bg-[#142619] px-2 py-0.5 rounded border border-[#23422a] select-all">
+                            {bankCbu}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPreviewAlias(bankCbu)}
+                            className="p-1 hover:text-white text-gray-400 transition"
+                            title="Probar copiar CBU"
+                          >
+                            <Copy size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-gray-400">Titular de la cuenta:</span>
+                      <span className="text-white font-medium">{accountHolder || 'CultiShop Posadas'}</span>
+                    </div>
+
+                    {bankName && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-gray-400">Entidad / Billetera:</span>
+                        <span className="text-gray-200">{bankName}</span>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-gray-400 pt-1.5 border-t border-[#152a1b] leading-relaxed">
+                      {paymentNotes || 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Nota informativa */}
+                <div className="p-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-[11px] text-gray-300 flex items-start gap-2.5">
+                  <Shield size={16} className="text-[#4aa036] shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    Al presionar <strong>"Guardar Cambios"</strong>, la información se persiste en la tabla <code className="text-[#e0a96d]">settings</code> de tu base de datos Neon DB, reflejándose inmediatamente sin tiempos de espera.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
