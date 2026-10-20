@@ -128,13 +128,13 @@ export const CartDrawer = () => {
                   <Link
                     to={`/producto/${item.productId}`}
                     onClick={closeCart}
-                    className="w-16 h-16 rounded-xl overflow-hidden bg-[#0a120b] border border-[#23442a] hover:border-[#4aa036] shrink-0 flex items-center justify-center transition cursor-pointer"
+                    className="w-16 h-16 rounded-xl overflow-hidden bg-[#0b1610] p-1 border border-[#23442a] hover:border-[#4aa036] shrink-0 flex items-center justify-center transition cursor-pointer"
                     title={`Ver detalle de ${item.title}`}
                   >
                     <img
                       src={item.image}
                       alt={item.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </Link>
 

@@ -298,7 +298,7 @@ export const ProductDetail = () => {
 
               {/* Contenedor interactivo de la imagen */}
               <div 
-                className="relative h-[380px] sm:h-[460px] w-full flex items-center justify-center overflow-hidden cursor-crosshair bg-gradient-to-b from-[#0a140d] via-[#102216] to-[#0a140d]"
+                className="relative h-[380px] sm:h-[460px] w-full flex items-center justify-center overflow-hidden cursor-crosshair bg-[#0b1610] p-4"
                 onMouseEnter={() => setIsHoverZooming(true)}
                 onMouseLeave={() => setIsHoverZooming(false)}
                 onMouseMove={handleMouseMove}
@@ -307,7 +307,7 @@ export const ProductDetail = () => {
                 <img
                   src={imageUrl}
                   alt={product.title}
-                  className={`object-cover w-full h-full transition duration-300 ${
+                  className={`object-contain max-h-full max-w-full w-full h-full transition duration-300 ${
                     isHoverZooming ? 'opacity-0' : 'opacity-100'
                   }`}
                   onError={(e) => {

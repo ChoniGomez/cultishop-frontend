@@ -1074,7 +1074,7 @@ export const AdminDashboard = () => {
                             <img
                               src={prod.image_url || prod.image}
                               alt={prod.title}
-                              className="w-12 h-12 rounded-xl object-cover border border-[#2d5a27] shrink-0"
+                              className="w-12 h-12 rounded-xl object-contain bg-[#0b1610] p-0.5 border border-[#2d5a27] shrink-0"
                             />
                             <div>
                               <span className="font-bold text-white text-sm block font-heading">{prod.title}</span>
@@ -2194,7 +2194,7 @@ export const AdminDashboard = () => {
                             <img
                               src={formImageUrl}
                               alt="Previsualización"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain p-1 bg-[#0b1610]"
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
                               }}

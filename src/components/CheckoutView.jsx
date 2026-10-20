@@ -1046,7 +1046,7 @@ export const CheckoutView = () => {
                     <img
                       src={item.image || item.image_url}
                       alt={item.title}
-                      className="w-12 h-12 object-cover rounded-lg border border-[#23422a] shrink-0"
+                      className="w-12 h-12 object-contain bg-[#0b1610] p-0.5 rounded-lg border border-[#23422a] shrink-0"
                       onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=200';
                       }}

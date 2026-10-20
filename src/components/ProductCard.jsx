@@ -70,17 +70,17 @@ export const ProductCard = ({ product }) => {
       isOutOfStock ? 'border-[#331c1c] opacity-95' : 'border-[#1f3b25] hover:border-[#38761d]'
     }`}>
       {/* Imagen y Badges con enlace al detalle */}
-      <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0a140d]">
+      <div className="h-52 overflow-hidden rounded-xl mb-4 relative flex items-center justify-center bg-[#0b1610] p-2">
         <Link 
           to={`/producto/${product.id}`}
-          className="w-full h-full block cursor-pointer"
+          className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
           <img 
             src={product.image || product.image_url} 
             alt={product.title} 
-            className={`object-cover h-full w-full group-hover:scale-105 transition duration-300 ${
-              isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-90 group-hover:opacity-100'
+            className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
+              isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
             }`} 
           />
         </Link>
