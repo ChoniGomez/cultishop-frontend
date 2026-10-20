@@ -12,6 +12,7 @@ import { FavoritesView } from './components/FavoritesView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ProductDetail } from './components/ProductDetail';
 import { CheckoutView } from './components/CheckoutView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -62,25 +63,27 @@ function App() {
             <Navbar />
           
           <main className="flex-grow w-full overflow-x-hidden">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/productos" element={<HomePage />} />
-              <Route path="/producto/:id" element={<ProductDetail />} />
-              <Route path="/producto/:id/:slug" element={<ProductDetail />} />
-              <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />
-              <Route path="/categoria/:slug" element={<ProductSection />} />
-              <Route path="/sobre-nosotros" element={<PlaceholderPage title="Sobre CultiShop" description="Somos CultiShop. Te brindamos los mejores insumos para que tu cultivo crezca sano y productivo." />} />
-              <Route path="/faq" element={<PlaceholderPage title="Preguntas Frecuentes" description="¿Dudas sobre dosis de fertilizantes, combate de plagas o transporte bajo Ley 27.350? Escribinos." />} />
-              <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
-              <Route path="/favoritos" element={<FavoritesView />} />
-              <Route path="/finalizar-compra" element={<CheckoutView />} />
-              <Route path="/checkout" element={<CheckoutView />} />
-              <Route path="/ingresar" element={<AuthView />} />
-              <Route path="/perfil" element={<AuthView />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/*" element={<AdminDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/productos" element={<HomePage />} />
+                <Route path="/producto/:id" element={<ProductDetail />} />
+                <Route path="/producto/:id/:slug" element={<ProductDetail />} />
+                <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />
+                <Route path="/categoria/:slug" element={<ProductSection />} />
+                <Route path="/sobre-nosotros" element={<PlaceholderPage title="Sobre CultiShop" description="Somos CultiShop. Te brindamos los mejores insumos para que tu cultivo crezca sano y productivo." />} />
+                <Route path="/faq" element={<PlaceholderPage title="Preguntas Frecuentes" description="¿Dudas sobre dosis de fertilizantes, combate de plagas o transporte bajo Ley 27.350? Escribinos." />} />
+                <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
+                <Route path="/favoritos" element={<FavoritesView />} />
+                <Route path="/finalizar-compra" element={<CheckoutView />} />
+                <Route path="/checkout" element={<CheckoutView />} />
+                <Route path="/ingresar" element={<AuthView />} />
+                <Route path="/perfil" element={<AuthView />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/*" element={<AdminDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
           </main>
 
         {/* BOTÓN FLOTANTE DE WHATSAPP (Directo para pedidos) */}

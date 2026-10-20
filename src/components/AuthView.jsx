@@ -32,8 +32,11 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '104719283749-demo-cultishop-client.apps.googleusercontent.com';
 
 export const AuthView = () => {
-  const { user, token, login, register, loginWithGoogle, logout, changePassword, loading } = useAuth();
+  const { user, token, login, register, loginWithGoogle, logout, changePassword, loading, isAdmin: authIsAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Rol de administrador seguro (disponible en todo el componente)
+  const isAdmin = Boolean(authIsAdmin || user?.role === 'admin');
 
   // Estados para Mis Pedidos / Seguimiento de Compras
   const [orders, setOrders] = useState([]);
@@ -51,19 +54,43 @@ export const AuthView = () => {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
-      let res = await fetch(buildApiUrl('orders/my-orders'), { headers });
-      if (!res.ok && user?.id) {
-        res = await fetch(buildApiUrl(`orders/user/${user.id}`), { headers });
+      // Control de tiempo para Cold Starts en Render
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      let res;
+      try {
+        res = await fetch(buildApiUrl('orders/my-orders'), { 
+          headers,
+          signal: controller.signal
+        });
+      } catch (err) {
+        console.warn('my-orders no respondió a tiempo:', err);
       }
 
-      if (res.ok) {
-        const data = await res.json();
+      if ((!res || !res.ok) && user?.id) {
+        try {
+          res = await fetch(buildApiUrl(`orders/user/${user.id}`), { 
+            headers,
+            signal: controller.signal
+          });
+        } catch (err) {
+          console.warn('orders/user/:id no respondió:', err);
+        }
+      }
+
+      clearTimeout(timeoutId);
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({ orders: [] }));
         setOrders(Array.isArray(data.orders) ? data.orders : []);
       } else {
-        throw new Error('No se pudieron obtener los pedidos.');
+        setOrders([]);
+        setOrdersError('No se pudieron sincronizar tus pedidos en este momento.');
       }
     } catch (err) {
       console.warn('Error al obtener pedidos del cliente:', err);
+      setOrders([]);
       setOrdersError('No se pudieron sincronizar tus pedidos en este momento.');
     } finally {
       setLoadingOrders(false);
@@ -215,8 +242,6 @@ export const AuthView = () => {
   // VISTA SI EL USUARIO YA ESTÁ AUTENTICADO
   // ==========================================
   if (user) {
-    const isAdmin = user.role === 'admin';
-
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">

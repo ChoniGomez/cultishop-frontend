@@ -55,6 +55,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user, token]);
 
+  // Sincronizar y validar sesión activa en segundo plano (Cold Start tolerante)
+  useEffect(() => {
+    if (token) {
+      fetch(buildApiUrl('auth/me'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          // Token expirado o revocado en el backend
+          setUser(null);
+          setToken(null);
+        } else if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(data => {
+        if (data?.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(err => {
+        // En caso de Cold Start de Render o sin conexión, mantener sesión local
+        console.warn('Verificación de sesión en segundo plano omitida:', err);
+      });
+    }
+  }, []);
+
   const login = async (email, password) => {
     setLoading(true);
     try {
