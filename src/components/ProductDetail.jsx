@@ -26,9 +26,11 @@ import {
   Droplets,
   PackageCheck,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { getProductDetails } from '../data/productDetailsData';
@@ -36,6 +38,7 @@ import { getProductDetails } from '../data/productDetailsData';
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const { 
     products, 
     loadingProducts,
@@ -187,6 +190,11 @@ export const ProductDetail = () => {
 
   // Añadir al carrito
   const handleAddToCart = () => {
+    if (isAdmin) {
+      setValidationError('Como administrador no podés realizar compras. Gestioná este producto desde el panel de control.');
+      return;
+    }
+
     if (isOutOfStock) return;
 
     if (priceInfo.hasMultipleOptions && !selectedOption) {
@@ -557,7 +565,24 @@ export const ProductDetail = () => {
 
             {/* BOTONES PRINCIPALES DE ACCIÓN */}
             <div className="space-y-2.5 pt-2">
-              {isOutOfStock || (selectedVariant && currentVariantStock <= 0) ? (
+              {isAdmin ? (
+                <div className="p-4 rounded-2xl bg-[#142318] border border-[#e0a96d]/40 shadow-xl space-y-3 text-center">
+                  <div className="flex items-center justify-center gap-2 text-[#e0a96d] font-bold text-xs uppercase tracking-wider">
+                    <Shield size={16} />
+                    <span>Modo Administrador Activo</span>
+                  </div>
+                  <p className="text-gray-300 text-xs">
+                    Las compras y el carrito están inhabilitados para cuentas de administración.
+                  </p>
+                  <Link
+                    to="/admin"
+                    className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md"
+                  >
+                    <Shield size={15} />
+                    <span>Ir al Panel de Administración</span>
+                  </Link>
+                </div>
+              ) : isOutOfStock || (selectedVariant && currentVariantStock <= 0) ? (
                 <>
                   <button
                     type="button"

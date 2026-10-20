@@ -98,6 +98,8 @@ export const ProductSection = () => {
     if (active === 'riego') return product.category === 'Riego';
     if (active === 'kits') return product.category === 'Kits';
     if (active === 'sustratos-macetas') return product.category.toLowerCase().includes('sustrato') || product.category.toLowerCase().includes('maceta');
+    if (active === 'lavado-de-raices') return product.category.toLowerCase().includes('lavado');
+    if (active === 'accesorios') return product.category.toLowerCase().includes('accesorio');
 
     return product.category.toLowerCase().includes(active.toLowerCase());
   });

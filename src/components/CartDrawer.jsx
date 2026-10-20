@@ -10,9 +10,11 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 export const CartDrawer = () => {
+  const { isAdmin } = useAuth();
   const {
     cart,
     isCartOpen,
@@ -48,7 +50,7 @@ export const CartDrawer = () => {
     };
   }, [isCartOpen]);
 
-  if (!isCartOpen) return null;
+  if (isAdmin || !isCartOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex justify-end" style={{ zIndex: 9999 }}>

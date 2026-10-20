@@ -20,7 +20,8 @@ import {
   ShieldCheck, 
   HelpCircle, 
   ExternalLink,
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -56,7 +57,7 @@ const PROVINCIAS_ARGENTINA = [
 
 export const CheckoutView = () => {
   const navigate = useNavigate();
-  const { user, token, setSession } = useAuth();
+  const { user, token, setSession, isAdmin } = useAuth();
   const { 
     cart, 
     totalItems, 
@@ -181,6 +182,11 @@ export const CheckoutView = () => {
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
     setSubmitError('');
+
+    if (isAdmin) {
+      setSubmitError('Los usuarios administradores no pueden generar pedidos. Por favor, utilizá una cuenta de cliente.');
+      return;
+    }
 
     if (cart.length === 0) {
       setSubmitError('Tu carrito está vacío. Agregá productos antes de confirmar el pedido.');
@@ -438,6 +444,46 @@ export const CheckoutView = () => {
                 <span>Ver Mi Cuenta / Pedidos</span>
               </Link>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // RESTRICCIÓN PARA ADMINISTRADORES
+  // =========================================================================
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#0a140d] py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-[#0e1c12] border border-[#e0a96d]/40 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-[#1b2b1e] border border-[#e0a96d]/50 flex items-center justify-center text-[#e0a96d] mx-auto shadow-inner">
+            <Shield size={32} />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-widest bg-[#1b2b1e] px-3 py-1 rounded-full border border-[#e0a96d]/30">
+              Modo Administrador
+            </span>
+            <h2 className="text-xl font-black text-white font-heading mt-2">Compras Inhabilitadas</h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Las cuentas con rol de administrador están reservadas para la gestión del catálogo, stock y pedidos. No podés generar compras ni transacciones con este perfil.
+            </p>
+          </div>
+          <div className="space-y-3 pt-2">
+            <Link
+              to="/admin"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-lg"
+            >
+              <Shield size={16} />
+              <span>Ir al Panel de Administración</span>
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white font-bold text-xs transition border border-[#23422a]"
+            >
+              <ArrowLeft size={14} />
+              <span>Volver a la Tienda</span>
+            </Link>
           </div>
         </div>
       </div>

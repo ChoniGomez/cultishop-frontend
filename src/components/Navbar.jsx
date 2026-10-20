@@ -21,7 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { 
     totalItems, 
     formattedTotalPrice, 
@@ -203,20 +203,31 @@ export const Navbar = () => {
               )}
             </Link>
 
-            {/* Botón Carrito compacto en móvil */}
-            <button
-              type="button"
-              onClick={openCart}
-              aria-label={`Mi Carrito, ${totalItems} productos`}
-              className="relative p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] transition active:scale-95 flex items-center justify-center"
-            >
-              <ShoppingBag size={18} className="text-[#4aa036]" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
-                  {totalItems}
-                </span>
-              )}
-            </button>
+            {/* Botón Carrito o Acceso Admin en móvil */}
+            {!isAdmin ? (
+              <button
+                type="button"
+                onClick={openCart}
+                aria-label={`Mi Carrito, ${totalItems} productos`}
+                className="relative p-2 text-gray-300 hover:text-white rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] transition active:scale-95 flex items-center justify-center"
+              >
+                <ShoppingBag size={18} className="text-[#4aa036]" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <Link
+                to="/admin"
+                className="p-2 text-[#e0a96d] rounded-xl bg-[#172b1a] border border-[#e0a96d]/50 hover:border-[#e0a96d] transition active:scale-95 flex items-center justify-center shadow-sm"
+                title="Panel de Administración"
+                aria-label="Panel de Administración"
+              >
+                <Shield size={18} />
+              </Link>
+            )}
 
             {/* Botón Menú hamburguesa */}
             <button
@@ -260,27 +271,45 @@ export const Navbar = () => {
           </button>
         </form>
 
-        {/* Acceso a Carrito en Escritorio (oculto en móvil) */}
+        {/* Acceso a Carrito o Panel Admin en Escritorio (oculto en móvil) */}
         <div className="hidden md:flex items-center gap-4 md:w-auto justify-end">
-          <button
-            type="button"
-            onClick={openCart}
-            aria-label={`Mi Carrito, ${totalItems} productos por ${formattedTotalPrice}`}
-            className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-4 py-2.5 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
-          >
-            <div className="relative">
-              <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={20} />
-              <span className={`absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center transition-transform ${totalItems > 0 ? 'scale-110 shadow-sm shadow-black/50' : ''}`}>
-                {totalItems}
-              </span>
-            </div>
-            <div className="text-left hidden sm:block">
-              <span className="block text-[10px] text-gray-400 uppercase font-semibold">Mi Carrito</span>
-              <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
-                {formattedTotalPrice}
-              </span>
-            </div>
-          </button>
+          {!isAdmin ? (
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label={`Mi Carrito, ${totalItems} productos por ${formattedTotalPrice}`}
+              className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-4 py-2.5 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
+            >
+              <div className="relative">
+                <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={20} />
+                <span className={`absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center transition-transform ${totalItems > 0 ? 'scale-110 shadow-sm shadow-black/50' : ''}`}>
+                  {totalItems}
+                </span>
+              </div>
+              <div className="text-left hidden sm:block">
+                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Mi Carrito</span>
+                <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
+                  {formattedTotalPrice}
+                </span>
+              </div>
+            </button>
+          ) : (
+            <Link
+              to="/admin"
+              aria-label="Panel de Administración"
+              className="flex items-center gap-2.5 bg-[#172b1a] hover:bg-[#203a25] px-4 py-2.5 rounded-xl border border-[#e0a96d]/50 hover:border-[#e0a96d] transition shadow-sm group active:scale-95 text-left"
+            >
+              <div className="relative">
+                <Shield className="text-[#e0a96d] group-hover:scale-105 transition" size={20} />
+              </div>
+              <div className="text-left hidden sm:block">
+                <span className="block text-[9px] text-[#e0a96d] uppercase font-black tracking-wider">Modo Admin</span>
+                <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
+                  Panel de Control
+                </span>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -307,12 +336,12 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Menú horizontal de escritorio (pantallas >= lg) */}
-          <div className="hidden lg:flex items-center gap-1 xl:gap-2 w-full justify-between">
-            <div className="flex items-center gap-1 xl:gap-2">
+          {/* Menú horizontal de escritorio optimizado para albergar todas las categorías */}
+          <div className="hidden lg:flex items-center w-full justify-between gap-2 xl:gap-3 py-1">
+            <div className="flex items-center gap-1 xl:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth flex-grow py-1">
               <Link 
                 to="/" 
-                className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-3 py-1.5 rounded-md text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm"
+                className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
               >
                 TODOS
               </Link>
@@ -324,7 +353,7 @@ export const Navbar = () => {
                 return (
                   <div
                     key={cat.id}
-                    className="relative"
+                    className="relative shrink-0"
                     onMouseEnter={() => hasSub && handleMouseEnter(cat.id)}
                     onMouseLeave={hasSub ? handleMouseLeave : undefined}
                   >
@@ -333,15 +362,15 @@ export const Navbar = () => {
                         type="button"
                         onClick={(e) => handleCategoryClick(e, cat)}
                         aria-expanded={isOpen}
-                        className={`flex items-center gap-1 py-2.5 px-2 xl:px-2.5 text-xs xl:text-sm font-semibold transition tracking-wide rounded-lg select-none ${
+                        className={`flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg select-none whitespace-nowrap shrink-0 ${
                           isOpen
                             ? 'text-[#e0a96d] bg-[#122416]'
-                            : 'hover:text-[#e0a96d] hover:bg-[#152a1a]/60'
+                            : 'hover:text-[#e0a96d] hover:bg-[#152a1a]/60 text-gray-200'
                         }`}
                       >
                         <span>{cat.name}</span>
                         <ChevronDown
-                          size={13}
+                          size={12}
                           className={`transition-transform duration-200 ${
                             isOpen ? 'rotate-180 text-[#e0a96d]' : 'text-gray-400'
                           }`}
@@ -350,7 +379,7 @@ export const Navbar = () => {
                     ) : (
                       <Link
                         to={`/categoria/${cat.slug}`}
-                        className="flex items-center gap-1 py-2.5 px-2 xl:px-2.5 text-xs xl:text-sm font-semibold transition tracking-wide rounded-lg hover:text-[#e0a96d] hover:bg-[#152a1a]/60 select-none"
+                        className="flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg hover:text-[#e0a96d] hover:bg-[#152a1a]/60 text-gray-200 select-none whitespace-nowrap shrink-0"
                       >
                         <span>{cat.name}</span>
                       </Link>
@@ -359,8 +388,8 @@ export const Navbar = () => {
                     {/* Menú desplegable con diseño corporativo */}
                     {hasSub && isOpen && (
                       <div
-                        className={`absolute top-full mt-1 min-w-[230px] bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-50 py-2.5 backdrop-blur-md animate-in fade-in duration-150 ${
-                          index >= 4 ? 'right-0' : 'left-0'
+                        className={`absolute top-full mt-1 min-w-[220px] bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-50 py-2.5 backdrop-blur-md animate-in fade-in duration-150 ${
+                          index >= 5 ? 'right-0' : 'left-0'
                         }`}
                       >
                         {/* Acento dorado superior */}
@@ -400,7 +429,7 @@ export const Navbar = () => {
             </div>
 
             {/* Enlaces de favoritos y cuenta a la derecha */}
-            <div className="flex items-center gap-4 pl-3 border-l border-[#24452a] shrink-0 text-xs font-semibold">
+            <div className="flex items-center gap-3 xl:gap-4 pl-3 border-l border-[#24452a] shrink-0 text-xs font-semibold whitespace-nowrap">
               <Link 
                 to="/favoritos" 
                 className="flex items-center gap-1.5 hover:text-[#e0a96d] transition group"
@@ -498,26 +527,42 @@ export const Navbar = () => {
                 Ver Todos Los Productos
               </Link>
 
-              {/* Botón Carrito en menú móvil */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  openCart();
-                }}
-                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] text-gray-200 text-xs font-bold transition shadow-sm"
-              >
-                <div className="flex items-center gap-2">
-                  <ShoppingBag size={16} className="text-[#4aa036]" />
-                  <span>Mi Carrito</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[#e0a96d] font-heading">{formattedTotalPrice}</span>
-                  <span className="bg-[#e0a96d] text-black text-[10px] font-black px-2 py-0.5 rounded-full">
-                    {totalItems}
+              {/* Botón Carrito o Acceso Admin en menú móvil */}
+              {!isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    openCart();
+                  }}
+                  className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#142619] border border-[#23422a] hover:border-[#4aa036] text-gray-200 text-xs font-bold transition shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag size={16} className="text-[#4aa036]" />
+                    <span>Mi Carrito</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#e0a96d] font-heading">{formattedTotalPrice}</span>
+                    <span className="bg-[#e0a96d] text-black text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {totalItems}
+                    </span>
+                  </div>
+                </button>
+              ) : (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#172b1a] border border-[#e0a96d]/50 hover:border-[#e0a96d] text-gray-200 text-xs font-bold transition shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield size={16} className="text-[#e0a96d]" />
+                    <span className="text-[#e0a96d]">Panel de Administración</span>
+                  </div>
+                  <span className="bg-[#e0a96d] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                    Admin
                   </span>
-                </div>
-              </button>
+                </Link>
+              )}
 
               <div className="pt-2">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-2 mb-2 flex items-center gap-1.5">

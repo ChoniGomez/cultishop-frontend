@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { buildApiUrl } from '../config/api';
+import { useAuth } from './AuthContext';
 
 const ShopContext = createContext();
 
@@ -185,6 +186,8 @@ export const getProductPriceInfo = (product) => {
 };
 
 export const ShopProvider = ({ children }) => {
+  const { user, isAdmin } = useAuth();
+
   // Inicialización de carrito desde LocalStorage
   const [cart, setCart] = useState(() => {
     try {
@@ -719,6 +722,15 @@ export const ShopProvider = ({ children }) => {
    * Valida stock > 0 y selección obligatoria si tiene múltiples medidas.
    */
   const addToCart = (product, selectedOption, quantity = 1) => {
+    // 0. Restricción para cuentas de Administrador
+    if (isAdmin) {
+      return {
+        success: false,
+        reason: 'admin_restricted',
+        message: 'Las cuentas con rol de administrador no pueden realizar compras. Usa el Panel de Control.'
+      };
+    }
+
     // 1. Validación de Stock
     if (isProductOutOfStock(product)) {
       return {
@@ -847,9 +859,15 @@ export const ShopProvider = ({ children }) => {
   /**
    * Controladores de apertura y cierre del Drawer.
    */
-  const openCart = () => setIsCartOpen(true);
+  const openCart = () => {
+    if (isAdmin) return;
+    setIsCartOpen(true);
+  };
   const closeCart = () => setIsCartOpen(false);
-  const toggleCart = () => setIsCartOpen((prev) => !prev);
+  const toggleCart = () => {
+    if (isAdmin) return;
+    setIsCartOpen((prev) => !prev);
+  };
 
   // Totales calculados
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);

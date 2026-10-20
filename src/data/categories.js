@@ -80,6 +80,18 @@ export const CATEGORIES = [
     name: 'Semillas',
     slug: 'semillas',
     subcategories: [] // Enlace directo sin submenú
+  },
+  {
+    id: 'lavado-de-raices',
+    name: 'Lavado de Raíces',
+    slug: 'lavado-de-raices',
+    subcategories: []
+  },
+  {
+    id: 'accesorios',
+    name: 'Accesorios',
+    slug: 'accesorios',
+    subcategories: []
   }
 ];
 

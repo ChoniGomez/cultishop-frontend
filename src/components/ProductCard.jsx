@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, isFavorite, toggleFavorite } = useShop();
+  const { isAdmin } = useAuth();
   const isFav = isFavorite(product.id);
 
   const priceInfo = getProductPriceInfo(product);
@@ -39,6 +41,12 @@ export const ProductCard = ({ product }) => {
     : priceInfo.formattedPrice;
 
   const handleAddToCart = () => {
+    if (isAdmin) {
+      setValidationError('Modo Admin: Compras deshabilitadas');
+      setTimeout(() => setValidationError(''), 2500);
+      return;
+    }
+
     if (isOutOfStock) return;
 
     if (priceInfo.hasMultipleOptions && !selectedOption) {
@@ -235,8 +243,17 @@ export const ProductCard = ({ product }) => {
             </span>
           </div>
 
-          {/* Botón interactivo: Añadir al Carrito o Sin Stock */}
-          {isOutOfStock ? (
+          {/* Botón interactivo: Gestionar (Admin), Sin Stock o Añadir al Carrito */}
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              aria-label={`Gestionar ${product.title} en panel de administración`}
+              className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shadow-md border bg-[#1a2d1e] hover:bg-[#25422b] text-[#e0a96d] border-[#e0a96d]/40 shadow-black/40"
+            >
+              <Shield size={14} className="shrink-0 text-[#e0a96d]" />
+              <span>Gestionar</span>
+            </Link>
+          ) : isOutOfStock ? (
             <button
               type="button"
               disabled
