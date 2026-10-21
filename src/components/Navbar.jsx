@@ -29,8 +29,11 @@ export const Navbar = () => {
     favoritesCount,
     searchQuery,
     setSearchQuery,
-    clearSearch
+    clearSearch,
+    categories: shopCategories
   } = useShop();
+
+  const navCategories = (Array.isArray(shopCategories) && shopCategories.length > 0) ? shopCategories : CATEGORIES;
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -155,7 +158,8 @@ export const Navbar = () => {
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
       }
-      setOpenDropdown((prev) => (prev === cat.id ? null : cat.id));
+      const catKey = cat.id || cat.slug;
+      setOpenDropdown((prev) => (prev === catKey ? null : catKey));
     }
   };
 
@@ -338,9 +342,9 @@ export const Navbar = () => {
             >
               TODOS
             </Link>
-            {CATEGORIES.map((cat) => (
+            {navCategories.map((cat) => (
               <Link
-                key={cat.id}
+                key={cat.id || cat.slug}
                 to={`/categoria/${cat.slug}`}
                 className="whitespace-nowrap px-3 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] font-semibold text-xs border border-[#23422a] shrink-0 transition"
               >
@@ -359,15 +363,16 @@ export const Navbar = () => {
                 TODOS
               </Link>
 
-              {CATEGORIES.map((cat, index) => {
+              {navCategories.map((cat, index) => {
                 const hasSub = cat.subcategories && cat.subcategories.length > 0;
-                const isOpen = hasSub && openDropdown === cat.id;
+                const catKey = cat.id || cat.slug;
+                const isOpen = hasSub && openDropdown === catKey;
 
                 return (
                   <div
-                    key={cat.id}
+                    key={catKey}
                     className="relative shrink-0"
-                    onMouseEnter={() => hasSub && handleMouseEnter(cat.id)}
+                    onMouseEnter={() => hasSub && handleMouseEnter(catKey)}
                     onMouseLeave={hasSub ? handleMouseLeave : undefined}
                   >
                     {hasSub ? (
@@ -589,16 +594,17 @@ export const Navbar = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  {CATEGORIES.map((cat) => {
+                  {navCategories.map((cat) => {
                     const hasSub = cat.subcategories && cat.subcategories.length > 0;
-                    const isExpanded = expandedMobileCategory === cat.id;
+                    const catKey = cat.id || cat.slug;
+                    const isExpanded = expandedMobileCategory === catKey;
 
                     return (
-                      <div key={cat.id} className="border border-[#18311d] rounded-xl overflow-hidden bg-[#0d1e12]">
+                      <div key={catKey} className="border border-[#18311d] rounded-xl overflow-hidden bg-[#0d1e12]">
                         {hasSub ? (
                           <>
                             <button
-                              onClick={() => toggleMobileCategory(cat.id)}
+                              onClick={() => toggleMobileCategory(catKey)}
                               className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold text-gray-200 hover:text-[#e0a96d] transition text-left"
                             >
                               <span>{cat.name}</span>

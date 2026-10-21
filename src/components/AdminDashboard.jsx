@@ -34,7 +34,12 @@ import {
   Copy,
   Check,
   Save,
-  Landmark
+  Landmark,
+  FolderTree,
+  Tag,
+  ChevronDown,
+  ChevronUp,
+  Hash
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -137,6 +142,29 @@ export const AdminDashboard = () => {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [copiedPreviewAlias, setCopiedPreviewAlias] = useState(false);
 
+  // Estados para Gestión de Categorías y Subcategorías
+  const [adminCategories, setAdminCategories] = useState([]);
+  const [loadingAdminCategories, setLoadingAdminCategories] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState({});
+
+  // Formulario de Crear / Editar Categoría o Subcategoría
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null); // null = crear, objeto = editar
+  const [categoryFormParentId, setCategoryFormParentId] = useState(''); // '' para categoría principal, o ID numérico para subcategoría
+  const [categoryFormName, setCategoryFormName] = useState('');
+  const [categoryFormSlug, setCategoryFormSlug] = useState('');
+  const [categoryFormDescription, setCategoryFormDescription] = useState('');
+  const [categoryFormOrder, setCategoryFormOrder] = useState('1');
+  const [categoryFormIsVisible, setCategoryFormIsVisible] = useState(true);
+  const [isAutoSlug, setIsAutoSlug] = useState(true);
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  // Modal de Confirmación de Eliminación de Categoría
+  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+
   useEffect(() => {
     if (paymentSettings) {
       setBankAlias(paymentSettings.bank_alias || 'CULTISHOP.POSADAS');
@@ -149,6 +177,7 @@ export const AdminDashboard = () => {
 
   // Colecciones seguras para evitar errores de renderizado si están cargando o vacías
   const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeAdminCategories = Array.isArray(adminCategories) ? adminCategories : [];
   const safeProducts = Array.isArray(products) ? products : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeBanners = Array.isArray(banners) ? banners : [];
@@ -344,14 +373,205 @@ export const AdminDashboard = () => {
     }
   };
 
+  // Helper para convertir texto a slug amigable
+  const clientSlugify = (text) => {
+    if (!text) return '';
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  };
+
+  // Cargar categorías completas para el panel de administración
+  const fetchAdminCategories = async () => {
+    setLoadingAdminCategories(true);
+    try {
+      const res = await fetch(buildApiUrl('categories?all=true'));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.categories)) {
+          setAdminCategories(data.categories);
+          // Expandir categorías principales con subcategorías por defecto
+          const initialExpanded = {};
+          data.categories.forEach((c) => {
+            if (c.subcategories && c.subcategories.length > 0) {
+              initialExpanded[c.id] = true;
+            }
+          });
+          setExpandedCategories((prev) => ({ ...initialExpanded, ...prev }));
+        }
+      }
+    } catch (err) {
+      console.error('Error al cargar categorías en administración:', err);
+    } finally {
+      setLoadingAdminCategories(false);
+    }
+  };
+
   useEffect(() => {
     fetchBannersAdmin();
+    fetchAdminCategories();
     if (isAdmin) {
       fetchProducts();
       fetchOrders();
       if (fetchCategories) fetchCategories();
     }
   }, [isAdmin, token]);
+
+  const handleOpenCreateCategoryModal = (parentId = null) => {
+    setEditingCategory(null);
+    setCategoryFormParentId(parentId !== null ? String(parentId) : '');
+    setCategoryFormName('');
+    setCategoryFormSlug('');
+    setCategoryFormDescription('');
+    setCategoryFormIsVisible(true);
+    setIsAutoSlug(true);
+
+    if (parentId !== null) {
+      const parent = adminCategories.find((c) => c.id === Number(parentId));
+      const nextOrder = (parent?.subcategories?.length || 0) + 1;
+      setCategoryFormOrder(String(nextOrder));
+    } else {
+      const nextOrder = adminCategories.length + 1;
+      setCategoryFormOrder(String(nextOrder));
+    }
+
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategoryModal = (category) => {
+    setEditingCategory(category);
+    setCategoryFormParentId(category.parent_id !== null && category.parent_id !== undefined ? String(category.parent_id) : '');
+    setCategoryFormName(category.name || '');
+    setCategoryFormSlug(category.slug || '');
+    setCategoryFormDescription(category.description || '');
+    setCategoryFormOrder(category.display_order !== undefined && category.display_order !== null ? String(category.display_order) : '1');
+    setCategoryFormIsVisible(category.is_visible !== false);
+    setIsAutoSlug(false);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!categoryFormName.trim()) {
+      showNotification('error', 'Por favor, ingresa el nombre de la categoría.');
+      return;
+    }
+
+    setIsSavingCategory(true);
+    try {
+      const payload = {
+        name: categoryFormName.trim(),
+        slug: categoryFormSlug.trim() || clientSlugify(categoryFormName),
+        parent_id: categoryFormParentId !== '' ? Number(categoryFormParentId) : null,
+        description: categoryFormDescription.trim() || null,
+        display_order: parseInt(categoryFormOrder, 10) || 1,
+        is_visible: categoryFormIsVisible
+      };
+
+      const isEdit = Boolean(editingCategory && editingCategory.id);
+      const url = isEdit ? buildApiUrl(`categories/${editingCategory.id}`) : buildApiUrl('categories');
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Ocurrió un error al guardar la categoría.');
+      }
+
+      showNotification('success', isEdit ? '¡Categoría actualizada exitosamente!' : '¡Categoría creada exitosamente!');
+      setIsCategoryModalOpen(false);
+
+      // Sincronizar en cascada todas las vistas
+      await fetchAdminCategories();
+      if (fetchCategories) await fetchCategories();
+      if (fetchProducts) await fetchProducts();
+    } catch (err) {
+      console.error('Error al guardar categoría:', err);
+      showNotification('error', err.message || 'Error al conectar con el servidor.');
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const handleToggleCategoryVisibility = async (category) => {
+    try {
+      const res = await fetch(buildApiUrl(`categories/${category.id}/toggle-visibility`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al modificar visibilidad.');
+      }
+
+      showNotification('success', data.message || 'Visibilidad de categoría actualizada.');
+      await fetchAdminCategories();
+      if (fetchCategories) await fetchCategories();
+    } catch (err) {
+      console.error('Error al cambiar visibilidad:', err);
+      showNotification('error', err.message || 'Error al alternar visibilidad de categoría.');
+    }
+  };
+
+  const handleOpenDeleteCategoryModal = (category) => {
+    setCategoryToDelete(category);
+    setIsDeleteCategoryModalOpen(true);
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    setIsDeletingCategory(true);
+    try {
+      const res = await fetch(buildApiUrl(`categories/${categoryToDelete.id}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al eliminar la categoría.');
+      }
+
+      showNotification('success', data.message || `Categoría "${categoryToDelete.name}" eliminada.`);
+      setIsDeleteCategoryModalOpen(false);
+      setCategoryToDelete(null);
+
+      // Sincronizar en cascada todas las vistas
+      await fetchAdminCategories();
+      if (fetchCategories) await fetchCategories();
+      if (fetchProducts) await fetchProducts();
+    } catch (err) {
+      console.error('Error al eliminar categoría:', err);
+      showNotification('error', err.message || 'Error al eliminar la categoría.');
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
+  const toggleExpandCategory = (catId) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [catId]: !prev[catId]
+    }));
+  };
 
   const showNotification = (type, text) => {
     setStatusMessage({ type, text });
@@ -991,6 +1211,18 @@ export const AdminDashboard = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('categorias')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'categorias'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <FolderTree size={16} />
+          <span>Categorías ({adminCategories.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('pagos')}
           className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
             activeTab === 'pagos'
@@ -1606,7 +1838,419 @@ export const AdminDashboard = () => {
       )}
 
       {/* ============================================================ */}
-      {/* SECCIÓN 4: CONFIGURACIÓN DE DATOS DE PAGO Y ALIAS BANCARIO   */}
+      {/* SECCIÓN 4: GESTIÓN DE CATEGORÍAS Y SUBCATEGORÍAS (CRUD)       */}
+      {/* ============================================================ */}
+      {activeTab === 'categorias' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Encabezado y Acciones Principales */}
+          <div className="bg-[#0e1c12] border border-[#1f3b25] p-5 sm:p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading flex items-center gap-2.5">
+                <FolderTree className="text-[#e0a96d]" size={24} />
+                <span>Estructura de Categorías y Subcategorías</span>
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Administrá las categorías principales y subcategorías del catálogo. Los cambios se sincronizan en tiempo real con la barra de navegación (Navbar) y los filtros de la tienda.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap w-full lg:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  fetchAdminCategories();
+                  if (fetchCategories) fetchCategories();
+                }}
+                disabled={loadingAdminCategories}
+                className="px-3.5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white text-xs font-semibold border border-[#23422a] transition flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                title="Sincronizar con la base de datos"
+              >
+                <RefreshCw size={14} className={loadingAdminCategories ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">Sincronizar</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenCreateCategoryModal(null)}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>Nueva Categoría Principal</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenCreateCategoryModal(adminCategories[0]?.id || null)}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-[#1a3521] hover:bg-[#23482d] text-[#e0a96d] hover:text-white text-xs font-bold border border-[#e0a96d]/40 transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              >
+                <Tag size={15} />
+                <span>Nueva Subcategoría</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tarjetas de Métricas de Categorías */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-sm">
+              <div className="flex items-center justify-between text-gray-400 text-xs mb-1.5">
+                <span>Principales</span>
+                <FolderTree size={15} className="text-[#4aa036]" />
+              </div>
+              <div className="text-2xl font-black text-white font-heading">{adminCategories.length}</div>
+              <span className="text-[10px] text-gray-500 block">Menú nivel 1 en Navbar</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-sm">
+              <div className="flex items-center justify-between text-gray-400 text-xs mb-1.5">
+                <span>Subcategorías</span>
+                <Tag size={15} className="text-[#e0a96d]" />
+              </div>
+              <div className="text-2xl font-black text-amber-400 font-heading">
+                {adminCategories.reduce((acc, cat) => acc + (cat.subcategories?.length || 0), 0)}
+              </div>
+              <span className="text-[10px] text-gray-500 block">Desplegables dependientes</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-sm">
+              <div className="flex items-center justify-between text-gray-400 text-xs mb-1.5">
+                <span>Productos Clasificados</span>
+                <Package size={15} className="text-[#25d366]" />
+              </div>
+              <div className="text-2xl font-black text-[#25d366] font-heading">
+                {adminCategories.reduce((acc, cat) => acc + (Number(cat.total_products_count) || 0), 0)}
+              </div>
+              <span className="text-[10px] text-gray-500 block">Artículos en catálogo</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-sm">
+              <div className="flex items-center justify-between text-gray-400 text-xs mb-1.5">
+                <span>Ocultas en Tienda</span>
+                <EyeOff size={15} className="text-gray-400" />
+              </div>
+              <div className="text-2xl font-black text-gray-300 font-heading">
+                {adminCategories.filter(c => c.is_visible === false).length +
+                  adminCategories.reduce((acc, c) => acc + (c.subcategories || []).filter(s => s.is_visible === false).length, 0)}
+              </div>
+              <span className="text-[10px] text-gray-500 block">Borradores o inactivas</span>
+            </div>
+          </div>
+
+          {/* Barra de Filtro y Búsqueda */}
+          <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-grow max-w-md">
+              <input
+                type="text"
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                placeholder="Buscar categoría o subcategoría por nombre o slug..."
+                className="w-full py-2.5 pl-9 pr-9 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036]"
+              />
+              <Search className="absolute left-3 top-3 text-gray-400" size={15} />
+              {categorySearch && (
+                <button
+                  type="button"
+                  onClick={() => setCategorySearch('')}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 justify-end text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const allOpen = {};
+                  adminCategories.forEach(c => { allOpen[c.id] = true; });
+                  setExpandedCategories(allOpen);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-semibold border border-[#23422a] transition cursor-pointer"
+              >
+                Expandir Todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpandedCategories({})}
+                className="px-3 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-semibold border border-[#23422a] transition cursor-pointer"
+              >
+                Colapsar Todo
+              </button>
+            </div>
+          </div>
+
+          {/* Árbol Jerárquico de Categorías */}
+          {loadingAdminCategories ? (
+            <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-3">
+              <RefreshCw className="animate-spin text-[#4aa036] mx-auto" size={32} />
+              <p className="text-sm font-bold text-gray-300">Cargando jerarquía de categorías...</p>
+            </div>
+          ) : adminCategories.length === 0 ? (
+            <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-4">
+              <FolderTree className="text-gray-500 mx-auto" size={48} />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white">No hay categorías configuradas en la base de datos</h3>
+                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  Comienza creando tu primera categoría principal para estructurar los insumos de CultiShop.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenCreateCategoryModal(null)}
+                className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition inline-flex items-center gap-2"
+              >
+                <Plus size={16} />
+                <span>Crear Primera Categoría</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {adminCategories
+                .filter(cat => {
+                  if (!categorySearch.trim()) return true;
+                  const q = categorySearch.toLowerCase().trim();
+                  const matchName = (cat.name || '').toLowerCase().includes(q);
+                  const matchSlug = (cat.slug || '').toLowerCase().includes(q);
+                  const matchSubs = (cat.subcategories || []).some(
+                    sub => (sub.name || '').toLowerCase().includes(q) || (sub.slug || '').toLowerCase().includes(q)
+                  );
+                  return matchName || matchSlug || matchSubs;
+                })
+                .map((cat) => {
+                  const subcategories = Array.isArray(cat.subcategories) ? cat.subcategories : [];
+                  const isExpanded = Boolean(expandedCategories[cat.id]);
+                  const totalProducts = Number(cat.total_products_count) || 0;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      className="bg-[#0e1c12] border border-[#1f3b25] hover:border-[#2d5a27]/80 rounded-2xl overflow-hidden shadow-sm transition-all"
+                    >
+                      {/* Fila Principal de la Categoría */}
+                      <div className="p-3.5 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-gradient-to-r from-[#0e1c12] via-[#112316] to-[#0e1c12]">
+                        <div className="flex items-center gap-2.5 sm:gap-3 flex-grow min-w-0">
+                          {/* Botón de acordeón para expandir/colapsar subcategorías */}
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandCategory(cat.id)}
+                            className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                              isExpanded
+                                ? 'bg-[#18311d] text-[#e0a96d] border-[#2d5a27]'
+                                : 'bg-[#142619] text-gray-400 hover:text-white border-[#23422a]'
+                            }`}
+                            title={isExpanded ? 'Colapsar subcategorías' : 'Expandir subcategorías'}
+                          >
+                            <ChevronDown
+                              size={15}
+                              className={`transition-transform duration-200 ${isExpanded ? 'rotate-180 text-[#e0a96d]' : ''}`}
+                            />
+                          </button>
+
+                          <div className="p-2 rounded-xl bg-[#142619] border border-[#23422a] text-[#4aa036] shrink-0">
+                            <FolderTree size={18} />
+                          </div>
+
+                          <div className="min-w-0 flex-grow">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm sm:text-base font-bold text-white font-heading truncate">
+                                {cat.name}
+                              </h3>
+
+                              {/* Badge de Slug URL */}
+                              <Link
+                                to={`/categoria/${cat.slug}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-[#142619] text-[#e0a96d] border border-[#23422a] hover:border-[#e0a96d]/60 transition"
+                                title="Ver en tienda pública"
+                              >
+                                <span>/{cat.slug}</span>
+                                <ExternalLink size={10} className="shrink-0" />
+                              </Link>
+
+                              {/* Orden de visualización */}
+                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono text-gray-400 bg-[#09150d] border border-[#162d1b]" title="Orden de aparición en el menú">
+                                <Hash size={10} />
+                                <span>{cat.display_order}</span>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 mt-1 text-[11px] text-gray-400 flex-wrap">
+                              <span className="text-gray-300 font-semibold">
+                                {subcategories.length} {subcategories.length === 1 ? 'subcategoría' : 'subcategorías'}
+                              </span>
+                              <span>•</span>
+                              <span className="text-[#25d366] font-semibold">
+                                {totalProducts} {totalProducts === 1 ? 'producto vinculado' : 'productos vinculados'}
+                              </span>
+                              {cat.description && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-gray-400 truncate max-w-xs">{cat.description}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botones de Acción de Categoría Principal */}
+                        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-[#1a3320]">
+                          {/* Toggle Visibilidad */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCategoryVisibility(cat)}
+                            title={cat.is_visible !== false ? 'Visible en tienda pública (clic para ocultar)' : 'Oculta en tienda pública (clic para hacer visible)'}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition cursor-pointer ${
+                              cat.is_visible !== false
+                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900'
+                                : 'bg-gray-800/80 text-gray-400 border border-gray-600/50 hover:bg-gray-700'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${cat.is_visible !== false ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                            <span>{cat.is_visible !== false ? 'Visible' : 'Oculta'}</span>
+                          </button>
+
+                          {/* Añadir Subcategoría Directa */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCreateCategoryModal(cat.id)}
+                            className="px-2.5 py-1.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white text-xs font-semibold border border-[#23422a] hover:border-[#e0a96d]/50 transition flex items-center gap-1 cursor-pointer"
+                            title="Añadir nueva subcategoría dependiente de esta categoría"
+                          >
+                            <Plus size={13} />
+                            <span className="hidden sm:inline">Subcategoría</span>
+                          </button>
+
+                          {/* Editar */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditCategoryModal(cat)}
+                            className="p-1.5 sm:p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] transition cursor-pointer"
+                            title="Modificar categoría"
+                          >
+                            <Edit size={14} />
+                          </button>
+
+                          {/* Eliminar */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDeleteCategoryModal(cat)}
+                            className="p-1.5 sm:p-2 rounded-xl bg-[#142619] hover:bg-red-950/80 text-gray-400 hover:text-red-400 border border-[#23422a] hover:border-red-600/50 transition cursor-pointer"
+                            title="Eliminar categoría principal y validar impacto"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Subcategorías Desplegables (Acordeón) */}
+                      {isExpanded && (
+                        <div className="p-3 sm:p-4 bg-[#08120a] border-t border-[#18311d]">
+                          {subcategories.length === 0 ? (
+                            <div className="py-3 px-4 rounded-xl bg-[#0e1c12] border border-dashed border-[#1f3b25] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+                              <span className="italic">Esta categoría principal no tiene subcategorías dependientes aún.</span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCreateCategoryModal(cat.id)}
+                                className="px-3 py-1 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] font-bold text-xs border border-[#23422a] transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <Plus size={13} />
+                                <span>Añadir primera subcategoría</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-2 pb-1 flex items-center gap-1.5">
+                                <Tag size={12} className="text-[#e0a96d]" />
+                                <span>Subcategorías de {cat.name} ({subcategories.length})</span>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-1.5">
+                                {subcategories.map((sub) => (
+                                  <div
+                                    key={sub.id}
+                                    className="p-2.5 sm:p-3 rounded-xl bg-[#0e1c12] border border-[#1a3320] hover:border-[#2d5a27] flex items-center justify-between gap-3 transition"
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-2 h-2 rounded-full bg-[#4aa036] shrink-0" />
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="text-xs sm:text-sm font-bold text-gray-200">
+                                            {sub.name}
+                                          </span>
+                                          <Link
+                                            to={`/categoria/${cat.slug}/${sub.slug}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-gray-400 hover:text-[#e0a96d] bg-[#09150d] border border-[#162d1b] transition"
+                                            title="Ver subcategoría en tienda pública"
+                                          >
+                                            <span>/{sub.slug}</span>
+                                            <ExternalLink size={9} />
+                                          </Link>
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-gray-400 bg-[#09150d] border border-[#162d1b]">
+                                            #{sub.display_order}
+                                          </span>
+                                        </div>
+                                        {sub.description && (
+                                          <p className="text-[11px] text-gray-400 mt-0.5 truncate">{sub.description}</p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-[11px] font-semibold text-[#25d366] bg-[#142619] px-2 py-0.5 rounded-lg border border-[#23422a]">
+                                        {sub.products_count || 0} {sub.products_count === 1 ? 'producto' : 'productos'}
+                                      </span>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleCategoryVisibility(sub)}
+                                        title={sub.is_visible !== false ? 'Visible (clic para ocultar)' : 'Oculta (clic para hacer visible)'}
+                                        className={`p-1.5 rounded-lg border text-xs transition cursor-pointer ${
+                                          sub.is_visible !== false
+                                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                                            : 'bg-gray-800 text-gray-400 border-gray-600/50'
+                                        }`}
+                                      >
+                                        {sub.is_visible !== false ? <Eye size={13} /> : <EyeOff size={13} />}
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenEditCategoryModal(sub)}
+                                        className="p-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] transition cursor-pointer"
+                                        title="Modificar subcategoría"
+                                      >
+                                        <Edit size={13} />
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenDeleteCategoryModal(sub)}
+                                        className="p-1.5 rounded-lg bg-[#142619] hover:bg-red-950/80 text-gray-400 hover:text-red-400 border border-[#23422a] hover:border-red-600/50 transition cursor-pointer"
+                                        title="Eliminar subcategoría"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECCIÓN 5: CONFIGURACIÓN DE DATOS DE PAGO Y ALIAS BANCARIO   */}
       {/* ============================================================ */}
       {activeTab === 'pagos' && (
         <div className="space-y-6 animate-in fade-in">
@@ -3012,6 +3656,326 @@ export const AdminDashboard = () => {
                 className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition shadow-md"
               >
                 Confirmar Eliminación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL PARA CREAR / EDITAR CATEGORÍA O SUBCATEGORÍA            */}
+      {/* ============================================================ */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-lg bg-[#0e1c12] border border-[#1f3b25] rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 my-8">
+            {/* Acento dorado superior */}
+            <div className="h-1.5 bg-gradient-to-r from-[#2d5a27] via-[#e0a96d] to-[#2d5a27]" />
+
+            <div className="p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#1f3b25]">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-[#142619] text-[#e0a96d]">
+                    <FolderTree size={20} />
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-black text-white font-heading">
+                      {editingCategory
+                        ? (editingCategory.parent_id ? 'Modificar Subcategoría' : 'Modificar Categoría Principal')
+                        : (categoryFormParentId ? 'Nueva Subcategoría' : 'Nueva Categoría Principal')}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      {editingCategory ? 'Actualiza los datos y asignación jerárquica' : 'Define el nombre, slug y orden en el menú'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-400 hover:text-white transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategory} className="space-y-4">
+                {/* Selector de Nivel Jerárquico: Principal vs Subcategoría */}
+                <div>
+                  <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                    Nivel de Categoría
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={Boolean(editingCategory && editingCategory.subcategories && editingCategory.subcategories.length > 0)}
+                      onClick={() => {
+                        setCategoryFormParentId('');
+                        if (!editingCategory) {
+                          setCategoryFormOrder(String(adminCategories.length + 1));
+                        }
+                      }}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
+                        categoryFormParentId === ''
+                          ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-sm'
+                          : 'bg-[#142619] text-gray-400 border-[#23422a] hover:text-white'
+                      } ${Boolean(editingCategory && editingCategory.subcategories && editingCategory.subcategories.length > 0) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <FolderTree size={14} />
+                      <span>Categoría Principal</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={Boolean(editingCategory && editingCategory.subcategories && editingCategory.subcategories.length > 0)}
+                      onClick={() => {
+                        const fallbackParent = adminCategories.find(c => c.id !== editingCategory?.id)?.id || '';
+                        setCategoryFormParentId(fallbackParent ? String(fallbackParent) : '');
+                      }}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
+                        categoryFormParentId !== ''
+                          ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-sm'
+                          : 'bg-[#142619] text-gray-400 border-[#23422a] hover:text-white'
+                      } ${Boolean(editingCategory && editingCategory.subcategories && editingCategory.subcategories.length > 0) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <Tag size={14} />
+                      <span>Subcategoría</span>
+                    </button>
+                  </div>
+                  {Boolean(editingCategory && editingCategory.subcategories && editingCategory.subcategories.length > 0) && (
+                    <span className="text-[10px] text-amber-400 mt-1 block">
+                      ⚠️ Esta categoría contiene subcategorías hijas asociadas y debe permanecer como categoría principal.
+                    </span>
+                  )}
+                </div>
+
+                {/* Si es subcategoría: Selector de Categoría Padre */}
+                {categoryFormParentId !== '' && (
+                  <div>
+                    <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                      Categoría Padre Asociada *
+                    </label>
+                    <select
+                      value={categoryFormParentId}
+                      onChange={(e) => setCategoryFormParentId(e.target.value)}
+                      required
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs focus:outline-none focus:border-[#4aa036]"
+                    >
+                      <option value="">-- Seleccionar Categoría Principal --</option>
+                      {adminCategories
+                        .filter(c => !editingCategory || c.id !== editingCategory.id)
+                        .map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Nombre de la Categoría */}
+                <div>
+                  <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                    Nombre de la Categoría / Subcategoría *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={categoryFormName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCategoryFormName(val);
+                      if (isAutoSlug) {
+                        setCategoryFormSlug(clientSlugify(val));
+                      }
+                    }}
+                    placeholder="Ej. Fertilizantes, Lavado de Raíces, Iluminación..."
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+
+                {/* Slug URL amigable */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-300">
+                      Slug URL Amigable *
+                    </label>
+                    <span className="text-[10px] text-gray-400">
+                      Identificador único en la URL
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={categoryFormSlug}
+                    onChange={(e) => {
+                      setIsAutoSlug(false);
+                      setCategoryFormSlug(clientSlugify(e.target.value));
+                    }}
+                    placeholder="ej-nombre-categoria"
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-[#e0a96d] font-mono text-xs focus:outline-none focus:border-[#4aa036]"
+                  />
+                  <span className="text-[10px] text-gray-400 mt-1 block font-mono">
+                    Vista previa enlace:{' '}
+                    <span className="text-[#e0a96d]">
+                      {categoryFormParentId !== ''
+                        ? `/categoria/${adminCategories.find(c => String(c.id) === String(categoryFormParentId))?.slug || 'categoria'}/${categoryFormSlug || 'subcategoria'}`
+                        : `/categoria/${categoryFormSlug || 'categoria'}`}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Orden de visualización y Visibilidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                      Orden de Visualización (#)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={categoryFormOrder}
+                      onChange={(e) => setCategoryFormOrder(e.target.value)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs focus:outline-none focus:border-[#4aa036]"
+                    />
+                    <span className="text-[10px] text-gray-500 mt-1 block">Posición relativa en la barra</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                      Estado en Tienda Pública
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFormIsVisible(!categoryFormIsVisible)}
+                      className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border cursor-pointer ${
+                        categoryFormIsVisible
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                          : 'bg-gray-800 text-gray-400 border-gray-600/50'
+                      }`}
+                    >
+                      {categoryFormIsVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+                      <span>{categoryFormIsVisible ? 'Visible en Tienda' : 'Oculta en Tienda'}</span>
+                    </button>
+                    <span className="text-[10px] text-gray-500 mt-1 block">Visible en Navbar y filtros</span>
+                  </div>
+                </div>
+
+                {/* Descripción Opcional */}
+                <div>
+                  <label className="text-xs font-bold text-gray-300 mb-1.5 block">
+                    Descripción / Notas (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={categoryFormDescription}
+                    onChange={(e) => setCategoryFormDescription(e.target.value)}
+                    placeholder="Breve detalle sobre los insumos de esta categoría..."
+                    className="w-full py-2 px-3 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-[#4aa036] resize-none"
+                  />
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1f3b25]">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingCategory}
+                    className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] disabled:opacity-50 text-white text-xs font-bold transition flex items-center gap-2 shadow-md cursor-pointer"
+                  >
+                    {isSavingCategory ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={14} />
+                        <span>{editingCategory ? 'Guardar Cambios' : 'Crear Categoría'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR CATEGORÍA                 */}
+      {/* ============================================================ */}
+      {isDeleteCategoryModalOpen && categoryToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0e1c12] border-2 border-red-600/50 rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95">
+            <div className="w-14 h-14 rounded-full bg-red-950/60 border border-red-500/50 flex items-center justify-center text-red-400 mx-auto">
+              <Trash2 size={24} />
+            </div>
+
+            <h3 className="text-xl font-black text-white font-heading">
+              ¿Eliminar "{categoryToDelete.name}"?
+            </h3>
+
+            <div className="space-y-2 text-left bg-[#142619] border border-[#23422a] p-4 rounded-2xl text-xs">
+              {categoryToDelete.subcategories && categoryToDelete.subcategories.length > 0 && (
+                <div className="flex items-start gap-2 text-amber-300">
+                  <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    Contiene <strong>{categoryToDelete.subcategories.length} subcategorías dependientes</strong> que también serán eliminadas.
+                  </span>
+                </div>
+              )}
+
+              {(Number(categoryToDelete.total_products_count) > 0 || Number(categoryToDelete.products_count) > 0) ? (
+                <div className="flex items-start gap-2 text-gray-300">
+                  <Package size={15} className="shrink-0 mt-0.5 text-[#e0a96d]" />
+                  <span>
+                    Hay <strong>{categoryToDelete.total_products_count || categoryToDelete.products_count} producto(s) vinculado(s)</strong>. Los productos <strong>no se borrarán</strong>, pero quedarán sin categoría asignada en el catálogo para su posterior reclasificación.
+                  </span>
+                </div>
+              ) : (
+                <div className="text-gray-400 text-center">
+                  Esta categoría no tiene productos asociados y será removida de forma segura.
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-400">
+              Esta acción actualizará la barra de navegación pública y los menús desplegables inmediatamente.
+            </p>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteCategoryModalOpen(false);
+                  setCategoryToDelete(null);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs font-bold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingCategory}
+                onClick={handleConfirmDeleteCategory}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider transition shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                {isDeletingCategory ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Eliminando...</span>
+                  </>
+                ) : (
+                  <span>Confirmar Eliminación</span>
+                )}
               </button>
             </div>
           </div>

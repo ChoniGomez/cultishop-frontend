@@ -11,7 +11,7 @@ const PRODUCTS_PER_PAGE = 9;
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
-  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch } = useShop();
+  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch, categories: shopCategories } = useShop();
   const currentCategorySlug = category || slug;
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +37,8 @@ export const ProductSection = () => {
     setCurrentPage(1);
   }, [selectedCategory, searchQuery, currentCategorySlug, subcategory]);
 
-  const matchedCategory = CATEGORIES.find(c => c.slug === currentCategorySlug);
+  const activeCategoriesList = (Array.isArray(shopCategories) && shopCategories.length > 0) ? shopCategories : CATEGORIES;
+  const matchedCategory = activeCategoriesList.find(c => c.slug === currentCategorySlug);
   const matchedSubcategory = matchedCategory?.subcategories?.find(s => s.slug === subcategory);
 
   const categories = [
