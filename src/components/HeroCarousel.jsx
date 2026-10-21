@@ -225,7 +225,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
   if (loadingBanners && banners.length === 0) {
     return (
       <section
-        className="relative w-full overflow-hidden bg-[#0b1610] border-b border-[#1f3b25] min-h-[280px] sm:min-h-[340px] md:min-h-[400px] md:h-[400px] flex items-center justify-center select-none"
+        className="relative w-full overflow-hidden bg-[#0b1610] border-b border-[#1f3b25] aspect-[16/9] sm:aspect-[16/6] md:aspect-[16/5] min-h-[190px] sm:min-h-[260px] md:min-h-[340px] lg:min-h-[380px] max-h-[500px] flex items-center justify-center select-none"
         aria-label="Cargando banner destacado"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-[#0b1610] via-[#102416] to-[#0b1610] animate-pulse" />
@@ -257,8 +257,8 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       onTouchEnd={handleTouchEnd}
       aria-label="Banner destacado rotativo"
     >
-      {/* Contenedor principal de diapositivas con altura adaptada y proporción panorámica */}
-      <div className="relative min-h-[280px] sm:min-h-[340px] md:min-h-[400px] md:h-[400px] flex items-center justify-center bg-[#0b1610]">
+      {/* Contenedor principal de diapositivas con proporción panorámica adaptativa y altura responsiva */}
+      <div className="relative w-full aspect-[16/9] sm:aspect-[16/6] md:aspect-[16/5] min-h-[190px] sm:min-h-[260px] md:min-h-[340px] lg:min-h-[380px] max-h-[500px] flex items-center justify-center bg-[#0b1610] overflow-hidden">
         {banners.map((slide, index) => {
           const isActive = index === currentSlide;
           const imageUrl = slide.image_url || slide.image;
@@ -295,13 +295,21 @@ export const HeroCarousel = ({ interval = 5000 }) => {
             >
               {/* Imagen del banner horizontal panorámica con fondo sólido #0b1610 */}
               <div className="absolute inset-0 bg-[#0b1610] flex items-center justify-center overflow-hidden">
+                {/* Fondo ambiental difuminado para armonizar cualquier proporción sin bordes cortados */}
+                <img
+                  src={imageUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover object-center filter blur-2xl opacity-25 scale-110 pointer-events-none select-none"
+                />
+
                 {!showText && ctaLink ? (
                   isExternalCta ? (
-                    <a href={ctaLink} target="_blank" rel="noreferrer" className="w-full h-full block cursor-pointer">
+                    <a href={ctaLink} target="_blank" rel="noreferrer" className="relative z-10 w-full h-full flex items-center justify-center cursor-pointer">
                       <img
                         src={imageUrl}
                         alt={title}
-                        className="w-full h-full object-cover object-center select-none"
+                        className="w-full h-full object-contain object-center select-none"
                         loading={index === 0 ? 'eager' : 'lazy'}
                         onError={(e) => {
                           e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
@@ -309,11 +317,11 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                       />
                     </a>
                   ) : (
-                    <Link to={ctaLink} className="w-full h-full block cursor-pointer">
+                    <Link to={ctaLink} className="relative z-10 w-full h-full flex items-center justify-center cursor-pointer">
                       <img
                         src={imageUrl}
                         alt={title}
-                        className="w-full h-full object-cover object-center select-none"
+                        className="w-full h-full object-contain object-center select-none"
                         loading={index === 0 ? 'eager' : 'lazy'}
                         onError={(e) => {
                           e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
@@ -325,7 +333,9 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                   <img
                     src={imageUrl}
                     alt={title}
-                    className="w-full h-full object-cover object-center select-none"
+                    className={`relative z-10 w-full h-full select-none ${
+                      showText ? 'object-cover object-center' : 'object-contain object-center'
+                    }`}
                     loading={index === 0 ? 'eager' : 'lazy'}
                     onError={(e) => {
                       e.target.src = 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1800';
@@ -336,31 +346,31 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                 {/* Atenuación oscura uniforme sólo si showText es true */}
                 {showText && (
                   <>
-                    <div className="absolute inset-0 bg-[#0b1610]/60 pointer-events-none" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b1610] via-transparent to-[#0b1610]/70 pointer-events-none" />
+                    <div className="absolute inset-0 bg-[#0b1610]/60 pointer-events-none z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b1610] via-transparent to-[#0b1610]/70 pointer-events-none z-10" />
                   </>
                 )}
               </div>
 
               {/* Contenido textual superpuesto completamente centrado sólo si showText es true */}
               {showText && (
-                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 w-full flex flex-col items-center justify-center text-center">
-                  <div className="space-y-2 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
+                <div className="relative z-10 max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8 w-full flex flex-col items-center justify-center text-center">
+                  <div className="space-y-1.5 sm:space-y-3.5 max-w-3xl flex flex-col items-center text-center">
                     {/* Badge temático centrado */}
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-0.5 sm:py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[9px] sm:text-[11px] md:text-xs font-bold text-[#e0a96d] uppercase tracking-wider sm:tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
-                      <Leaf size={11} className="text-[#4aa036] shrink-0" />
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-0.5 sm:py-1 rounded-full bg-[#122317]/90 border border-[#2d5a27] text-[8px] sm:text-[11px] md:text-xs font-bold text-[#e0a96d] uppercase tracking-wider sm:tracking-widest shadow-md backdrop-blur-md animate-in fade-in duration-500">
+                      <Leaf size={10} className="text-[#4aa036] shrink-0" />
                       <span>{badgeText}</span>
                     </div>
 
                     {/* Subtítulo previo */}
                     {description && subtitle && (
-                      <p className="text-[#e0a96d] text-[11px] sm:text-xs md:text-sm font-semibold tracking-wide">
+                      <p className="text-[#e0a96d] text-[10px] sm:text-xs md:text-sm font-semibold tracking-wide line-clamp-1">
                         {subtitle}
                       </p>
                     )}
 
                     {/* Título principal centrado con tono mostaza/dorado */}
-                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
+                    <h1 className="text-base sm:text-2xl md:text-4xl lg:text-5xl font-black text-white font-heading leading-tight tracking-tight drop-shadow-md">
                       {slide.titlePrefix && slide.titleHighlight ? (
                         <>
                           {slide.titlePrefix}
@@ -382,60 +392,60 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
                     {/* Bajada descriptiva centrada */}
                     {(description || subtitle) && (
-                      <p className="text-gray-200 text-[11px] sm:text-xs md:text-base leading-relaxed max-w-2xl drop-shadow text-center line-clamp-2 sm:line-clamp-none">
+                      <p className="text-gray-200 text-[10px] sm:text-xs md:text-base leading-relaxed max-w-2xl drop-shadow text-center line-clamp-2 sm:line-clamp-none">
                         {description || subtitle}
                       </p>
                     )}
 
                     {/* Cuadro destacado de horarios (centrado) */}
                     {isSchedule && (
-                      <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-2xl p-2.5 sm:p-3.5 max-w-lg w-full shadow-xl space-y-1.5 sm:space-y-2 text-center mx-auto">
-                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-[#e0a96d] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
-                          <Clock size={13} className="shrink-0" />
+                      <div className="bg-[#0b160e]/95 backdrop-blur-md border border-[#2d5a27]/70 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 max-w-lg w-full shadow-xl space-y-1 sm:space-y-2 text-center mx-auto">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-[#e0a96d] text-[9px] sm:text-[11px] font-bold uppercase tracking-wider">
+                          <Clock size={12} className="shrink-0" />
                           <span>Horarios en Nuestro Local</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
+                        <div className="grid grid-cols-2 gap-1 sm:gap-2 text-[10px] sm:text-xs">
                           <div className="bg-[#122416] p-1.5 sm:p-2 rounded-lg border border-[#1f3b25]">
-                            <span className="text-gray-400 block font-semibold text-[9px] sm:text-[10px]">Lunes a Viernes</span>
-                            <span className="text-white font-bold text-[11px] sm:text-xs">09:00 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:30</span>
+                            <span className="text-gray-400 block font-semibold text-[8px] sm:text-[10px]">Lun a Vie</span>
+                            <span className="text-white font-bold text-[9px] sm:text-xs">09-12 • 16:30-19:30</span>
                           </div>
                           <div className="bg-[#122416] p-1.5 sm:p-2 rounded-lg border border-[#1f3b25]">
-                            <span className="text-gray-400 block font-semibold text-[9px] sm:text-[10px]">Sábados</span>
-                            <span className="text-white font-bold text-[11px] sm:text-xs">08:30 a 12:00 <span className="text-[#e0a96d]">•</span> 16:30 a 19:00</span>
+                            <span className="text-gray-400 block font-semibold text-[8px] sm:text-[10px]">Sábados</span>
+                            <span className="text-white font-bold text-[9px] sm:text-xs">08:30-12 • 16:30-19</span>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-0.5 text-[9px] sm:text-[10px]">
-                          <span className="text-red-400 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-900/50">
-                            Domingos: Cerrado
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-0.5 text-[8px] sm:text-[10px]">
+                          <span className="text-red-400 font-bold bg-red-950/50 px-1.5 py-0.5 rounded border border-red-900/50">
+                            Dom: Cerrado
                           </span>
                           <span className="text-gray-300 flex items-center gap-1 font-medium">
-                            <MapPin size={11} className="text-[#e0a96d]" />
-                            Av. López y Planes 2919, Posadas
+                            <MapPin size={10} className="text-[#e0a96d]" />
+                            Av. López y Planes 2919
                           </span>
                         </div>
                       </div>
                     )}
 
                     {/* Botones de acción centrados */}
-                    <div className="pt-1.5 sm:pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                    <div className="pt-1 sm:pt-2 flex flex-wrap items-center justify-center gap-1.5 sm:gap-3">
                       {isExternalCta ? (
                         <a
                           href={ctaLink}
                           target="_blank"
                           rel="noreferrer"
-                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-3.5 sm:px-6 py-1.5 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                         >
-                          {ctaLink.includes('maps') && <MapPin size={14} className="text-[#e0a96d]" />}
+                          {ctaLink.includes('maps') && <MapPin size={13} className="text-[#e0a96d]" />}
                           <span>{ctaText}</span>
-                          <ExternalLink size={13} />
+                          <ExternalLink size={12} />
                         </a>
                       ) : (
                         <Link
                           to={ctaLink}
-                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
+                          className="bg-[#2d5a27] hover:bg-[#38761d] text-white font-black px-3.5 sm:px-6 py-1.5 sm:py-2.5 rounded-full transition-all shadow-xl shadow-black/50 border border-[#4aa036]/50 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-wider uppercase font-heading hover:scale-105 active:scale-95"
                         >
                           <span>{ctaText}</span>
-                          <ArrowRight size={14} />
+                          <ArrowRight size={13} />
                         </Link>
                       )}
 
@@ -443,7 +453,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                         href={`https://wa.me/5493764356995?text=${encodeURIComponent(whatsappMessage)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all border border-[#23422a] hover:border-[#25d366]/60 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
+                        className="bg-[#122517]/90 hover:bg-[#1a3521] text-gray-200 hover:text-white font-bold px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full transition-all border border-[#23422a] hover:border-[#25d366]/60 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm backdrop-blur-md group hover:scale-105 active:scale-95"
                       >
                         <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] group-hover:scale-110 transition-transform">
                           <WhatsAppIcon size={12} />
@@ -482,7 +492,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
 
       {/* Indicadores de puntos / Dots en la parte inferior */}
       {totalSlides > 1 && (
-        <div className="absolute bottom-2.5 sm:bottom-5 left-0 right-0 z-20 flex items-center justify-center gap-2 sm:gap-2.5">
+        <div className="absolute bottom-2 sm:bottom-4 left-0 right-0 z-20 flex items-center justify-center gap-1.5 sm:gap-2.5">
           {banners.map((slide, index) => {
             const isActive = index === currentSlide;
 
@@ -491,10 +501,10 @@ export const HeroCarousel = ({ interval = 5000 }) => {
                 key={slide.id || index}
                 onClick={() => goToSlide(index)}
                 aria-label={`Ir a diapositiva ${index + 1}`}
-                className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
+                className={`h-1.5 sm:h-2.5 rounded-full transition-all duration-300 ${
                   isActive
-                    ? 'w-6 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
-                    : 'w-2 sm:w-2.5 bg-white/30 hover:bg-white/60'
+                    ? 'w-5 sm:w-10 bg-[#e0a96d] shadow-lg shadow-[#e0a96d]/40'
+                    : 'w-1.5 sm:w-2.5 bg-white/30 hover:bg-white/60'
                 }`}
               />
             );
