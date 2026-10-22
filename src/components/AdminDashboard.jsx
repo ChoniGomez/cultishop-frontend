@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -90,8 +90,6 @@ export const AdminDashboard = () => {
   // Formulario de Producto (Campos Básicos)
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formPrice, setFormPrice] = useState('');
-  const [formStock, setFormStock] = useState('20');
   const [formCategory, setFormCategory] = useState('Fertilizantes');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
@@ -103,6 +101,35 @@ export const AdminDashboard = () => {
     { name: '500 cc', price: '28000', stock: '10' }
   ]);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Cálculo en vivo de precio y stock total a partir de las variantes
+  const computedVariantSummary = useMemo(() => {
+    const valid = formVariants.filter((v) => v.name && v.name.trim().length > 0);
+    const prices = valid
+      .map((v) => parseFloat(String(v.price).replace(/[^0-9.-]/g, '')))
+      .filter((p) => !isNaN(p) && p >= 0);
+    const totalStock = valid.reduce((acc, v) => acc + (parseInt(String(v.stock), 10) || 0), 0);
+
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+    let priceText = '$0,00';
+    if (prices.length > 0) {
+      if (minPrice === maxPrice) {
+        priceText = formatPrice(minPrice);
+      } else {
+        priceText = `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`;
+      }
+    }
+
+    return {
+      minPrice,
+      maxPrice,
+      priceText,
+      totalStock,
+      hasVariants: valid.length > 0
+    };
+  }, [formVariants]);
 
   // Estados para Banners Publicitarios (Hero Carousel)
   const [banners, setBanners] = useState([]);
@@ -233,36 +260,47 @@ export const AdminDashboard = () => {
     reader.readAsDataURL(file);
   };
 
-  // Manejo de cambio de stock con asignación automática de "SIN STOCK"
-  const handleStockChange = (val) => {
-    setFormStock(val);
-    const num = parseInt(val, 10);
-    if (!isNaN(num) && num <= 0) {
-      setFormBadge('SIN STOCK');
-      setFormBadgeType('red');
-    } else if (!isNaN(num) && num > 0 && formBadge === 'SIN STOCK') {
-      setFormBadge('STOCK DISPONIBLE');
-      setFormBadgeType('gold');
-    }
-  };
-
   // Manejo de filas de variantes con precio y stock independiente
   const handleAddVariant = () => {
-    setFormVariants((prev) => [
-      ...prev,
-      { name: '', price: formPrice || '0', stock: '10' }
-    ]);
+    setFormVariants((prev) => {
+      const lastPrice = prev.length > 0 ? prev[prev.length - 1].price : '';
+      return [
+        ...prev,
+        { name: '', price: lastPrice || '', stock: '10' }
+      ];
+    });
   };
 
   const handleRemoveVariant = (index) => {
     if (formVariants.length <= 1) return;
-    setFormVariants((prev) => prev.filter((_, idx) => idx !== index));
+    setFormVariants((prev) => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      const total = updated.reduce((acc, curr) => acc + (parseInt(curr.stock, 10) || 0), 0);
+      if (total <= 0) {
+        setFormBadge('SIN STOCK');
+        setFormBadgeType('red');
+      } else if (formBadge === 'SIN STOCK') {
+        setFormBadge('STOCK DISPONIBLE');
+        setFormBadgeType('gold');
+      }
+      return updated;
+    });
   };
 
   const handleVariantChange = (index, field, value) => {
     setFormVariants((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
+      if (field === 'stock') {
+        const total = updated.reduce((acc, curr) => acc + (parseInt(curr.stock, 10) || 0), 0);
+        if (total <= 0) {
+          setFormBadge('SIN STOCK');
+          setFormBadgeType('red');
+        } else if (formBadge === 'SIN STOCK') {
+          setFormBadge('STOCK DISPONIBLE');
+          setFormBadgeType('gold');
+        }
+      }
       return updated;
     });
   };
@@ -748,8 +786,6 @@ export const AdminDashboard = () => {
     setCurrentProduct(null);
     setFormTitle('');
     setFormDescription('');
-    setFormPrice('6000');
-    setFormStock('20');
     const firstCat = safeCategories[0]?.name || 'Fertilizantes';
     setFormCategory(firstCat);
     setFormSubcategory('');
@@ -792,33 +828,35 @@ export const AdminDashboard = () => {
     const rawPrice = typeof prod.numericPrice === 'number'
       ? prod.numericPrice
       : (typeof prod.price === 'number' ? prod.price : parsePrice(prod.price));
-    setFormPrice(rawPrice ? rawPrice.toString() : '0');
-    setFormStock(prod.stock !== undefined ? prod.stock.toString() : '15');
     setFormCategory(prod.category || 'Fertilizantes');
     setFormSubcategory(prod.subcategory || '');
     setFormImageUrl(prod.image_url || prod.image || '');
     setProductImageFileName(prod.title ? `${prod.title}.jpg` : '');
-    const isZeroStock = (prod.stock !== undefined && Number(prod.stock) <= 0) || prod.badge === 'SIN STOCK';
-    const initialBadge = isZeroStock
-      ? 'SIN STOCK'
-      : (prod.badge && prod.badge.trim() !== '' && prod.badge.toLowerCase() !== 'sin etiqueta' ? prod.badge : '');
-    setFormBadge(initialBadge);
-    setFormBadgeType(isZeroStock ? 'red' : (prod.badge_type || prod.badgeType || 'gold'));
 
     const opts = getProductOptions(prod);
+    let loadedVariants = [];
     if (opts && opts.length > 0) {
-      setFormVariants(opts.map((o) => ({
+      loadedVariants = opts.map((o) => ({
         name: o.name,
         price: o.price !== undefined ? String(o.price) : (rawPrice ? String(rawPrice) : '0'),
         stock: o.stock !== undefined ? String(o.stock) : (prod.stock !== undefined ? String(prod.stock) : '10')
-      })));
+      }));
     } else {
-      setFormVariants([{
+      loadedVariants = [{
         name: 'Estándar',
         price: rawPrice ? String(rawPrice) : '0',
         stock: prod.stock !== undefined ? String(prod.stock) : '10'
-      }]);
+      }];
     }
+    setFormVariants(loadedVariants);
+
+    const totalStock = loadedVariants.reduce((acc, v) => acc + (parseInt(v.stock, 10) || 0), 0);
+    const isZeroStock = totalStock <= 0 || prod.badge === 'SIN STOCK';
+    const initialBadge = isZeroStock
+      ? 'SIN STOCK'
+      : (prod.badge && prod.badge.trim() !== '' && prod.badge.toLowerCase() !== 'sin etiqueta' ? prod.badge : 'STOCK DISPONIBLE');
+    setFormBadge(initialBadge);
+    setFormBadgeType(isZeroStock ? 'red' : (prod.badge_type || prod.badgeType || 'gold'));
 
     // Especificaciones y detalles enriquecidos
     const specs = getProductDetails(prod) || {};
@@ -871,31 +909,33 @@ export const AdminDashboard = () => {
       return;
     }
 
-    setIsSavingProduct(true);
-
     const validVariants = formVariants
-      .filter((v) => v.name.trim().length > 0)
+      .filter((v) => v.name && v.name.trim().length > 0)
       .map((v) => ({
         name: v.name.trim(),
         price: parseFloat(String(v.price).replace(/[^0-9.-]/g, '')) || 0,
-        stock: parseInt(String(v.stock !== undefined && v.stock !== '' ? v.stock : formStock), 10) || 0
+        stock: Math.max(0, parseInt(String(v.stock !== undefined && v.stock !== '' ? v.stock : 0), 10) || 0)
       }));
 
-    const finalVariants = validVariants.length > 0
-      ? validVariants
-      : [{
-          name: 'Estándar',
-          price: parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0,
-          stock: parseInt(formStock, 10) || 0
-        }];
+    if (validVariants.length === 0) {
+      showNotification('error', 'Debes configurar al menos una medida o presentación en la tabla con su precio y stock.');
+      return;
+    }
 
-    const variantPrices = finalVariants.map((v) => v.price).filter((p) => p > 0);
-    const finalBasePrice = variantPrices.length > 0
-      ? Math.min(...variantPrices)
-      : (parseFloat(String(formPrice).replace(/[^0-9.-]/g, '')) || 0);
+    // Comprobar que todas las variantes tengan precio válido
+    const hasInvalidPrice = validVariants.some((v) => isNaN(v.price) || v.price < 0);
+    if (hasInvalidPrice) {
+      showNotification('error', 'Todos los precios de las presentaciones deben ser números mayores o iguales a 0.');
+      return;
+    }
 
+    setIsSavingProduct(true);
+
+    const finalVariants = validVariants;
+    const variantPrices = finalVariants.map((v) => v.price).filter((p) => !isNaN(p) && p >= 0);
+    const finalBasePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
     const totalVariantStock = finalVariants.reduce((acc, v) => acc + (v.stock || 0), 0);
-    const numStock = finalVariants.length > 1 ? totalVariantStock : (parseInt(formStock, 10) || totalVariantStock);
+    const numStock = totalVariantStock;
 
     let finalBadge = formBadge.trim();
     if (finalBadge === 'none' || finalBadge.toLowerCase() === 'sin etiqueta' || finalBadge === '') {
@@ -905,6 +945,9 @@ export const AdminDashboard = () => {
     if (numStock <= 0) {
       finalBadge = 'SIN STOCK';
       finalBadgeType = 'red';
+    } else if (finalBadge === 'SIN STOCK') {
+      finalBadge = 'STOCK DISPONIBLE';
+      finalBadgeType = 'gold';
     }
 
     // Resolver IDs de categoría y subcategoría según lo seleccionado
@@ -2584,50 +2627,6 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Precio y Stock */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-300 mb-1">
-                        Precio Base / Referencia ($ ARS) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formPrice}
-                        onChange={(e) => setFormPrice(e.target.value)}
-                        placeholder="14500"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] transition"
-                      />
-                      <span className="text-[10px] text-gray-400 mt-1 block">
-                        Si defines medidas abajo, el precio base tomará automáticamente la opción más económica.
-                      </span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-300 mb-1 flex items-center justify-between">
-                        <span>Stock Disponible</span>
-                        {parseInt(formStock, 10) <= 0 && (
-                          <span className="text-[10px] text-red-400 font-bold">⚠️ Asignará "Sin Stock"</span>
-                        )}
-                      </label>
-                      <input
-                        type="number"
-                        value={formStock}
-                        onChange={(e) => handleStockChange(e.target.value)}
-                        placeholder="25"
-                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition ${
-                          parseInt(formStock, 10) <= 0
-                            ? 'bg-red-950/30 border-red-500/80 text-red-200'
-                            : 'bg-[#142619] border-[#23422a] text-white focus:border-[#4aa036]'
-                        }`}
-                      />
-                      <span className="text-[10px] text-gray-400 mt-1 block">
-                        Al ingresar 0, el sistema asignará automáticamente "SIN STOCK" y deshabilitará la compra.
-                      </span>
-                    </div>
-                  </div>
-
                   {/* Etiqueta Promocional (Badge) y Tipo */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2 space-y-1.5">
@@ -2728,25 +2727,54 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Gestor de Medidas, Precios y Stock Independientes */}
-                  <div className="p-3.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25] space-y-3">
-                    <div className="flex items-center justify-between">
+                  {/* Gestor de Medidas, Precios y Stock Independientes (Estándar Obligatorio) */}
+                  <div className="p-4 rounded-2xl bg-[#0a140d] border border-[#1f3b25] space-y-3.5 shadow-inner">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1b3420]">
                       <div>
-                        <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                          Medidas, Precios y Stock Independiente
-                        </label>
-                        <p className="text-[10px] text-gray-400">
-                          Configurá cada presentación con su propio precio de venta y unidades de stock disponibles.
+                        <div className="flex items-center gap-2">
+                          <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                            Medidas, Precios y Stock Independiente *
+                          </label>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#183520] text-[#4aa036] border border-[#2d5a27]">
+                            Estándar Obligatorio
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Configura cada presentación con su precio y stock. El precio publicado y el stock total se calculan automáticamente.
                         </p>
                       </div>
+
                       <button
                         type="button"
                         onClick={handleAddVariant}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition cursor-pointer self-start sm:self-auto shrink-0 shadow-sm"
                       >
-                        <Plus size={13} />
+                        <Plus size={14} />
                         <span>Agregar Medida</span>
                       </button>
+                    </div>
+
+                    {/* Resumen en tiempo real del Precio y Stock Calculados */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#122317] border border-[#23422a]">
+                      <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                        <span className="text-[11px] text-gray-400 font-medium">Precio Calculado:</span>
+                        <span className="text-xs font-black text-[#e0a96d] font-heading bg-[#0a140d] px-2.5 py-1 rounded-lg border border-[#1f3b25]">
+                          {computedVariantSummary.priceText}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                        <span className="text-[11px] text-gray-400 font-medium">Stock Total Calculado:</span>
+                        <span className={`text-xs font-black font-heading px-2.5 py-1 rounded-lg border ${
+                          computedVariantSummary.totalStock <= 0
+                            ? 'bg-red-950/40 text-red-400 border-red-500/50'
+                            : 'bg-[#0a140d] text-[#4aa036] border-[#1f3b25]'
+                        }`}>
+                          {computedVariantSummary.totalStock <= 0 
+                            ? '0 unidades (Sin Stock ⚠️)' 
+                            : `${computedVariantSummary.totalStock} unidades`}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
