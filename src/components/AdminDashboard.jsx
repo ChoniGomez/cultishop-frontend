@@ -5286,9 +5286,23 @@ export const AdminDashboard = () => {
 
               {/* Selector de Imagen (Local o URL) */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-300">
-                  Imagen Ilustrativa del Bloque
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-gray-300">
+                    Imagen Ilustrativa del Bloque (Opcional)
+                  </label>
+                  {aboutFormImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAboutFormImageUrl('');
+                        setAboutImageFileName('');
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition"
+                    >
+                      Quitar imagen
+                    </button>
+                  )}
+                </div>
                 <input
                   ref={aboutFileInputRef}
                   type="file"
@@ -5308,24 +5322,38 @@ export const AdminDashboard = () => {
                       type="url"
                       value={aboutFormImageUrl}
                       onChange={(e) => setAboutFormImageUrl(e.target.value)}
-                      placeholder="https://... o sube una imagen desde tu equipo"
+                      placeholder="Insertar URL de imagen o dejar vacío..."
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                     />
-                    <button
-                      type="button"
-                      onClick={() => aboutFileInputRef.current?.click()}
-                      className="w-full py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
-                    >
-                      <Upload size={14} />
-                      <span>{aboutImageFileName ? `Archivo: ${aboutImageFileName}` : 'Subir Imagen Local'}</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => aboutFileInputRef.current?.click()}
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                      >
+                        <Upload size={14} />
+                        <span>{aboutImageFileName ? `Archivo: ${aboutImageFileName}` : 'Insertar imagen'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAboutFormImageUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200');
+                          setAboutImageFileName('cultivo_oficial.jpg');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shrink-0"
+                        title="Cargar foto institucional recomendada"
+                      >
+                        <ImageIcon size={13} />
+                        <span>Agregar imagen por defecto</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center">
+                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center relative">
                     {aboutFormImageUrl ? (
                       <img src={aboutFormImageUrl} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[10px] text-gray-500">Sin vista previa</span>
+                      <span className="text-[10px] text-gray-500 text-center px-2">Sin imagen asignada (Opcional)</span>
                     )}
                   </div>
                 </div>
@@ -5444,9 +5472,23 @@ export const AdminDashboard = () => {
 
               {/* Selector de Miniatura */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-300">
-                  Imagen de Portada / Miniatura (Thumbnail)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-gray-300">
+                    Imagen de Portada / Miniatura (Thumbnail)
+                  </label>
+                  {instagramFormThumbnailUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInstagramFormThumbnailUrl('');
+                        setInstagramThumbnailFileName('');
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition"
+                    >
+                      Quitar portada
+                    </button>
+                  )}
+                </div>
                 <input
                   ref={instagramFileInputRef}
                   type="file"
@@ -5466,26 +5508,40 @@ export const AdminDashboard = () => {
                       type="url"
                       value={instagramFormThumbnailUrl}
                       onChange={(e) => setInstagramFormThumbnailUrl(e.target.value)}
-                      placeholder="https://... o sube la captura de portada"
+                      placeholder="Insertar URL de imagen o dejar vacío..."
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                     />
-                    <button
-                      type="button"
-                      onClick={() => instagramFileInputRef.current?.click()}
-                      className="w-full py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
-                    >
-                      <Upload size={14} />
-                      <span>{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Subir Portada'}</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => instagramFileInputRef.current?.click()}
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                      >
+                        <Upload size={14} />
+                        <span>{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Insertar imagen'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=800');
+                          setInstagramThumbnailFileName('portada_cultishop.jpg');
+                        }}
+                        className="py-2 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shrink-0"
+                        title="Cargar portada temática por defecto"
+                      >
+                        <ImageIcon size={13} />
+                        <span>Agregar imagen por defecto</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center">
+                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center relative">
                     {instagramFormThumbnailUrl ? (
                       <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-gray-500">
                         <Video size={20} className="mb-0.5 text-gray-600" />
-                        <span className="text-[9px]">Sin portada</span>
+                        <span className="text-[9px]">Sin portada asignada (Opcional)</span>
                       </div>
                     )}
                   </div>

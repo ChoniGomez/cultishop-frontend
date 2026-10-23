@@ -7,8 +7,7 @@ import {
   ExternalLink, 
   ShieldCheck, 
   MapPin, 
-  Sparkles, 
-  HeartHandshake, 
+    HeartHandshake, 
   Leaf, 
   ArrowRight, 
   RefreshCw,
@@ -174,7 +173,7 @@ export const AboutView = () => {
             </div>
 
             <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
-              <Sparkles size={22} className="text-[#e0a96d]" />
+              <HeartHandshake size={22} className="text-[#e0a96d]" />
               <span className="text-xs font-bold text-white uppercase tracking-wider">Asesoría Técnica</span>
               <span className="text-[11px] text-gray-400">Respuestas para cada fase</span>
             </div>
