@@ -172,11 +172,6 @@ function App() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/finalizar-compra" className="hover:text-[#4aa036] transition">
-                    Finalizar Compra / Checkout
-                  </Link>
-                </li>
-                <li>
                   <a
                     href="https://instagram.com/culti.shopp"
                     target="_blank"
