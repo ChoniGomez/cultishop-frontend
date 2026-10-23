@@ -18,6 +18,7 @@ import {
 import { buildApiUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { CultiShopLogo } from './CultiShopLogo';
+import { useShop, DEFAULT_LOCATION_SETTINGS } from '../context/ShopContext';
 
 // Bloques de respaldo en caso de que el backend demore por Cold Start
 const FALLBACK_ABOUT_SECTIONS = [
@@ -79,13 +80,27 @@ const FALLBACK_INSTAGRAM_VIDEOS = [
 ];
 
 export const AboutView = () => {
+  const { locationSettings } = useShop();
+  const currentLocation = locationSettings || DEFAULT_LOCATION_SETTINGS;
+
   const [sections, setSections] = useState([]);
   const [instagramVideos, setInstagramVideos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Scroll al inicio al ingresar
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Si viene con ancla (#visitanos o #instagram-videos), realizar scroll suave al elemento
+    if (window.location.hash) {
+      const hash = window.location.hash;
+      const timer = setTimeout(() => {
+        const el = document.querySelector(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     let isMounted = true;
 
@@ -372,52 +387,148 @@ export const AboutView = () => {
       </section>
 
       {/* ============================================================ */}
-      {/* 4. LOCAL FÍSICO, MAPA Y ASESORAMIENTO DIRECTO */}
+      {/* 4. LOCAL FÍSICO, MAPA INTERACTIVO Y ASESORAMIENTO DIRECTO */}
       {/* ============================================================ */}
-      <section className="max-w-6xl mx-auto px-4 pt-16 sm:pt-24">
-        <div className="p-6 sm:p-10 rounded-3xl bg-gradient-to-r from-[#122317] via-[#142619] to-[#0e1c12] border-2 border-[#2d5a27] shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#183520] border border-[#2d5a27] text-xs font-bold text-[#e0a96d]">
-              <MapPin size={13} />
-              <span>PUNTO DE RETIRO & ATENCIÓN AL PÚBLICO</span>
+      <section id="visitanos" className="max-w-6xl mx-auto px-4 pt-16 sm:pt-24 scroll-mt-20">
+        <div className="space-y-8">
+          {/* Encabezado de la sección */}
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#183520] border border-[#2d5a27] text-xs font-bold text-[#e0a96d] shadow-sm">
+              <MapPin size={13} className="text-[#e0a96d]" />
+              <span className="uppercase tracking-widest">Punto de Retiro & Atención al Público • Posadas, Misiones</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-heading">
-              VISITANOS EN NUESTRO LOCAL EN POSADAS
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white font-heading tracking-tight leading-tight">
+              VISITANOS EN NUESTRO <span className="text-[#e0a96d]">LOCAL EN POSADAS</span>
             </h2>
 
-            <div className="space-y-2 text-xs sm:text-sm text-gray-300">
-              <p className="flex items-center justify-center lg:justify-start gap-2">
-                <MapPin size={16} className="text-[#e0a96d] shrink-0" />
-                <span><strong>Av. López y Planes 2919</strong> (entre Lavalle y Santa Catalina), Posadas, Misiones.</span>
-              </p>
-              <p className="flex items-center justify-center lg:justify-start gap-2 text-gray-400">
-                <HeartHandshake size={16} className="text-[#4aa036] shrink-0" />
-                <span>Vení a sacarte todas las dudas sobre dosis, prevención de plagas y armado de carpas.</span>
-              </p>
-            </div>
+            <p className="text-xs sm:text-sm md:text-base text-gray-300 font-sans leading-relaxed">
+              Te esperamos con asesoramiento agronómico personalizado, insumos oficiales de máxima pureza y retiro sin costo para tus pedidos de la web.
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
-            <a
-              href="https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#142619] hover:bg-[#1f3b25] text-white border border-[#23422a] text-xs font-bold transition flex items-center justify-center gap-2 text-center"
-            >
-              <MapPin size={15} className="text-[#e0a96d]" />
-              <span>Cómo Llegar (Google Maps)</span>
-            </a>
+          {/* Grid principal: Tarjetas de Información + Mapa Interactivo de Google Maps */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Columna Izquierda: Información de Contacto, Dirección y Horarios (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+              {/* Tarjeta Dirección */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3 flex-grow">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#e0a96d] shrink-0 shadow-inner">
+                    <MapPin size={22} />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-wider">Dirección Comercial</span>
+                    <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                      {currentLocation.address}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Ubicación de fácil acceso y estacionamiento en Posadas, Misiones.
+                    </p>
+                  </div>
+                </div>
 
-            <a
-              href="https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20una%20consulta%20institucional%20o%20de%20cultivo"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-black text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 text-center"
-            >
-              <WhatsAppIcon size={17} />
-              <span>Escribinos por WhatsApp</span>
-            </a>
+                <div className="pt-3 border-t border-[#18311d]">
+                  <a
+                    href={currentLocation.google_maps_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white border border-[#23422a] text-xs font-bold transition group"
+                  >
+                    <ExternalLink size={14} className="group-hover:scale-110 transition" />
+                    <span>Cómo Llegar (Google Maps GPS)</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Tarjeta Horarios */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#4aa036] shrink-0 shadow-inner">
+                    <Clock size={22} />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider">Horarios de Atención</span>
+                    <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                      {currentLocation.hours}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Retiros en el día de compras online y asesoramiento técnico de dosis y prevención.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tarjeta WhatsApp & Asesoría */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#122317] via-[#142619] to-[#0a140d] border border-[#2d5a27] shadow-xl space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <HeartHandshake size={20} className="text-[#e0a96d] shrink-0" />
+                  <span className="text-xs font-bold text-white">¿Tenés dudas antes de venir al local?</span>
+                </div>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Escribinos para consultar stock puntual, coordinar tu retiro o despejar consultas agronómicas.
+                </p>
+                <a
+                  href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20una%20consulta%20sobre%20el%20local%20en%20Av.%20L%C3%B3pez%20y%20Planes`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-black text-xs uppercase tracking-wider transition shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <WhatsAppIcon size={17} />
+                  <span>Consultar por WhatsApp ({currentLocation.phone})</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Columna Derecha: Mapa Interactivo de Google Maps (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col">
+              <div className="h-full min-h-[400px] sm:min-h-[480px] rounded-3xl bg-[#0a140d] border-2 border-[#2d5a27] shadow-2xl overflow-hidden flex flex-col relative group">
+                {/* Barra superior de la ventana del mapa */}
+                <div className="px-4 py-3 bg-[#0e1c12] border-b border-[#1f3b25] flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="font-bold text-white text-[11px] sm:text-xs">
+                      Mapa en Vivo • CultiShop Posadas
+                    </span>
+                  </div>
+
+                  <a
+                    href={currentLocation.google_maps_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#e0a96d] hover:text-white transition font-medium text-[11px] inline-flex items-center gap-1"
+                  >
+                    <span>Abrir en Google Maps</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+
+                {/* iFrame interactivo incrustado de Google Maps */}
+                <div className="relative flex-grow w-full bg-[#070e09]">
+                  <iframe
+                    title="Ubicación y mapa interactivo de CultiShop en Posadas, Misiones"
+                    src={currentLocation.google_maps_embed_url}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="w-full h-full min-h-[350px] sm:min-h-[410px] block"
+                  />
+                </div>
+
+                {/* Pie con dirección y consejos de navegación */}
+                <div className="px-4 py-2.5 bg-[#0e1c12]/95 border-t border-[#1f3b25] flex items-center justify-between text-[11px] text-gray-400">
+                  <span className="truncate">
+                    📍 {currentLocation.address}
+                  </span>
+                  <span className="hidden sm:inline text-gray-500 shrink-0">
+                    Arrastra o usa +/- para navegar en el mapa
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

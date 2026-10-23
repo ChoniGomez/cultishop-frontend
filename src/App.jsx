@@ -162,6 +162,12 @@ function App() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/sobre-nosotros#visitanos" className="text-gray-300 hover:text-[#e0a96d] transition flex items-center gap-1.5">
+                    <MapPin size={13} className="text-[#e0a96d]" />
+                    <span>Visítanos en Posadas (Mapa)</span>
+                  </Link>
+                </li>
+                <li>
                   <Link to="/sobre-nosotros#instagram-videos" className="text-gray-300 hover:text-[#e0a96d] transition flex items-center gap-1.5">
                     <Instagram size={13} className="text-[#e0a96d]" />
                     <span>Galería de Videos Instagram</span>
@@ -193,7 +199,14 @@ function App() {
               <ul className="text-xs space-y-2.5">
                 <li className="flex items-start gap-2">
                   <MapPin size={15} className="text-[#e0a96d] shrink-0 mt-0.5" />
-                  <span>Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones</span>
+                  <div>
+                    <span>Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones</span>
+                    <div className="pt-0.5">
+                      <Link to="/sobre-nosotros#visitanos" className="text-[#e0a96d] hover:underline text-[11px] font-semibold inline-flex items-center gap-1">
+                        <span>Ver mapa interactivo &rarr;</span>
+                      </Link>
+                    </div>
+                  </div>
                 </li>
                 <li className="flex items-center gap-2">
                   <WhatsAppIcon size={15} className="text-[#25d366] shrink-0" />

@@ -20,6 +20,18 @@ export const DEFAULT_PAYMENT_SETTINGS = {
   payment_notes: 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.'
 };
 
+export const DEFAULT_LOCATION_SETTINGS = {
+  address: 'Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones, Argentina',
+  hours: 'Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs',
+  phone: '+54 9 376 435-6995',
+  google_maps_url: 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina',
+  google_maps_embed_url: 'https://maps.google.com/maps?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina&t=&z=16&ie=UTF8&iwloc=&output=embed',
+  latitude: -27.3719,
+  longitude: -55.9084
+};
+
+const LOCATION_SETTINGS_KEY = 'cultishop_location_settings_v1';
+
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
  */
@@ -369,6 +381,70 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
+  // ============================================================
+  // CONFIGURACIÓN DE UBICACIÓN Y MAPA DE GOOGLE MAPS
+  // ============================================================
+  const [locationSettings, setLocationSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOCATION_SETTINGS_KEY);
+      return saved ? { ...DEFAULT_LOCATION_SETTINGS, ...JSON.parse(saved) } : DEFAULT_LOCATION_SETTINGS;
+    } catch {
+      return DEFAULT_LOCATION_SETTINGS;
+    }
+  });
+  const [loadingLocationSettings, setLoadingLocationSettings] = useState(false);
+
+  const fetchLocationSettings = async () => {
+    setLoadingLocationSettings(true);
+    try {
+      const res = await fetch(buildApiUrl('settings/location'));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.location) {
+          const merged = { ...DEFAULT_LOCATION_SETTINGS, ...data.location };
+          setLocationSettings(merged);
+          try {
+            localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/settings/location no disponible temporalmente:', err);
+    } finally {
+      setLoadingLocationSettings(false);
+    }
+    return locationSettings;
+  };
+
+  const updateLocationSettings = async (newSettings, token) => {
+    try {
+      const res = await fetch(buildApiUrl('settings/location'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newSettings)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al actualizar los datos de ubicación.');
+      }
+
+      const updated = { ...DEFAULT_LOCATION_SETTINGS, ...(data.location || newSettings) };
+      setLocationSettings(updated);
+      try {
+        localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(updated));
+      } catch {}
+
+      return { success: true, location: updated, message: data.message };
+    } catch (err) {
+      return { success: false, error: err.message || 'Error al conectar con el servidor.' };
+    }
+  };
+
   // Sincronizar con Backend y persistir en LocalStorage con control de versión
   const fetchProducts = async () => {
     setLoadingProducts(true);
@@ -432,6 +508,7 @@ export const ShopProvider = ({ children }) => {
     fetchProducts();
     fetchCategories();
     fetchPaymentSettings();
+    fetchLocationSettings();
   }, []);
 
   /**
@@ -954,6 +1031,10 @@ export const ShopProvider = ({ children }) => {
         loadingPaymentSettings,
         fetchPaymentSettings,
         updatePaymentSettings,
+        locationSettings,
+        loadingLocationSettings,
+        fetchLocationSettings,
+        updateLocationSettings,
       }}
     >
       {children}

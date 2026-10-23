@@ -44,7 +44,9 @@ import {
   Video,
   Instagram,
   Play,
-  HelpCircle
+  HelpCircle,
+  MapPin,
+  PhoneCall
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -69,7 +71,9 @@ export const AdminDashboard = () => {
     loadingCategories,
     fetchCategories,
     paymentSettings,
-    updatePaymentSettings
+    updatePaymentSettings,
+    locationSettings,
+    updateLocationSettings
   } = useShop();
   const navigate = useNavigate();
 
@@ -174,6 +178,15 @@ export const AdminDashboard = () => {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [copiedPreviewAlias, setCopiedPreviewAlias] = useState(false);
 
+  // Estados para Configuración de Local Físico & Google Maps
+  const [locAddress, setLocAddress] = useState('');
+  const [locHours, setLocHours] = useState('');
+  const [locPhone, setLocPhone] = useState('');
+  const [locGoogleMapsUrl, setLocGoogleMapsUrl] = useState('');
+  const [locEmbedUrl, setLocEmbedUrl] = useState('');
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const [extractedIframeNotice, setExtractedIframeNotice] = useState(false);
+
   // Estados para Gestión de Categorías y Subcategorías
   const [adminCategories, setAdminCategories] = useState([]);
   const [loadingAdminCategories, setLoadingAdminCategories] = useState(false);
@@ -264,6 +277,16 @@ export const AdminDashboard = () => {
       setPaymentNotes(paymentSettings.payment_notes || 'Al confirmar el pedido podrás enviar el comprobante de transferencia directamente por WhatsApp.');
     }
   }, [paymentSettings]);
+
+  useEffect(() => {
+    if (locationSettings) {
+      setLocAddress(locationSettings.address || 'Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones, Argentina');
+      setLocHours(locationSettings.hours || 'Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs');
+      setLocPhone(locationSettings.phone || '+54 9 376 435-6995');
+      setLocGoogleMapsUrl(locationSettings.google_maps_url || 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina');
+      setLocEmbedUrl(locationSettings.google_maps_embed_url || 'https://maps.google.com/maps?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina&t=&z=16&ie=UTF8&iwloc=&output=embed');
+    }
+  }, [locationSettings]);
 
   // Colecciones seguras para evitar errores de renderizado si están cargando o vacías
   const safeCategories = Array.isArray(categories) ? categories : [];
@@ -1149,6 +1172,49 @@ export const AdminDashboard = () => {
       showNotification('success', '¡Datos de pago y Alias bancario guardados exitosamente!');
     } else {
       showNotification('error', res.error || 'Error al guardar los datos de pago.');
+    }
+  };
+
+  const handleEmbedUrlChange = (val) => {
+    let finalUrl = val.trim();
+    // Si el usuario pega un tag <iframe> completo de Google Maps, extraer automáticamente el atributo src="..."
+    if (finalUrl.includes('<iframe') && finalUrl.includes('src=')) {
+      const match = finalUrl.match(/src=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        finalUrl = match[1];
+        setExtractedIframeNotice(true);
+        setTimeout(() => setExtractedIframeNotice(false), 4500);
+      }
+    }
+    setLocEmbedUrl(finalUrl);
+  };
+
+  const handleSaveLocationSettings = async (e) => {
+    if (e) e.preventDefault();
+    if (!token) {
+      showNotification('error', 'Sesión expirada. Por favor vuelve a iniciar sesión.');
+      return;
+    }
+
+    if (!locAddress.trim()) {
+      showNotification('error', 'Por favor ingresa la dirección del local comercial.');
+      return;
+    }
+
+    setIsSavingLocation(true);
+    const res = await updateLocationSettings({
+      address: locAddress.trim(),
+      hours: locHours.trim(),
+      phone: locPhone.trim(),
+      google_maps_url: locGoogleMapsUrl.trim(),
+      google_maps_embed_url: locEmbedUrl.trim()
+    }, token);
+    setIsSavingLocation(false);
+
+    if (res.success) {
+      showNotification('success', '¡Ubicación del local comercial y mapa de Google Maps guardados exitosamente!');
+    } else {
+      showNotification('error', res.error || 'Error al guardar la configuración de ubicación.');
     }
   };
 
@@ -3488,6 +3554,202 @@ export const AdminDashboard = () => {
                   ))}
                 </div>
               )}
+
+              {/* ============================================================ */}
+              {/* TARJETA DE CONFIGURACIÓN DE UBICACIÓN & GOOGLE MAPS */}
+              {/* ============================================================ */}
+              <div className="mt-8 pt-8 border-t border-[#1f3b25] space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-[#e0a96d]">
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Local Comercial & Mapa Interactivo de Google Maps</h3>
+                      <p className="text-xs text-gray-400">
+                        Configura la dirección de atención, horarios de retiro y el mapa interactivo que se muestra en la sección pública "Visítanos".
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/sobre-nosotros#visitanos"
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition shrink-0"
+                  >
+                    <ExternalLink size={14} />
+                    <span>Ver Sección en Tienda</span>
+                  </Link>
+                </div>
+
+                <div className="bg-[#0e1c12] border border-[#1f3b25] rounded-2xl p-5 sm:p-6 space-y-6">
+                  {/* Formulario de campos */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Dirección */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <MapPin size={13} className="text-[#e0a96d]" />
+                        <span>Dirección Comercial del Local</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={locAddress}
+                        onChange={(e) => setLocAddress(e.target.value)}
+                        placeholder="Ej: Av. López y Planes 2919, Posadas, Misiones"
+                        className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">Dirección visible para los compradores y punto de retiro.</p>
+                    </div>
+
+                    {/* Horarios */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <Clock size={13} className="text-[#4aa036]" />
+                        <span>Horarios de Atención al Público</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={locHours}
+                        onChange={(e) => setLocHours(e.target.value)}
+                        placeholder="Ej: Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs"
+                        className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">Días y franjas horarias en las que el local está abierto.</p>
+                    </div>
+
+                    {/* Teléfono / WhatsApp */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <PhoneCall size={13} className="text-[#25d366]" />
+                        <span>Teléfono / WhatsApp de Contacto</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={locPhone}
+                        onChange={(e) => setLocPhone(e.target.value)}
+                        placeholder="Ej: +54 9 376 435-6995"
+                        className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">Número de contacto directo con la tienda.</p>
+                    </div>
+
+                    {/* Enlace Directo Google Maps GPS */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <ExternalLink size={13} className="text-[#e0a96d]" />
+                        <span>Enlace de Navegación GPS (Cómo Llegar)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={locGoogleMapsUrl}
+                        onChange={(e) => setLocGoogleMapsUrl(e.target.value)}
+                        placeholder="Ej: https://maps.google.com/?q=Av.+López+y+Planes+2919,+Posadas"
+                        className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">URL directa para iniciar la navegación en Google Maps o Waze.</p>
+                    </div>
+                  </div>
+
+                  {/* URL / Código iframe de Google Maps */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin size={13} className="text-[#4aa036]" />
+                        <span>Código Iframe o URL Incrustada de Google Maps (Embed)</span>
+                      </span>
+                      <span className="text-[11px] text-gray-400 normal-case font-normal">
+                        Detecta automáticamente si pegas el código <code className="text-[#e0a96d]">&lt;iframe&gt;</code> completo
+                      </span>
+                    </label>
+
+                    <input
+                      type="text"
+                      value={locEmbedUrl}
+                      onChange={(e) => handleEmbedUrlChange(e.target.value)}
+                      placeholder="Pega la URL embed o el código completo <iframe src=... de Google Maps"
+                      className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition font-mono"
+                    />
+
+                    {extractedIframeNotice && (
+                      <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                        <CheckCircle2 size={15} className="shrink-0" />
+                        <span>¡Código &lt;iframe&gt; detectado! Se extrajo automáticamente la URL limpia de Google Maps.</span>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      💡 <strong>¿Cómo obtenerlo?:</strong> En Google Maps, busca el local &gt; pulsa <em>Compartir</em> &gt; selecciona la pestaña <em>"Incorporar un mapa"</em> &gt; pulsa <em>"Copiar HTML"</em> y pégalo directamente en este campo.
+                    </p>
+                  </div>
+
+                  {/* Vista Previa Interactiva en Vivo */}
+                  <div className="space-y-2 pt-2 border-t border-[#18311d]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span>Vista Previa Interactiva en Vivo</span>
+                      </span>
+                      {locGoogleMapsUrl && (
+                        <a
+                          href={locGoogleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#e0a96d] hover:underline inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <span>Probar enlace GPS</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-[#23422a] bg-[#070e09] relative shadow-inner">
+                      {locEmbedUrl ? (
+                        <iframe
+                          title="Vista previa del mapa de Google Maps"
+                          src={locEmbedUrl}
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          allowFullScreen=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          className="w-full h-full block"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 text-xs p-6 text-center space-y-2">
+                          <MapPin size={32} className="text-gray-600 mb-1" />
+                          <span className="font-bold text-gray-400">Sin URL de mapa configurada</span>
+                          <span className="text-gray-600 max-w-sm">
+                            Ingresa una URL de Google Maps para previsualizar aquí el mapa en tiempo real.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botón Guardar */}
+                  <div className="flex justify-end pt-3 border-t border-[#18311d]">
+                    <button
+                      type="button"
+                      onClick={handleSaveLocationSettings}
+                      disabled={isSavingLocation}
+                      className="px-6 py-3 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider transition shadow-lg inline-flex items-center gap-2 cursor-pointer"
+                    >
+                      {isSavingLocation ? (
+                        <>
+                          <RefreshCw size={15} className="animate-spin" />
+                          <span>Guardando Configuración...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={15} />
+                          <span>Guardar Configuración de Ubicación y Mapa</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
