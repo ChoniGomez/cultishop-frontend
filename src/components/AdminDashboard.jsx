@@ -39,7 +39,11 @@ import {
   Tag,
   ChevronDown,
   ChevronUp,
-  Hash
+  Hash,
+  BookOpen,
+  Video,
+  Instagram,
+  Play
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -192,6 +196,46 @@ export const AdminDashboard = () => {
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
+  // Sub-pestaña activa en sección Institucional & Instagram ('sobre-nosotros' | 'instagram')
+  const [subTabInstitucional, setSubTabInstitucional] = useState('sobre-nosotros');
+
+  // Estados para Bloques Institucionales "Sobre Nosotros" (about_sections)
+  const [aboutSections, setAboutSections] = useState([]);
+  const [loadingAboutSections, setLoadingAboutSections] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [aboutModalMode, setAboutModalMode] = useState('create'); // 'create' | 'edit'
+  const [currentAboutSection, setCurrentAboutSection] = useState(null);
+  const [deleteAboutConfirmId, setDeleteAboutConfirmId] = useState(null);
+  const [isSavingAbout, setIsSavingAbout] = useState(false);
+
+  // Formulario de Bloque "Sobre Nosotros"
+  const [aboutFormTitle, setAboutFormTitle] = useState('');
+  const [aboutFormSubtitle, setAboutFormSubtitle] = useState('');
+  const [aboutFormContent, setAboutFormContent] = useState('');
+  const [aboutFormImageUrl, setAboutFormImageUrl] = useState('');
+  const [aboutFormOrder, setAboutFormOrder] = useState('1');
+  const [aboutFormIsActive, setAboutFormIsActive] = useState(true);
+  const [aboutImageFileName, setAboutImageFileName] = useState('');
+  const aboutFileInputRef = useRef(null);
+
+  // Estados para Videos y Publicaciones de Instagram (instagram_videos)
+  const [instagramVideos, setInstagramVideos] = useState([]);
+  const [loadingInstagramVideos, setLoadingInstagramVideos] = useState(false);
+  const [isInstagramModalOpen, setIsInstagramModalOpen] = useState(false);
+  const [instagramModalMode, setInstagramModalMode] = useState('create'); // 'create' | 'edit'
+  const [currentInstagramVideo, setCurrentInstagramVideo] = useState(null);
+  const [deleteInstagramConfirmId, setDeleteInstagramConfirmId] = useState(null);
+  const [isSavingInstagram, setIsSavingInstagram] = useState(false);
+
+  // Formulario de Video de Instagram
+  const [instagramFormTitle, setInstagramFormTitle] = useState('');
+  const [instagramFormPostUrl, setInstagramFormPostUrl] = useState('');
+  const [instagramFormThumbnailUrl, setInstagramFormThumbnailUrl] = useState('');
+  const [instagramFormOrder, setInstagramFormOrder] = useState('1');
+  const [instagramFormIsActive, setInstagramFormIsActive] = useState(true);
+  const [instagramThumbnailFileName, setInstagramThumbnailFileName] = useState('');
+  const instagramFileInputRef = useRef(null);
+
   useEffect(() => {
     if (paymentSettings) {
       setBankAlias(paymentSettings.bank_alias || 'CULTISHOP.POSADAS');
@@ -208,6 +252,8 @@ export const AdminDashboard = () => {
   const safeProducts = Array.isArray(products) ? products : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeBanners = Array.isArray(banners) ? banners : [];
+  const safeAboutSections = Array.isArray(aboutSections) ? aboutSections : [];
+  const safeInstagramVideos = Array.isArray(instagramVideos) ? instagramVideos : [];
 
   // Helper para procesar archivos de imagen local, optimizarlos y generar Data URL
   const handleImageFileChange = (file, setUrlState, setFileNameState) => {
@@ -451,9 +497,65 @@ export const AdminDashboard = () => {
     }
   };
 
+  // Cargar bloques de Sobre Nosotros para administración
+  const fetchAboutSectionsAdmin = async () => {
+    setLoadingAboutSections(true);
+    try {
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(buildApiUrl('about?all=true'), { headers });
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('about/admin/all'), { headers });
+      }
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('about'), { headers });
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.sections || data.data || []);
+        setAboutSections(list);
+      }
+    } catch (err) {
+      console.error('Error al cargar bloques institucionales:', err);
+    } finally {
+      setLoadingAboutSections(false);
+    }
+  };
+
+  // Cargar videos de Instagram para administración
+  const fetchInstagramVideosAdmin = async () => {
+    setLoadingInstagramVideos(true);
+    try {
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(buildApiUrl('instagram?all=true'), { headers });
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('instagram/admin/all'), { headers });
+      }
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('instagram'), { headers });
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.videos || data.data || []);
+        setInstagramVideos(list);
+      }
+    } catch (err) {
+      console.error('Error al cargar videos de Instagram:', err);
+    } finally {
+      setLoadingInstagramVideos(false);
+    }
+  };
+
   useEffect(() => {
     fetchBannersAdmin();
     fetchAdminCategories();
+    fetchAboutSectionsAdmin();
+    fetchInstagramVideosAdmin();
     if (isAdmin) {
       fetchProducts();
       fetchOrders();
@@ -616,6 +718,237 @@ export const AdminDashboard = () => {
     setTimeout(() => {
       setStatusMessage({ type: '', text: '' });
     }, 4000);
+  };
+
+  // Handlers para Bloques "Sobre Nosotros"
+  const handleOpenCreateAboutModal = () => {
+    setAboutModalMode('create');
+    setCurrentAboutSection(null);
+    setAboutFormTitle('');
+    setAboutFormSubtitle('');
+    setAboutFormContent('');
+    setAboutFormImageUrl('');
+    setAboutImageFileName('');
+    setAboutFormOrder(String((safeAboutSections?.length || 0) + 1));
+    setAboutFormIsActive(true);
+    setIsAboutModalOpen(true);
+  };
+
+  const handleOpenEditAboutModal = (section) => {
+    if (!section) return;
+    setAboutModalMode('edit');
+    setCurrentAboutSection(section);
+    setAboutFormTitle(section.title || '');
+    setAboutFormSubtitle(section.subtitle || '');
+    setAboutFormContent(section.content || '');
+    setAboutFormImageUrl(section.image_url || '');
+    setAboutImageFileName(section.title ? `${section.title}.jpg` : '');
+    setAboutFormOrder(String(section.order_index ?? 1));
+    setAboutFormIsActive(section.is_active !== false);
+    setIsAboutModalOpen(true);
+  };
+
+  const handleSaveAboutSection = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!aboutFormTitle.trim()) {
+      showNotification('error', 'Por favor, ingresa el título del bloque.');
+      return;
+    }
+    if (!aboutFormContent.trim()) {
+      showNotification('error', 'Por favor, completa el contenido del bloque.');
+      return;
+    }
+
+    setIsSavingAbout(true);
+    try {
+      const isEdit = aboutModalMode === 'edit' && currentAboutSection;
+      const url = isEdit
+        ? buildApiUrl(`about/${currentAboutSection.id}`)
+        : buildApiUrl('about');
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: aboutFormTitle.trim(),
+          subtitle: aboutFormSubtitle.trim() || null,
+          content: aboutFormContent.trim(),
+          image_url: aboutFormImageUrl.trim() || null,
+          order_index: parseInt(aboutFormOrder, 10) || 1,
+          is_active: aboutFormIsActive
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al guardar el bloque institucional.');
+      }
+
+      showNotification('success', isEdit ? '¡Bloque institucional actualizado!' : '¡Bloque institucional creado!');
+      setIsAboutModalOpen(false);
+      await fetchAboutSectionsAdmin();
+    } catch (err) {
+      console.error('Error al guardar bloque institucional:', err);
+      showNotification('error', err.message || 'Error al conectar con el servidor.');
+    } finally {
+      setIsSavingAbout(false);
+    }
+  };
+
+  const handleToggleAboutActive = async (section) => {
+    try {
+      const res = await fetch(buildApiUrl(`about/${section.id}/toggle`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cambiar visibilidad.');
+      }
+      showNotification('success', data.message || 'Visibilidad de bloque actualizada.');
+      await fetchAboutSectionsAdmin();
+    } catch (err) {
+      console.error('Error al cambiar visibilidad:', err);
+      showNotification('error', err.message || 'Error al alternar visibilidad del bloque.');
+    }
+  };
+
+  const handleDeleteAboutSection = async (sectionId) => {
+    try {
+      const res = await fetch(buildApiUrl(`about/${sectionId}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showNotification('success', 'Bloque institucional eliminado del sistema.');
+        await fetchAboutSectionsAdmin();
+      }
+    } catch (err) {
+      console.error('Error al eliminar bloque institucional:', err);
+      showNotification('error', 'Error al eliminar el bloque.');
+    } finally {
+      setDeleteAboutConfirmId(null);
+    }
+  };
+
+  // Handlers para Videos de Instagram
+  const handleOpenCreateInstagramModal = () => {
+    setInstagramModalMode('create');
+    setCurrentInstagramVideo(null);
+    setInstagramFormTitle('');
+    setInstagramFormPostUrl('');
+    setInstagramFormThumbnailUrl('');
+    setInstagramThumbnailFileName('');
+    setInstagramFormOrder(String((safeInstagramVideos?.length || 0) + 1));
+    setInstagramFormIsActive(true);
+    setIsInstagramModalOpen(true);
+  };
+
+  const handleOpenEditInstagramModal = (video) => {
+    if (!video) return;
+    setInstagramModalMode('edit');
+    setCurrentInstagramVideo(video);
+    setInstagramFormTitle(video.title || '');
+    setInstagramFormPostUrl(video.post_url || '');
+    setInstagramFormThumbnailUrl(video.thumbnail_url || '');
+    setInstagramThumbnailFileName(video.title ? `${video.title}.jpg` : '');
+    setInstagramFormOrder(String(video.order_index ?? 1));
+    setInstagramFormIsActive(video.is_active !== false);
+    setIsInstagramModalOpen(true);
+  };
+
+  const handleSaveInstagramVideo = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!instagramFormPostUrl.trim()) {
+      showNotification('error', 'Por favor, ingresa el enlace de Instagram.');
+      return;
+    }
+
+    setIsSavingInstagram(true);
+    try {
+      const isEdit = instagramModalMode === 'edit' && currentInstagramVideo;
+      const url = isEdit
+        ? buildApiUrl(`instagram/${currentInstagramVideo.id}`)
+        : buildApiUrl('instagram');
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: instagramFormTitle.trim() || 'Video CultiShop @culti.shopp',
+          post_url: instagramFormPostUrl.trim(),
+          thumbnail_url: instagramFormThumbnailUrl.trim() || null,
+          order_index: parseInt(instagramFormOrder, 10) || 1,
+          is_active: instagramFormIsActive
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al guardar video de Instagram.');
+      }
+
+      showNotification('success', isEdit ? '¡Publicación de Instagram actualizada!' : '¡Publicación de Instagram agregada!');
+      setIsInstagramModalOpen(false);
+      await fetchInstagramVideosAdmin();
+    } catch (err) {
+      console.error('Error al guardar video de Instagram:', err);
+      showNotification('error', err.message || 'Error al conectar con el servidor.');
+    } finally {
+      setIsSavingInstagram(false);
+    }
+  };
+
+  const handleToggleInstagramActive = async (video) => {
+    try {
+      const res = await fetch(buildApiUrl(`instagram/${video.id}/toggle`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cambiar visibilidad.');
+      }
+      showNotification('success', data.message || 'Visibilidad de video actualizada.');
+      await fetchInstagramVideosAdmin();
+    } catch (err) {
+      console.error('Error al cambiar visibilidad:', err);
+      showNotification('error', err.message || 'Error al alternar visibilidad.');
+    }
+  };
+
+  const handleDeleteInstagramVideo = async (videoId) => {
+    try {
+      const res = await fetch(buildApiUrl(`instagram/${videoId}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showNotification('success', 'Publicación de Instagram eliminada del sistema.');
+        await fetchInstagramVideosAdmin();
+      }
+    } catch (err) {
+      console.error('Error al eliminar video de Instagram:', err);
+      showNotification('error', 'Error al eliminar la publicación.');
+    } finally {
+      setDeleteInstagramConfirmId(null);
+    }
   };
 
   // Guardar configuración de pagos y alias
@@ -1275,6 +1608,18 @@ export const AdminDashboard = () => {
         >
           <CreditCard size={16} />
           <span>Datos de Pago / Alias</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('institucional')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'institucional'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <BookOpen size={16} />
+          <span>Institucional & Instagram ({safeAboutSections.length + safeInstagramVideos.length})</span>
         </button>
       </div>
 
@@ -2523,6 +2868,436 @@ export const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECCIÓN 6: GESTIÓN DE INSTITUCIONAL & INSTAGRAM */}
+      {/* ============================================================ */}
+      {activeTab === 'institucional' && (
+        <div className="space-y-6">
+          {/* Cabecera y Selector de Sub-pestañas */}
+          <div className="p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e0a96d] mb-1">
+                <BookOpen size={15} />
+                <span>Gestión de Contenido Institucional</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading">
+                PÁGINA "SOBRE NOSOTROS" & VIDEOS DE INSTAGRAM
+              </h2>
+              <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
+                Controlá de forma dinámica los textos, fotos e historia de CultiShop y mantené actualizada la galería de publicaciones/reels de Instagram vinculados a tu cuenta oficial.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 p-1.5 rounded-xl bg-[#0a140d] border border-[#1f3b25] self-stretch md:self-auto">
+              <button
+                type="button"
+                onClick={() => setSubTabInstitucional('sobre-nosotros')}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  subTabInstitucional === 'sobre-nosotros'
+                    ? 'bg-[#2d5a27] text-white shadow-md'
+                    : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+                }`}
+              >
+                <FileText size={14} />
+                <span>Textos "Sobre Nosotros" ({safeAboutSections.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSubTabInstitucional('instagram')}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  subTabInstitucional === 'instagram'
+                    ? 'bg-[#2d5a27] text-white shadow-md'
+                    : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+                }`}
+              >
+                <Instagram size={14} />
+                <span>Galería de Instagram ({safeInstagramVideos.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SUB-PESTAÑA 1: BLOQUES DE "SOBRE NOSOTROS" */}
+          {subTabInstitucional === 'sobre-nosotros' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-[#4aa036]">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Bloques Narrativos Institucionales</h3>
+                    <p className="text-xs text-gray-400">
+                      Se muestran secuencialmente en la vista pública de CultiShop ordenados por su índice.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/sobre-nosotros"
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition"
+                  >
+                    <ExternalLink size={14} />
+                    <span>Ver Página Pública</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateAboutModal}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md cursor-pointer"
+                  >
+                    <Plus size={15} />
+                    <span>Crear Bloque</span>
+                  </button>
+                </div>
+              </div>
+
+              {loadingAboutSections ? (
+                <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-3">
+                  <RefreshCw className="animate-spin text-[#4aa036] mx-auto" size={32} />
+                  <p className="text-sm font-bold text-gray-300">Cargando bloques institucionales...</p>
+                </div>
+              ) : safeAboutSections.length === 0 ? (
+                <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-4">
+                  <BookOpen className="text-gray-500 mx-auto" size={48} />
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-white">No hay bloques institucionales cargados</h4>
+                    <p className="text-xs text-gray-400 max-w-md mx-auto">
+                      Comienza creando el primer bloque de historia, valores o presentación para que tus clientes conozcan CultiShop.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateAboutModal}
+                    className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition inline-flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    <span>Crear Primer Bloque</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {safeAboutSections.map((sec) => (
+                    <div
+                      key={sec.id}
+                      className="bg-[#0e1c12] border border-[#1f3b25] hover:border-[#2d5a27] rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition shadow-sm"
+                    >
+                      <div className="flex items-start gap-4 flex-grow min-w-0">
+                        {/* Miniatura de imagen si existe */}
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-[#0a140d] border border-[#23422a] shrink-0 flex items-center justify-center">
+                          {sec.image_url ? (
+                            <img
+                              src={sec.image_url}
+                              alt={sec.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-500 text-[10px]">
+                              <ImageIcon size={22} className="mb-1 text-gray-600" />
+                              <span>Sin foto</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Texto y detalles */}
+                        <div className="space-y-1 min-w-0 flex-grow">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-mono font-bold bg-[#142619] text-[#e0a96d] border border-[#23422a] px-2 py-0.5 rounded-md">
+                              Orden #{sec.order_index ?? 0}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              sec.is_active !== false
+                                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40'
+                                : 'bg-gray-800/60 text-gray-400 border-gray-600/40'
+                            }`}>
+                              {sec.is_active !== false ? '● Visible en Tienda' : '○ Oculto'}
+                            </span>
+                          </div>
+
+                          <h4 className="text-base font-bold text-white font-heading truncate">
+                            {sec.title}
+                          </h4>
+
+                          {sec.subtitle && (
+                            <p className="text-xs text-[#e0a96d] font-medium truncate">
+                              {sec.subtitle}
+                            </p>
+                          )}
+
+                          <p className="text-xs text-gray-400 line-clamp-2 max-w-3xl leading-relaxed">
+                            {sec.content}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAboutActive(sec)}
+                          className={`p-2 rounded-xl border transition cursor-pointer ${
+                            sec.is_active !== false
+                              ? 'bg-[#142619] text-gray-400 hover:text-white border-[#23422a]'
+                              : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40'
+                          }`}
+                          title={sec.is_active !== false ? 'Ocultar bloque' : 'Hacer visible'}
+                        >
+                          {sec.is_active !== false ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditAboutModal(sec)}
+                          className="p-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition cursor-pointer"
+                          title="Editar bloque institucional"
+                        >
+                          <Edit size={15} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteAboutConfirmId(sec.id)}
+                          className="p-2 rounded-xl bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 transition cursor-pointer"
+                          title="Eliminar bloque"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+
+                      {/* Confirmación de eliminación inline */}
+                      {deleteAboutConfirmId === sec.id && (
+                        <div className="w-full mt-2 p-3 rounded-xl bg-red-950/50 border border-red-500/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                          <span className="text-red-200">
+                            ¿Estás seguro de eliminar el bloque <strong>"{sec.title}"</strong>?
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setDeleteAboutConfirmId(null)}
+                              className="px-3 py-1 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 text-xs"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAboutSection(sec.id)}
+                              className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs"
+                            >
+                              Confirmar Eliminación
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-PESTAÑA 2: VIDEOS Y REELS DE INSTAGRAM */}
+          {subTabInstitucional === 'instagram' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-[#e0a96d]">
+                    <Instagram size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Galería de Videos y Publicaciones de Instagram</h3>
+                    <p className="text-xs text-gray-400">
+                      Aparecerán en la cuadrícula interactiva de "Sobre Nosotros" con enlaces directos a Instagram.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://instagram.com/culti.shopp"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition"
+                  >
+                    <Instagram size={14} />
+                    <span>Ver @culti.shopp</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateInstagramModal}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md cursor-pointer"
+                  >
+                    <Plus size={15} />
+                    <span>Agregar Video</span>
+                  </button>
+                </div>
+              </div>
+
+              {loadingInstagramVideos ? (
+                <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-3">
+                  <RefreshCw className="animate-spin text-[#4aa036] mx-auto" size={32} />
+                  <p className="text-sm font-bold text-gray-300">Cargando publicaciones de Instagram...</p>
+                </div>
+              ) : safeInstagramVideos.length === 0 ? (
+                <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-4">
+                  <Instagram className="text-gray-500 mx-auto" size={48} />
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-white">No hay publicaciones de Instagram cargadas</h4>
+                    <p className="text-xs text-gray-400 max-w-md mx-auto">
+                      Copia el enlace de tus reels o fotos de @culti.shopp para destacarlos en la galería de la tienda.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateInstagramModal}
+                    className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition inline-flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    <span>Agregar Primer Video</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {safeInstagramVideos.map((vid) => (
+                    <div
+                      key={vid.id}
+                      className="bg-[#0e1c12] border border-[#1f3b25] hover:border-[#2d5a27] rounded-2xl overflow-hidden flex flex-col justify-between transition shadow-md group"
+                    >
+                      {/* Portada / Miniatura */}
+                      <div className="h-44 relative bg-[#0a140d] overflow-hidden flex items-center justify-center">
+                        {vid.thumbnail_url ? (
+                          <img
+                            src={vid.thumbnail_url}
+                            alt={vid.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+                            <Video size={32} className="text-[#e0a96d] mb-1 opacity-70" />
+                            <span className="text-[10px]">CultiShop Instagram Reel</span>
+                          </div>
+                        )}
+
+                        {/* Badges superiores */}
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono font-bold bg-black/70 backdrop-blur-md text-[#e0a96d] px-2 py-0.5 rounded-md border border-white/10">
+                            #{vid.order_index ?? 0}
+                          </span>
+                        </div>
+
+                        <div className="absolute top-2.5 right-2.5">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full backdrop-blur-md border ${
+                            vid.is_active !== false
+                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                              : 'bg-black/80 text-gray-400 border-gray-600/50'
+                          }`}>
+                            {vid.is_active !== false ? '● Visible' : '○ Oculto'}
+                          </span>
+                        </div>
+
+                        {/* Ícono de Instagram / Play central */}
+                        <a
+                          href={vid.post_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="absolute inset-0 bg-black/30 hover:bg-black/10 flex items-center justify-center transition"
+                          title="Abrir en Instagram"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:scale-110 transition shadow-lg">
+                            <Play size={18} className="fill-current translate-x-0.5 text-[#e0a96d]" />
+                          </div>
+                        </a>
+                      </div>
+
+                      {/* Info y Pie */}
+                      <div className="p-3.5 space-y-2 flex-grow flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-white line-clamp-2 leading-snug">
+                            {vid.title || 'Video CultiShop @culti.shopp'}
+                          </h4>
+                          <a
+                            href={vid.post_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] text-[#e0a96d] hover:underline flex items-center gap-1 mt-1 truncate"
+                          >
+                            <ExternalLink size={11} className="shrink-0" />
+                            <span className="truncate">{vid.post_url}</span>
+                          </a>
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="pt-2 border-t border-[#18311d] flex items-center justify-between gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleInstagramActive(vid)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 ${
+                              vid.is_active !== false
+                                ? 'bg-[#142619] text-gray-400 hover:text-white border-[#23422a]'
+                                : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40'
+                            }`}
+                          >
+                            {vid.is_active !== false ? <EyeOff size={12} /> : <Eye size={12} />}
+                            <span>{vid.is_active !== false ? 'Ocultar' : 'Mostrar'}</span>
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditInstagramModal(vid)}
+                              className="p-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition cursor-pointer"
+                              title="Editar publicación"
+                            >
+                              <Edit size={13} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeleteInstagramConfirmId(vid.id)}
+                              className="p-1.5 rounded-lg bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 transition cursor-pointer"
+                              title="Eliminar publicación"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Confirmación de eliminación inline */}
+                        {deleteInstagramConfirmId === vid.id && (
+                          <div className="mt-2 p-2.5 rounded-xl bg-red-950/80 border border-red-500/50 space-y-2 text-xs">
+                            <span className="text-red-200 block text-[11px]">
+                              ¿Eliminar este video de Instagram?
+                            </span>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setDeleteInstagramConfirmId(null)}
+                                className="px-2.5 py-1 rounded bg-[#142619] text-gray-300 text-[10px]"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteInstagramVideo(vid.id)}
+                                className="px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 text-white font-bold text-[10px]"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -4006,6 +4781,331 @@ export const AdminDashboard = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL PARA CREAR / EDITAR BLOQUE "SOBRE NOSOTROS" */}
+      {/* ============================================================ */}
+      {isAboutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-5 sm:p-7 shadow-2xl my-6 flex flex-col max-h-[92vh]">
+            <div className="flex items-start justify-between pb-3 border-b border-[#1f3b25] shrink-0">
+              <div>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  aboutModalMode === 'create' ? 'bg-[#2d5a27] text-white' : 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                }`}>
+                  {aboutModalMode === 'create' ? 'Nuevo Bloque' : 'Editar Bloque'}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading mt-1">
+                  {aboutModalMode === 'create' ? 'Crear Bloque "Sobre Nosotros"' : 'Modificar Bloque Institucional'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAboutModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#142619] transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAboutSection} className="space-y-4 py-4 overflow-y-auto pr-1 flex-grow">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Título del Bloque *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={aboutFormTitle}
+                  onChange={(e) => setAboutFormTitle(e.target.value)}
+                  placeholder="Ej: Nuestra Historia & Pasión por el Cultivo"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Subtítulo o Destacado (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={aboutFormSubtitle}
+                  onChange={(e) => setAboutFormSubtitle(e.target.value)}
+                  placeholder="Ej: Desde Posadas hacia toda la región"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Contenido / Texto Explicativo *
+                </label>
+                <textarea
+                  rows={5}
+                  required
+                  value={aboutFormContent}
+                  onChange={(e) => setAboutFormContent(e.target.value)}
+                  placeholder="Describe la historia, propuesta de valor, asesoramiento técnico o compromiso institucional de CultiShop..."
+                  className="w-full p-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none"
+                />
+              </div>
+
+              {/* Selector de Imagen (Local o URL) */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-300">
+                  Imagen Ilustrativa del Bloque
+                </label>
+                <input
+                  ref={aboutFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImageFileChange(file, setAboutFormImageUrl, setAboutImageFileName);
+                    }
+                  }}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                  <div className="sm:col-span-2 space-y-2">
+                    <input
+                      type="url"
+                      value={aboutFormImageUrl}
+                      onChange={(e) => setAboutFormImageUrl(e.target.value)}
+                      placeholder="https://... o sube una imagen desde tu equipo"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => aboutFileInputRef.current?.click()}
+                      className="w-full py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                    >
+                      <Upload size={14} />
+                      <span>{aboutImageFileName ? `Archivo: ${aboutImageFileName}` : 'Subir Imagen Local'}</span>
+                    </button>
+                  </div>
+
+                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center">
+                    {aboutFormImageUrl ? (
+                      <img src={aboutFormImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] text-gray-500">Sin vista previa</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Orden de Visualización
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={aboutFormOrder}
+                    onChange={(e) => setAboutFormOrder(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={aboutFormIsActive}
+                      onChange={(e) => setAboutFormIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                    />
+                    <span>Bloque Visible en la Tienda Pública</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+                <button
+                  type="button"
+                  onClick={() => setIsAboutModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAbout}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={15} />
+                  <span>{isSavingAbout ? 'Guardando...' : 'Guardar Bloque'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL PARA AGREGAR / EDITAR VIDEO DE INSTAGRAM */}
+      {/* ============================================================ */}
+      {isInstagramModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-5 sm:p-7 shadow-2xl my-6 flex flex-col max-h-[92vh]">
+            <div className="flex items-start justify-between pb-3 border-b border-[#1f3b25] shrink-0">
+              <div>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  instagramModalMode === 'create' ? 'bg-[#2d5a27] text-white' : 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                }`}>
+                  {instagramModalMode === 'create' ? 'Nueva Publicación' : 'Editar Publicación'}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading mt-1">
+                  {instagramModalMode === 'create' ? 'Agregar Video / Reel de Instagram' : 'Modificar Publicación de Instagram'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsInstagramModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#142619] transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveInstagramVideo} className="space-y-4 py-4 overflow-y-auto pr-1 flex-grow">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Enlace de Instagram (URL del Reel, Post o Video) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-gray-400">
+                    <Instagram size={14} />
+                  </span>
+                  <input
+                    type="url"
+                    required
+                    value={instagramFormPostUrl}
+                    onChange={(e) => setInstagramFormPostUrl(e.target.value)}
+                    placeholder="https://www.instagram.com/reel/C..."
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  Pega el link directo copiado desde Instagram al compartir el video o reel.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Título o Pie de Foto Descriptivo
+                </label>
+                <input
+                  type="text"
+                  value={instagramFormTitle}
+                  onChange={(e) => setInstagramFormTitle(e.target.value)}
+                  placeholder="Ej: Cómo fertilizar en floración con Namasté"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                />
+              </div>
+
+              {/* Selector de Miniatura */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-300">
+                  Imagen de Portada / Miniatura (Thumbnail)
+                </label>
+                <input
+                  ref={instagramFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImageFileChange(file, setInstagramFormThumbnailUrl, setInstagramThumbnailFileName);
+                    }
+                  }}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                  <div className="sm:col-span-2 space-y-2">
+                    <input
+                      type="url"
+                      value={instagramFormThumbnailUrl}
+                      onChange={(e) => setInstagramFormThumbnailUrl(e.target.value)}
+                      placeholder="https://... o sube la captura de portada"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => instagramFileInputRef.current?.click()}
+                      className="w-full py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                    >
+                      <Upload size={14} />
+                      <span>{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Subir Portada'}</span>
+                    </button>
+                  </div>
+
+                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center">
+                    {instagramFormThumbnailUrl ? (
+                      <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <Video size={20} className="mb-0.5 text-gray-600" />
+                        <span className="text-[9px]">Sin portada</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Orden de Cuadrícula
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={instagramFormOrder}
+                    onChange={(e) => setInstagramFormOrder(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={instagramFormIsActive}
+                      onChange={(e) => setInstagramFormIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                    />
+                    <span>Publicación Visible en la Galería</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+                <button
+                  type="button"
+                  onClick={() => setIsInstagramModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingInstagram}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={15} />
+                  <span>{isSavingInstagram ? 'Guardando...' : 'Guardar Video'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
