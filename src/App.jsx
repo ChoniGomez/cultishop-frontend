@@ -12,6 +12,7 @@ import { FavoritesView } from './components/FavoritesView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ProductDetail } from './components/ProductDetail';
 import { CheckoutView } from './components/CheckoutView';
+import { AboutView } from './components/AboutView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
@@ -71,7 +72,7 @@ function App() {
                 <Route path="/producto/:id/:slug" element={<ProductDetail />} />
                 <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />
                 <Route path="/categoria/:slug" element={<ProductSection />} />
-                <Route path="/sobre-nosotros" element={<PlaceholderPage title="Sobre CultiShop" description="Somos CultiShop. Te brindamos los mejores insumos para que tu cultivo crezca sano y productivo." />} />
+                <Route path="/sobre-nosotros" element={<AboutView />} />
                 <Route path="/faq" element={<PlaceholderPage title="Preguntas Frecuentes" description="¿Dudas sobre dosis de fertilizantes, combate de plagas o transporte bajo Ley 27.350? Escribinos." />} />
                 <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
                 <Route path="/favoritos" element={<FavoritesView />} />
@@ -102,7 +103,7 @@ function App() {
 
         {/* FOOTER CORPORATIVO CULTISHOP */}
         <footer className="bg-[#08100a] text-gray-400 border-t border-[#162a1b] pt-14 pb-8">
-          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             {/* Columna 1: Marca CultiShop */}
             <div className="space-y-3">
               <CultiShopLogo size="md" />
@@ -148,15 +149,55 @@ function App() {
               </ul>
             </div>
 
-            {/* Columna 3: Contacto Oficial */}
+            {/* Columna 3: Institucional & Comunidad */}
             <div className="space-y-3">
               <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
-                Contacto Oficial
+                Institucional & Comunidad
+              </h4>
+              <ul className="text-xs space-y-2">
+                <li>
+                  <Link to="/sobre-nosotros" className="text-gray-300 hover:text-[#4aa036] transition font-medium flex items-center gap-1.5">
+                    <span>Sobre Nosotros (Historia & Valores)</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/sobre-nosotros#instagram-videos" className="text-gray-300 hover:text-[#e0a96d] transition flex items-center gap-1.5">
+                    <Instagram size={13} className="text-[#e0a96d]" />
+                    <span>Galería de Videos Instagram</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/faq" className="hover:text-[#4aa036] transition">
+                    Preguntas Frecuentes (FAQ)
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/finalizar-compra" className="hover:text-[#4aa036] transition">
+                    Finalizar Compra / Checkout
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="https://instagram.com/culti.shopp"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#e0a96d] hover:underline transition flex items-center gap-1"
+                  >
+                    <span>Seguinos en @culti.shopp &rarr;</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Columna 4: Contacto Oficial & Local */}
+            <div className="space-y-3">
+              <h4 className="text-white font-bold text-sm uppercase tracking-wider font-heading">
+                Local Físico & Contacto
               </h4>
               <ul className="text-xs space-y-2.5">
                 <li className="flex items-start gap-2">
                   <MapPin size={15} className="text-[#e0a96d] shrink-0 mt-0.5" />
-                  <span>Av. López y Planes 2919, Posadas, Misiones</span>
+                  <span>Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <WhatsAppIcon size={15} className="text-[#25d366] shrink-0" />
@@ -169,6 +210,9 @@ function App() {
                   <a href="https://instagram.com/culti.shopp" target="_blank" rel="noreferrer" className="hover:text-white transition">
                     @culti.shopp
                   </a>
+                </li>
+                <li className="text-[11px] text-gray-400 pt-1 border-t border-[#162a1b]">
+                  Lunes a Sábados • Envíos a todo Misiones y el país.
                 </li>
               </ul>
             </div>
