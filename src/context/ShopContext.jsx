@@ -10,6 +10,9 @@ const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
 const PRODUCTS_STORAGE_KEY = 'cultishop_products_v3';
 const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché local
+const CATEGORIES_STORAGE_KEY = 'cultishop_categories_v2';
+const CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de validez para categorías
+const SETTINGS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos de validez para configuración
 const PAYMENT_SETTINGS_KEY = 'cultishop_payment_settings_v1';
 
 export const DEFAULT_PAYMENT_SETTINGS = {
@@ -296,11 +299,34 @@ export const ShopProvider = ({ children }) => {
     return true;
   });
 
-  const [categories, setCategories] = useState(CATEGORIES);
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.timestamp && (Date.now() - parsed.timestamp < CATEGORIES_CACHE_TTL_MS) && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+          return parsed.categories;
+        }
+      }
+    } catch {}
+    return CATEGORIES;
+  });
   const [loadingCategories, setLoadingCategories] = useState(false);
 
-  // Cargar categorías y subcategorías desde la base de datos
-  const fetchCategories = async () => {
+  // Cargar categorías y subcategorías desde la base de datos con caché local inteligente
+  const fetchCategories = async (force = false) => {
+    if (!force) {
+      try {
+        const saved = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.timestamp && (Date.now() - parsed.timestamp < CATEGORIES_CACHE_TTL_MS) && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setLoadingCategories(true);
     try {
       const res = await fetch(buildApiUrl('categories'));
@@ -308,6 +334,12 @@ export const ShopProvider = ({ children }) => {
         const data = await res.json();
         if (Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
+          try {
+            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              categories: data.categories
+            }));
+          } catch {}
         }
       }
     } catch (err) {
@@ -323,14 +355,31 @@ export const ShopProvider = ({ children }) => {
   const [paymentSettings, setPaymentSettings] = useState(() => {
     try {
       const saved = localStorage.getItem(PAYMENT_SETTINGS_KEY);
-      return saved ? { ...DEFAULT_PAYMENT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_PAYMENT_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const data = parsed?.data || parsed;
+        return { ...DEFAULT_PAYMENT_SETTINGS, ...data };
+      }
     } catch {
       return DEFAULT_PAYMENT_SETTINGS;
     }
+    return DEFAULT_PAYMENT_SETTINGS;
   });
   const [loadingPaymentSettings, setLoadingPaymentSettings] = useState(false);
 
-  const fetchPaymentSettings = async () => {
+  const fetchPaymentSettings = async (force = false) => {
+    if (!force) {
+      try {
+        const saved = localStorage.getItem(PAYMENT_SETTINGS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.timestamp && (Date.now() - parsed.timestamp < SETTINGS_CACHE_TTL_MS) && parsed.data) {
+            return parsed.data;
+          }
+        }
+      } catch {}
+    }
+
     setLoadingPaymentSettings(true);
     try {
       const res = await fetch(buildApiUrl('settings/payment'));
@@ -340,7 +389,10 @@ export const ShopProvider = ({ children }) => {
           const merged = { ...DEFAULT_PAYMENT_SETTINGS, ...data.payment };
           setPaymentSettings(merged);
           try {
-            localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify(merged));
+            localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              data: merged
+            }));
           } catch {}
           return merged;
         }
@@ -372,7 +424,10 @@ export const ShopProvider = ({ children }) => {
       const updated = { ...DEFAULT_PAYMENT_SETTINGS, ...(data.payment || newSettings) };
       setPaymentSettings(updated);
       try {
-        localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify(updated));
+        localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
+          timestamp: Date.now(),
+          data: updated
+        }));
       } catch {}
 
       return { success: true, payment: updated, message: data.message };
@@ -387,14 +442,31 @@ export const ShopProvider = ({ children }) => {
   const [locationSettings, setLocationSettings] = useState(() => {
     try {
       const saved = localStorage.getItem(LOCATION_SETTINGS_KEY);
-      return saved ? { ...DEFAULT_LOCATION_SETTINGS, ...JSON.parse(saved) } : DEFAULT_LOCATION_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const data = parsed?.data || parsed;
+        return { ...DEFAULT_LOCATION_SETTINGS, ...data };
+      }
     } catch {
       return DEFAULT_LOCATION_SETTINGS;
     }
+    return DEFAULT_LOCATION_SETTINGS;
   });
   const [loadingLocationSettings, setLoadingLocationSettings] = useState(false);
 
-  const fetchLocationSettings = async () => {
+  const fetchLocationSettings = async (force = false) => {
+    if (!force) {
+      try {
+        const saved = localStorage.getItem(LOCATION_SETTINGS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.timestamp && (Date.now() - parsed.timestamp < SETTINGS_CACHE_TTL_MS) && parsed.data) {
+            return parsed.data;
+          }
+        }
+      } catch {}
+    }
+
     setLoadingLocationSettings(true);
     try {
       const res = await fetch(buildApiUrl('settings/location'));
@@ -404,7 +476,10 @@ export const ShopProvider = ({ children }) => {
           const merged = { ...DEFAULT_LOCATION_SETTINGS, ...data.location };
           setLocationSettings(merged);
           try {
-            localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(merged));
+            localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              data: merged
+            }));
           } catch {}
           return merged;
         }
@@ -436,7 +511,10 @@ export const ShopProvider = ({ children }) => {
       const updated = { ...DEFAULT_LOCATION_SETTINGS, ...(data.location || newSettings) };
       setLocationSettings(updated);
       try {
-        localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(updated));
+        localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
+          timestamp: Date.now(),
+          data: updated
+        }));
       } catch {}
 
       return { success: true, location: updated, message: data.message };
@@ -446,7 +524,20 @@ export const ShopProvider = ({ children }) => {
   };
 
   // Sincronizar con Backend y persistir en LocalStorage con control de versión
-  const fetchProducts = async () => {
+  const fetchProducts = async (force = false) => {
+    if (!force) {
+      try {
+        const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.timestamp && (Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
+            setLoadingProducts(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setLoadingProducts(true);
     try {
       const res = await fetch(buildApiUrl('products'));

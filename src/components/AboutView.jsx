@@ -268,19 +268,36 @@ export const AboutView = () => {
 
     const fetchPublicData = async () => {
       try {
-        // 1. Cargar bloques institucionales con respaldo seguro
+        // 1. Intentar llamada consolidada al bundle institucional (1 sola petición optimizada)
+        const res = await fetch(buildApiUrl('about/bundle')).catch(() => null);
+        if (res && res.ok) {
+          const bundle = await res.json().catch(() => null);
+          if (isMounted && bundle) {
+            const loadedSections = bundle.about || bundle.sections || bundle.data;
+            if (Array.isArray(loadedSections) && loadedSections.length > 0) {
+              setSections(loadedSections);
+            }
+
+            const loadedVideos = bundle.instagram || bundle.videos;
+            if (Array.isArray(loadedVideos) && loadedVideos.length > 0) {
+              setInstagramVideos(loadedVideos);
+            }
+            return;
+          }
+        }
+
+        // 2. Respaldo contingente individual si bundle no responde
         const aboutPromise = fetch(buildApiUrl('about'))
-          .then(async (res) => {
-            if (!res.ok) return null;
-            try { return await res.json(); } catch { return null; }
+          .then(async (r) => {
+            if (!r.ok) return null;
+            try { return await r.json(); } catch { return null; }
           })
           .catch(() => null);
 
-        // 2. Cargar videos de Instagram con respaldo seguro
         const instaPromise = fetch(buildApiUrl('instagram'))
-          .then(async (res) => {
-            if (!res.ok) return null;
-            try { return await res.json(); } catch { return null; }
+          .then(async (r) => {
+            if (!r.ok) return null;
+            try { return await r.json(); } catch { return null; }
           })
           .catch(() => null);
 

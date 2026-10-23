@@ -635,18 +635,46 @@ export const AdminDashboard = () => {
     }
   };
 
+  const loadedTabsRef = useRef(new Set());
+
+  // Carga bajo demanda por pestaña activa: evita ejecutar 8 llamadas concurrentes al entrar a /admin
   useEffect(() => {
-    fetchBannersAdmin();
-    fetchAdminCategories();
-    fetchAboutSectionsAdmin();
-    fetchInstagramVideosAdmin();
-    fetchFaqsAdmin();
-    if (isAdmin) {
-      fetchProducts();
-      fetchOrders();
-      if (fetchCategories) fetchCategories();
+    if (!isAdmin) return;
+
+    if (activeTab === 'productos') {
+      if (!loadedTabsRef.current.has('productos')) {
+        loadedTabsRef.current.add('productos');
+        fetchProducts();
+        fetchAdminCategories();
+      }
+    } else if (activeTab === 'pedidos') {
+      if (!loadedTabsRef.current.has('pedidos')) {
+        loadedTabsRef.current.add('pedidos');
+        fetchOrders();
+      }
+    } else if (activeTab === 'banners') {
+      if (!loadedTabsRef.current.has('banners')) {
+        loadedTabsRef.current.add('banners');
+        fetchBannersAdmin();
+      }
+    } else if (activeTab === 'categorias') {
+      if (!loadedTabsRef.current.has('categorias')) {
+        loadedTabsRef.current.add('categorias');
+        fetchAdminCategories();
+      }
+    } else if (activeTab === 'institucional') {
+      if (!loadedTabsRef.current.has('institucional')) {
+        loadedTabsRef.current.add('institucional');
+        fetchAboutSectionsAdmin();
+        fetchInstagramVideosAdmin();
+      }
+    } else if (activeTab === 'faq') {
+      if (!loadedTabsRef.current.has('faq')) {
+        loadedTabsRef.current.add('faq');
+        fetchFaqsAdmin();
+      }
     }
-  }, [isAdmin, token]);
+  }, [activeTab, isAdmin, token]);
 
   const handleOpenCreateCategoryModal = (parentId = null) => {
     setEditingCategory(null);
