@@ -7,13 +7,15 @@ import {
   ExternalLink, 
   ShieldCheck, 
   MapPin, 
-    HeartHandshake, 
+  HeartHandshake, 
   Leaf, 
   ArrowRight, 
   RefreshCw,
   Video,
   CheckCircle2,
-  PhoneCall
+  PhoneCall,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { buildApiUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -79,6 +81,155 @@ const FALLBACK_INSTAGRAM_VIDEOS = [
   }
 ];
 
+/**
+ * ErrorBoundary específico para aislar fallos por sección y evitar caídas generales
+ */
+class SectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn(`[SectionErrorBoundary] Error contenido en "${this.props.sectionName || 'Sección'}":`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="p-6 rounded-2xl bg-[#0e1c12] border border-[#23422a] text-center space-y-3">
+            <AlertTriangle className="text-amber-400 mx-auto" size={32} />
+            <h3 className="text-sm font-bold text-white">Contenido en sincronización</h3>
+            <p className="text-xs text-gray-400 max-w-md mx-auto">
+              Esta sección está actualizándose temporalmente. Podés continuar navegando en el resto del sitio o recargar.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/**
+ * Contenedor interactivo y resiliente para el mapa de Google Maps
+ */
+const GoogleMapFrame = ({ embedUrl, googleMapsUrl, address }) => {
+  const [mapError, setMapError] = useState(false);
+  const [mapLoading, setMapLoading] = useState(true);
+
+  const safeEmbedUrl = embedUrl && typeof embedUrl === 'string' && embedUrl.trim()
+    ? embedUrl.trim()
+    : DEFAULT_LOCATION_SETTINGS.google_maps_embed_url;
+
+  const safeGpsUrl = googleMapsUrl || DEFAULT_LOCATION_SETTINGS.google_maps_url;
+  const safeAddressText = address || DEFAULT_LOCATION_SETTINGS.address;
+
+  return (
+    <div className="h-full min-h-[400px] sm:min-h-[480px] rounded-3xl bg-[#0a140d] border-2 border-[#2d5a27] shadow-2xl overflow-hidden flex flex-col relative group">
+      {/* Barra superior del contenedor */}
+      <div className="px-4 py-3 bg-[#0e1c12] border-b border-[#1f3b25] flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${mapError ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+          <span className="font-bold text-white text-[11px] sm:text-xs">
+            {mapError ? 'Ubicación CultiShop • Posadas' : 'Mapa en Vivo • CultiShop Posadas'}
+          </span>
+        </div>
+
+        <a
+          href={safeGpsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-[#e0a96d] hover:text-white transition font-medium text-[11px] inline-flex items-center gap-1"
+        >
+          <span>Abrir en Google Maps</span>
+          <ExternalLink size={12} />
+        </a>
+      </div>
+
+      {/* iFrame interactivo de Google Maps o contenedor de respaldo elegante */}
+      <div className="relative flex-grow w-full bg-[#070e09] flex flex-col items-center justify-center">
+        {!mapError ? (
+          <>
+            {mapLoading && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#070e09]/80 backdrop-blur-sm space-y-2 pointer-events-none">
+                <RefreshCw className="animate-spin text-[#4aa036]" size={26} />
+                <span className="text-xs text-gray-400 font-medium">Cargando mapa interactivo...</span>
+              </div>
+            )}
+            <iframe
+              title="Ubicación y mapa interactivo de CultiShop en Posadas, Misiones"
+              src={safeEmbedUrl}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              onLoad={() => setMapLoading(false)}
+              onError={() => {
+                setMapError(true);
+                setMapLoading(false);
+              }}
+              className="w-full h-full min-h-[350px] sm:min-h-[410px] block"
+            />
+          </>
+        ) : (
+          <div className="p-8 text-center space-y-4 max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-[#142619] border border-[#2d5a27] text-[#e0a96d] flex items-center justify-center mx-auto shadow-inner">
+              <MapPin size={32} />
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-sm sm:text-base font-bold text-white">
+                Av. López y Planes 2919
+              </h4>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                {safeAddressText}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+              <a
+                href={safeGpsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition shadow"
+              >
+                <ExternalLink size={14} />
+                <span>Abrir GPS en Google Maps</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapError(false);
+                  setMapLoading(true);
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition cursor-pointer"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Pie con dirección y consejos de navegación */}
+      <div className="px-4 py-2.5 bg-[#0e1c12]/95 border-t border-[#1f3b25] flex items-center justify-between text-[11px] text-gray-400">
+        <span className="truncate">
+          📍 {safeAddressText}
+        </span>
+        <span className="hidden sm:inline text-gray-500 shrink-0">
+          {!mapError ? 'Arrastra o usa +/- para navegar en el mapa' : 'Punto oficial de atención presencial'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const AboutView = () => {
   const { locationSettings } = useShop();
   const currentLocation = {
@@ -86,27 +237,27 @@ export const AboutView = () => {
     ...(locationSettings || {})
   };
 
-  const safeAddress = currentLocation.address || DEFAULT_LOCATION_SETTINGS.address;
-  const safeHours = currentLocation.hours || DEFAULT_LOCATION_SETTINGS.hours;
-  const safePhone = currentLocation.phone || DEFAULT_LOCATION_SETTINGS.phone;
+  const safeAddress = currentLocation.address || currentLocation.store_address || DEFAULT_LOCATION_SETTINGS.address;
+  const safeHours = currentLocation.hours || currentLocation.store_hours || DEFAULT_LOCATION_SETTINGS.hours;
+  const safePhone = currentLocation.phone || currentLocation.store_phone || DEFAULT_LOCATION_SETTINGS.phone;
   const safeGoogleMapsUrl = currentLocation.google_maps_url || DEFAULT_LOCATION_SETTINGS.google_maps_url;
   const safeEmbedUrl = currentLocation.google_maps_embed_url || DEFAULT_LOCATION_SETTINGS.google_maps_embed_url;
 
-  // Inicializar siempre con datos por defecto para garantizar un renderizado instantáneo sin pantallas en blanco
+  // Inicializar siempre con datos de respaldo para garantizar un primer pintado instantáneo y sin pantallas en blanco
   const [sections, setSections] = useState(FALLBACK_ABOUT_SECTIONS);
   const [instagramVideos, setInstagramVideos] = useState(FALLBACK_INSTAGRAM_VIDEOS);
-  const [loading, setLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Si viene con ancla (#visitanos o #instagram-videos), realizar scroll suave al elemento
     if (window.location.hash) {
       const hash = window.location.hash;
       const timer = setTimeout(() => {
-        const el = document.querySelector(hash);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }
+        try {
+          const el = document.querySelector(hash);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        } catch {}
       }, 150);
       return () => clearTimeout(timer);
     } else {
@@ -116,7 +267,6 @@ export const AboutView = () => {
     let isMounted = true;
 
     const fetchPublicData = async () => {
-      setIsRefreshing(true);
       try {
         // 1. Cargar bloques institucionales con respaldo seguro
         const aboutPromise = fetch(buildApiUrl('about'))
@@ -149,11 +299,6 @@ export const AboutView = () => {
         }
       } catch (err) {
         console.warn('Aviso al refrescar información de Sobre Nosotros, manteniendo datos de respaldo:', err?.message || err);
-      } finally {
-        if (isMounted) {
-          setIsRefreshing(false);
-          setLoading(false);
-        }
       }
     };
 
@@ -164,65 +309,71 @@ export const AboutView = () => {
     };
   }, []);
 
+  const safeSections = Array.isArray(sections) && sections.length > 0 ? sections : FALLBACK_ABOUT_SECTIONS;
+  const safeVideos = Array.isArray(instagramVideos) && instagramVideos.length > 0 ? instagramVideos : FALLBACK_INSTAGRAM_VIDEOS;
+
   return (
     <div className="min-h-screen bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white pb-20">
       {/* ============================================================ */}
       {/* 1. HERO INSTITUCIONAL CULTISHOP */}
       {/* ============================================================ */}
-      <section className="relative overflow-hidden border-b border-[#1b3420] bg-gradient-to-b from-[#0e1d13] via-[#0b160f] to-[#0a140d] pt-12 pb-16 sm:pt-16 sm:pb-24">
-        {/* Luces y destellos decorativos de fondo */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-[#4aa036]/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 right-10 w-[400px] h-[300px] bg-[#e0a96d]/10 blur-[100px] rounded-full pointer-events-none" />
+      <SectionErrorBoundary sectionName="Hero Institucional">
+        <section className="relative overflow-hidden border-b border-[#1b3420] bg-gradient-to-b from-[#0e1d13] via-[#0b160f] to-[#0a140d] pt-12 pb-16 sm:pt-16 sm:pb-24">
+          {/* Luces y destellos decorativos de fondo */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-[#4aa036]/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 right-10 w-[400px] h-[300px] bg-[#e0a96d]/10 blur-[100px] rounded-full pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-4 relative z-10 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#142619] border border-[#2d5a27] text-xs font-bold text-[#e0a96d] shadow-sm">
-            <BookOpen size={14} className="text-[#e0a96d]" />
-            <span className="tracking-widest uppercase">SOBRE CULTISHOP • POSADAS, MISIONES</span>
+          <div className="max-w-6xl mx-auto px-4 relative z-10 text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#142619] border border-[#2d5a27] text-xs font-bold text-[#e0a96d] shadow-sm">
+              <BookOpen size={14} className="text-[#e0a96d]" />
+              <span className="tracking-widest uppercase">SOBRE CULTISHOP • POSADAS, MISIONES</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white font-heading tracking-tight max-w-4xl mx-auto leading-tight">
+              PASIÓN POR EL CULTIVO, <br />
+              <span className="text-[#e0a96d] text-glow-gold">SANIDAD VEGETAL</span> Y COMUNIDAD
+            </h1>
+
+            <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed font-sans">
+              Somos tu grow shop especializado en Misiones. Te acompañamos con insumos seleccionados de máxima pureza, asesoramiento agronómico cercano y soluciones reales para cada etapa de tu cultivo.
+            </p>
+
+            {/* Pilares / Valores destacados */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 max-w-4xl mx-auto">
+              <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
+                <Leaf size={22} className="text-[#4aa036]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Insumos Oficiales</span>
+                <span className="text-[11px] text-gray-400">Namasté, Mamboretá & más</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
+                <HeartHandshake size={22} className="text-[#e0a96d]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Asesoría Técnica</span>
+                <span className="text-[11px] text-gray-400">Respuestas para cada fase</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
+                <ShieldCheck size={22} className="text-[#4aa036]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Ley 27.350</span>
+                <span className="text-[11px] text-gray-400">Apoyo a Reprocann</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
+                <MapPin size={22} className="text-[#e0a96d]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Local en Posadas</span>
+                <span className="text-[11px] text-gray-400">Av. López y Planes 2919</span>
+              </div>
+            </div>
           </div>
-
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white font-heading tracking-tight max-w-4xl mx-auto leading-tight">
-            PASIÓN POR EL CULTIVO, <br />
-            <span className="text-[#e0a96d] text-glow-gold">SANIDAD VEGETAL</span> Y COMUNIDAD
-          </h1>
-
-          <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed font-sans">
-            Somos tu grow shop especializado en Misiones. Te acompañamos con insumos seleccionados de máxima pureza, asesoramiento agronómico cercano y soluciones reales para cada etapa de tu cultivo.
-          </p>
-
-          {/* Pilares / Valores destacados */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 max-w-4xl mx-auto">
-            <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
-              <Leaf size={22} className="text-[#4aa036]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Insumos Oficiales</span>
-              <span className="text-[11px] text-gray-400">Namasté, Mamboretá & más</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
-              <HeartHandshake size={22} className="text-[#e0a96d]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Asesoría Técnica</span>
-              <span className="text-[11px] text-gray-400">Respuestas para cada fase</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
-              <ShieldCheck size={22} className="text-[#4aa036]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Ley 27.350</span>
-              <span className="text-[11px] text-gray-400">Apoyo a Reprocann</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
-              <MapPin size={22} className="text-[#e0a96d]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Local en Posadas</span>
-              <span className="text-[11px] text-gray-400">Av. López y Planes 2919</span>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </SectionErrorBoundary>
 
       {/* ============================================================ */}
       {/* 2. BLOQUES NARRATIVOS INSTITUCIONALES (ABOUT_SECTIONS) */}
       {/* ============================================================ */}
-      <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24 space-y-16 sm:space-y-24">
-        {(Array.isArray(sections) && sections.length > 0 ? sections : FALLBACK_ABOUT_SECTIONS).map((section, index) => {
+      <SectionErrorBoundary sectionName="Historia y Valores">
+        <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24 space-y-16 sm:space-y-24">
+          {safeSections.map((section, index) => {
             const isReversed = index % 2 !== 0;
 
             return (
@@ -289,54 +440,51 @@ export const AboutView = () => {
               </div>
             );
           })}
-      </section>
+        </section>
+      </SectionErrorBoundary>
 
       {/* ============================================================ */}
       {/* 3. MÓDULO DINÁMICO DE VIDEOS DE INSTAGRAM (@culti.shopp) */}
       {/* ============================================================ */}
-      <section id="instagram-videos" className="bg-[#0b1610] border-y border-[#1b3420] py-16 sm:py-24 relative overflow-hidden">
-        {/* Glow de fondo */}
-        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[400px] bg-[#e0a96d]/10 blur-[130px] rounded-full pointer-events-none" />
+      <SectionErrorBoundary sectionName="Galería Instagram">
+        <section id="instagram-videos" className="bg-[#0b1610] border-y border-[#1b3420] py-16 sm:py-24 relative overflow-hidden">
+          {/* Glow de fondo */}
+          <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[400px] bg-[#e0a96d]/10 blur-[130px] rounded-full pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-4 relative z-10 space-y-10">
-          {/* Encabezado de la galería */}
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-6 border-b border-[#1f3b25]">
-            <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e0a96d]">
-                <Instagram size={15} className="text-[#e0a96d]" />
-                <span>COMUNIDAD & REDES SOCIALES</span>
+          <div className="max-w-6xl mx-auto px-4 relative z-10 space-y-10">
+            {/* Encabezado de la galería */}
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-6 border-b border-[#1f3b25]">
+              <div className="space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e0a96d]">
+                  <Instagram size={15} className="text-[#e0a96d]" />
+                  <span>COMUNIDAD & REDES SOCIALES</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-black text-white font-heading tracking-tight">
+                  SEGUINOS EN NUESTRO <span className="text-[#e0a96d]">INSTAGRAM</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
+                  Conocé nuestros unboxings, guías de aplicación de fertilizantes, combate de plagas y novedades del local en Posadas.
+                </p>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white font-heading tracking-tight">
-                SEGUINOS EN NUESTRO <span className="text-[#e0a96d]">INSTAGRAM</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
-                Conocé nuestros unboxings, guías de aplicación de fertilizantes, combate de plagas y novedades del local en Posadas.
-              </p>
+
+              <a
+                href="https://instagram.com/culti.shopp"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-[#d62976] via-[#fa7e1e] to-[#feda75] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider transition shadow-lg hover:scale-105 active:scale-95 shrink-0"
+              >
+                <Instagram size={17} />
+                <span>Seguir @culti.shopp</span>
+                <ExternalLink size={13} />
+              </a>
             </div>
 
-            <a
-              href="https://instagram.com/culti.shopp"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-[#d62976] via-[#fa7e1e] to-[#feda75] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider transition shadow-lg hover:scale-105 active:scale-95 shrink-0"
-            >
-              <Instagram size={17} />
-              <span>Seguir @culti.shopp</span>
-              <ExternalLink size={13} />
-            </a>
-          </div>
-
-          {/* Cuadrícula de Videos / Reels */}
-          {instagramVideos.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 text-xs">
-              No hay publicaciones de Instagram disponibles en este momento.
-            </div>
-          ) : (
+            {/* Cuadrícula de Videos / Reels */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {instagramVideos.map((video, idx) => (
+              {safeVideos.map((video, idx) => (
                 <a
                   key={video.id || idx}
-                  href={video.post_url}
+                  href={video.post_url || 'https://instagram.com/culti.shopp'}
                   target="_blank"
                   rel="noreferrer"
                   className="bg-[#0e1c12] border border-[#1f3b25] hover:border-[#e0a96d]/60 rounded-2xl overflow-hidden flex flex-col justify-between transition group shadow-md hover:shadow-xl hover:-translate-y-1 duration-300"
@@ -385,156 +533,117 @@ export const AboutView = () => {
                 </a>
               ))}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </SectionErrorBoundary>
 
       {/* ============================================================ */}
       {/* 4. LOCAL FÍSICO, MAPA INTERACTIVO Y ASESORAMIENTO DIRECTO */}
       {/* ============================================================ */}
-      <section id="visitanos" className="max-w-6xl mx-auto px-4 pt-16 sm:pt-24 scroll-mt-20">
-        <div className="space-y-8">
-          {/* Encabezado de la sección */}
-          <div className="text-center max-w-3xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#183520] border border-[#2d5a27] text-xs font-bold text-[#e0a96d] shadow-sm">
-              <MapPin size={13} className="text-[#e0a96d]" />
-              <span className="uppercase tracking-widest">Punto de Retiro & Atención al Público • Posadas, Misiones</span>
+      <SectionErrorBoundary sectionName="Visítanos en Nuestro Local">
+        <section id="visitanos" className="max-w-6xl mx-auto px-4 pt-16 sm:pt-24 scroll-mt-20">
+          <div className="space-y-8">
+            {/* Encabezado de la sección */}
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#183520] border border-[#2d5a27] text-xs font-bold text-[#e0a96d] shadow-sm">
+                <MapPin size={13} className="text-[#e0a96d]" />
+                <span className="uppercase tracking-widest">Punto de Retiro & Atención al Público • Posadas, Misiones</span>
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white font-heading tracking-tight leading-tight">
+                VISITANOS EN NUESTRO <span className="text-[#e0a96d]">LOCAL EN POSADAS</span>
+              </h2>
+
+              <p className="text-xs sm:text-sm md:text-base text-gray-300 font-sans leading-relaxed">
+                Te esperamos con asesoramiento agronómico personalizado, insumos oficiales de máxima pureza y retiro sin costo para tus pedidos de la web.
+              </p>
             </div>
 
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white font-heading tracking-tight leading-tight">
-              VISITANOS EN NUESTRO <span className="text-[#e0a96d]">LOCAL EN POSADAS</span>
-            </h2>
-
-            <p className="text-xs sm:text-sm md:text-base text-gray-300 font-sans leading-relaxed">
-              Te esperamos con asesoramiento agronómico personalizado, insumos oficiales de máxima pureza y retiro sin costo para tus pedidos de la web.
-            </p>
-          </div>
-
-          {/* Grid principal: Tarjetas de Información + Mapa Interactivo de Google Maps */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Columna Izquierda: Información de Contacto, Dirección y Horarios (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-              {/* Tarjeta Dirección */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3 flex-grow">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#e0a96d] shrink-0 shadow-inner">
-                    <MapPin size={22} />
+            {/* Grid principal: Tarjetas de Información + Mapa Interactivo de Google Maps */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Columna Izquierda: Información de Contacto, Dirección y Horarios (5 cols) */}
+              <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+                {/* Tarjeta Dirección */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3 flex-grow">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#e0a96d] shrink-0 shadow-inner">
+                      <MapPin size={22} />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-wider">Dirección Comercial</span>
+                      <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                        {safeAddress}
+                      </h3>
+                      <p className="text-xs text-gray-400">
+                        Ubicación de fácil acceso y estacionamiento en Posadas, Misiones.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-wider">Dirección Comercial</span>
-                    <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
-                      {safeAddress}
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Ubicación de fácil acceso y estacionamiento en Posadas, Misiones.
-                    </p>
+
+                  <div className="pt-3 border-t border-[#18311d]">
+                    <a
+                      href={safeGoogleMapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white border border-[#23422a] text-xs font-bold transition group"
+                    >
+                      <ExternalLink size={14} className="group-hover:scale-110 transition" />
+                      <span>Cómo Llegar (Google Maps GPS)</span>
+                    </a>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#18311d]">
+                {/* Tarjeta Horarios */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#4aa036] shrink-0 shadow-inner">
+                      <Clock size={22} />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider">Horarios de Atención</span>
+                      <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                        {safeHours}
+                      </h3>
+                      <p className="text-xs text-gray-400">
+                        Retiros en el día de compras online y asesoramiento técnico de dosis y prevención.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjeta WhatsApp & Asesoría */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#122317] via-[#142619] to-[#0a140d] border border-[#2d5a27] shadow-xl space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <HeartHandshake size={20} className="text-[#e0a96d] shrink-0" />
+                    <span className="text-xs font-bold text-white">¿Tenés dudas antes de venir al local?</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Escribinos para consultar stock puntual, coordinar tu retiro o despejar consultas agronómicas.
+                  </p>
                   <a
-                    href={safeGoogleMapsUrl}
+                    href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20una%20consulta%20sobre%20el%20local%20en%20Av.%20L%C3%B3pez%20y%20Planes`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white border border-[#23422a] text-xs font-bold transition group"
+                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-black text-xs uppercase tracking-wider transition shadow-md hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    <ExternalLink size={14} className="group-hover:scale-110 transition" />
-                    <span>Cómo Llegar (Google Maps GPS)</span>
+                    <WhatsAppIcon size={17} />
+                    <span>Consultar por WhatsApp ({safePhone})</span>
                   </a>
                 </div>
               </div>
 
-              {/* Tarjeta Horarios */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-lg space-y-3">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-3 rounded-xl bg-[#142619] border border-[#2d5a27] text-[#4aa036] shrink-0 shadow-inner">
-                    <Clock size={22} />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider">Horarios de Atención</span>
-                    <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
-                      {safeHours}
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Retiros en el día de compras online y asesoramiento técnico de dosis y prevención.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tarjeta WhatsApp & Asesoría */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#122317] via-[#142619] to-[#0a140d] border border-[#2d5a27] shadow-xl space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <HeartHandshake size={20} className="text-[#e0a96d] shrink-0" />
-                  <span className="text-xs font-bold text-white">¿Tenés dudas antes de venir al local?</span>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Escribinos para consultar stock puntual, coordinar tu retiro o despejar consultas agronómicas.
-                </p>
-                <a
-                  href={`https://wa.me/5493764356995?text=Hola%20CultiShop!%20Quiero%20hacer%20una%20consulta%20sobre%20el%20local%20en%20Av.%20L%C3%B3pez%20y%20Planes`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-black text-xs uppercase tracking-wider transition shadow-md hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  <WhatsAppIcon size={17} />
-                  <span>Consultar por WhatsApp ({safePhone})</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Columna Derecha: Mapa Interactivo de Google Maps (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col">
-              <div className="h-full min-h-[400px] sm:min-h-[480px] rounded-3xl bg-[#0a140d] border-2 border-[#2d5a27] shadow-2xl overflow-hidden flex flex-col relative group">
-                {/* Barra superior de la ventana del mapa */}
-                <div className="px-4 py-3 bg-[#0e1c12] border-b border-[#1f3b25] flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-bold text-white text-[11px] sm:text-xs">
-                      Mapa en Vivo • CultiShop Posadas
-                    </span>
-                  </div>
-
-                  <a
-                    href={safeGoogleMapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#e0a96d] hover:text-white transition font-medium text-[11px] inline-flex items-center gap-1"
-                  >
-                    <span>Abrir en Google Maps</span>
-                    <ExternalLink size={12} />
-                  </a>
-                </div>
-
-                {/* iFrame interactivo incrustado de Google Maps */}
-                <div className="relative flex-grow w-full bg-[#070e09]">
-                  <iframe
-                    title="Ubicación y mapa interactivo de CultiShop en Posadas, Misiones"
-                    src={safeEmbedUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="w-full h-full min-h-[350px] sm:min-h-[410px] block"
-                  />
-                </div>
-
-                {/* Pie con dirección y consejos de navegación */}
-                <div className="px-4 py-2.5 bg-[#0e1c12]/95 border-t border-[#1f3b25] flex items-center justify-between text-[11px] text-gray-400">
-                  <span className="truncate">
-                    📍 {safeAddress}
-                  </span>
-                  <span className="hidden sm:inline text-gray-500 shrink-0">
-                    Arrastra o usa +/- para navegar en el mapa
-                  </span>
-                </div>
+              {/* Columna Derecha: Mapa Interactivo de Google Maps Aislado */}
+              <div className="lg:col-span-7 flex flex-col">
+                <GoogleMapFrame
+                  embedUrl={safeEmbedUrl}
+                  googleMapsUrl={safeGoogleMapsUrl}
+                  address={safeAddress}
+                />
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SectionErrorBoundary>
     </div>
   );
 };
