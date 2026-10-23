@@ -13,6 +13,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ProductDetail } from './components/ProductDetail';
 import { CheckoutView } from './components/CheckoutView';
 import { AboutView } from './components/AboutView';
+import { FaqView } from './components/FaqView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
@@ -73,7 +74,7 @@ function App() {
                 <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />
                 <Route path="/categoria/:slug" element={<ProductSection />} />
                 <Route path="/sobre-nosotros" element={<AboutView />} />
-                <Route path="/faq" element={<PlaceholderPage title="Preguntas Frecuentes" description="¿Dudas sobre dosis de fertilizantes, combate de plagas o transporte bajo Ley 27.350? Escribinos." />} />
+                <Route path="/faq" element={<FaqView />} />
                 <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes 2919, Posadas. WhatsApp: +54 9 376 435-6995." />} />
                 <Route path="/favoritos" element={<FavoritesView />} />
                 <Route path="/finalizar-compra" element={<CheckoutView />} />

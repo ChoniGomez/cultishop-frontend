@@ -43,7 +43,8 @@ import {
   BookOpen,
   Video,
   Instagram,
-  Play
+  Play,
+  HelpCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -233,8 +234,26 @@ export const AdminDashboard = () => {
   const [instagramFormThumbnailUrl, setInstagramFormThumbnailUrl] = useState('');
   const [instagramFormOrder, setInstagramFormOrder] = useState('1');
   const [instagramFormIsActive, setInstagramFormIsActive] = useState(true);
-  const [instagramThumbnailFileName, setInstagramThumbnailFileName] = useState('');
+    const [instagramThumbnailFileName, setInstagramThumbnailFileName] = useState('');
   const instagramFileInputRef = useRef(null);
+
+  // Estados para Preguntas Frecuentes (faqs)
+  const [faqs, setFaqs] = useState([]);
+  const [loadingFaqs, setLoadingFaqs] = useState(false);
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
+  const [faqModalMode, setFaqModalMode] = useState('create'); // 'create' | 'edit'
+  const [currentFaq, setCurrentFaq] = useState(null);
+  const [deleteFaqConfirmId, setDeleteFaqConfirmId] = useState(null);
+  const [isSavingFaq, setIsSavingFaq] = useState(false);
+  const [faqSearch, setFaqSearch] = useState('');
+  const [faqCategoryFilter, setFaqCategoryFilter] = useState('all');
+
+  // Formulario de Pregunta Frecuente
+  const [faqFormQuestion, setFaqFormQuestion] = useState('');
+  const [faqFormAnswer, setFaqFormAnswer] = useState('');
+  const [faqFormCategory, setFaqFormCategory] = useState('Compras & Pagos');
+  const [faqFormOrder, setFaqFormOrder] = useState('1');
+  const [faqFormIsActive, setFaqFormIsActive] = useState(true);
 
   useEffect(() => {
     if (paymentSettings) {
@@ -253,7 +272,22 @@ export const AdminDashboard = () => {
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeBanners = Array.isArray(banners) ? banners : [];
   const safeAboutSections = Array.isArray(aboutSections) ? aboutSections : [];
-  const safeInstagramVideos = Array.isArray(instagramVideos) ? instagramVideos : [];
+    const safeInstagramVideos = Array.isArray(instagramVideos) ? instagramVideos : [];
+  const safeFaqs = Array.isArray(faqs) ? faqs : [];
+
+  const filteredAdminFaqs = useMemo(() => {
+    return safeFaqs.filter((item) => {
+      const matchesCategory =
+        faqCategoryFilter === 'all' ||
+        (item.category && item.category.trim().toLowerCase() === faqCategoryFilter.toLowerCase());
+      const query = faqSearch.trim().toLowerCase();
+      if (!query) return matchesCategory;
+      const qMatch = item.question && item.question.toLowerCase().includes(query);
+      const aMatch = item.answer && item.answer.toLowerCase().includes(query);
+      const cMatch = item.category && item.category.toLowerCase().includes(query);
+      return matchesCategory && (qMatch || aMatch || cMatch);
+    });
+  }, [safeFaqs, faqCategoryFilter, faqSearch]);
 
   // Helper para procesar archivos de imagen local, optimizarlos y generar Data URL
   const handleImageFileChange = (file, setUrlState, setFileNameState) => {
@@ -547,7 +581,34 @@ export const AdminDashboard = () => {
     } catch (err) {
       console.error('Error al cargar videos de Instagram:', err);
     } finally {
-      setLoadingInstagramVideos(false);
+            setLoadingInstagramVideos(false);
+    }
+  };
+
+  // Cargar preguntas frecuentes para administración
+  const fetchFaqsAdmin = async () => {
+    setLoadingFaqs(true);
+    try {
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(buildApiUrl('faqs?all=true'), { headers });
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('faqs/admin/all'), { headers });
+      }
+      if (!res.ok) {
+        res = await fetch(buildApiUrl('faqs'), { headers });
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.faqs || data.data || []);
+        setFaqs(list);
+      }
+    } catch (err) {
+      console.error('Error al cargar preguntas frecuentes:', err);
+    } finally {
+      setLoadingFaqs(false);
     }
   };
 
@@ -556,6 +617,7 @@ export const AdminDashboard = () => {
     fetchAdminCategories();
     fetchAboutSectionsAdmin();
     fetchInstagramVideosAdmin();
+    fetchFaqsAdmin();
     if (isAdmin) {
       fetchProducts();
       fetchOrders();
@@ -931,7 +993,7 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteInstagramVideo = async (videoId) => {
+    const handleDeleteInstagramVideo = async (videoId) => {
     try {
       const res = await fetch(buildApiUrl(`instagram/${videoId}`), {
         method: 'DELETE',
@@ -948,6 +1010,120 @@ export const AdminDashboard = () => {
       showNotification('error', 'Error al eliminar la publicación.');
     } finally {
       setDeleteInstagramConfirmId(null);
+    }
+  };
+
+  // Handlers para Preguntas Frecuentes (FAQ)
+  const handleOpenCreateFaqModal = () => {
+    setFaqModalMode('create');
+    setCurrentFaq(null);
+    setFaqFormQuestion('');
+    setFaqFormAnswer('');
+    setFaqFormCategory('Compras & Pagos');
+    setFaqFormOrder(String((safeFaqs?.length || 0) + 1));
+    setFaqFormIsActive(true);
+    setIsFaqModalOpen(true);
+  };
+
+  const handleOpenEditFaqModal = (faq) => {
+    if (!faq) return;
+    setFaqModalMode('edit');
+    setCurrentFaq(faq);
+    setFaqFormQuestion(faq.question || '');
+    setFaqFormAnswer(faq.answer || '');
+    setFaqFormCategory(faq.category || 'General');
+    setFaqFormOrder(String(faq.order_index ?? 1));
+    setFaqFormIsActive(faq.is_active !== false);
+    setIsFaqModalOpen(true);
+  };
+
+  const handleSaveFaq = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!faqFormQuestion.trim()) {
+      showNotification('error', 'Por favor, ingresa el texto de la pregunta.');
+      return;
+    }
+    if (!faqFormAnswer.trim()) {
+      showNotification('error', 'Por favor, completa la respuesta de la pregunta.');
+      return;
+    }
+
+    setIsSavingFaq(true);
+    try {
+      const isEdit = faqModalMode === 'edit' && currentFaq;
+      const url = isEdit
+        ? buildApiUrl(`faqs/${currentFaq.id}`)
+        : buildApiUrl('faqs');
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          question: faqFormQuestion.trim(),
+          answer: faqFormAnswer.trim(),
+          category: faqFormCategory.trim() || 'General',
+          order_index: parseInt(faqFormOrder, 10) || 1,
+          is_active: faqFormIsActive
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al guardar la pregunta frecuente.');
+      }
+
+      showNotification('success', isEdit ? '¡Pregunta frecuente actualizada!' : '¡Pregunta frecuente creada exitosamente!');
+      setIsFaqModalOpen(false);
+      await fetchFaqsAdmin();
+    } catch (err) {
+      console.error('Error al guardar pregunta frecuente:', err);
+      showNotification('error', err.message || 'Error al conectar con el servidor.');
+    } finally {
+      setIsSavingFaq(false);
+    }
+  };
+
+  const handleToggleFaqActive = async (faq) => {
+    try {
+      const res = await fetch(buildApiUrl(`faqs/${faq.id}/toggle`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cambiar visibilidad.');
+      }
+      showNotification('success', data.message || 'Visibilidad de la pregunta actualizada.');
+      await fetchFaqsAdmin();
+    } catch (err) {
+      console.error('Error al cambiar visibilidad:', err);
+      showNotification('error', err.message || 'Error al alternar visibilidad.');
+    }
+  };
+
+  const handleDeleteFaq = async (faqId) => {
+    try {
+      const res = await fetch(buildApiUrl(`faqs/${faqId}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showNotification('success', 'Pregunta frecuente eliminada de la base de datos.');
+        await fetchFaqsAdmin();
+      }
+    } catch (err) {
+      console.error('Error al eliminar pregunta frecuente:', err);
+      showNotification('error', 'Error al eliminar la pregunta.');
+    } finally {
+      setDeleteFaqConfirmId(null);
     }
   };
 
@@ -1466,6 +1642,196 @@ export const AdminDashboard = () => {
     );
   }
 
+    // Renderizado compartido para la gestión de preguntas frecuentes (FAQ)
+  const renderFaqSectionContent = () => (
+    <div className="space-y-4">
+      {/* Barra de Filtros y Búsqueda */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow max-w-2xl">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              value={faqSearch}
+              onChange={(e) => setFaqSearch(e.target.value)}
+              placeholder="Buscar en preguntas frecuentes..."
+              className="w-full py-2.5 pl-4 pr-10 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036]"
+            />
+            {faqSearch && (
+              <button
+                type="button"
+                onClick={() => setFaqSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <select
+            value={faqCategoryFilter}
+            onChange={(e) => setFaqCategoryFilter(e.target.value)}
+            className="py-2.5 px-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs focus:outline-none focus:border-[#4aa036]"
+          >
+            <option value="all">Todas las Categorías</option>
+            <option value="Compras & Pagos">Compras & Pagos</option>
+            <option value="Envíos & Entregas">Envíos & Entregas</option>
+            <option value="Local & Horarios">Local & Horarios</option>
+            <option value="Cultivo & Insumos">Cultivo & Insumos</option>
+            <option value="Cultivo & Normativa">Cultivo & Normativa</option>
+            <option value="Asesoramiento">Asesoramiento</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchFaqsAdmin}
+            className="p-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] transition cursor-pointer"
+            title="Recargar preguntas"
+          >
+            <RefreshCw size={15} className={loadingFaqs ? 'animate-spin text-[#4aa036]' : ''} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenCreateFaqModal}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Nueva Pregunta</span>
+          </button>
+        </div>
+      </div>
+
+      {loadingFaqs && safeFaqs.length === 0 ? (
+        <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-3">
+          <RefreshCw className="animate-spin text-[#4aa036] mx-auto" size={32} />
+          <p className="text-sm font-bold text-gray-300">Cargando preguntas frecuentes...</p>
+        </div>
+      ) : filteredAdminFaqs.length === 0 ? (
+        <div className="text-center py-16 bg-[#0e1c12] border border-[#1f3b25] rounded-2xl space-y-4">
+          <HelpCircle className="text-gray-500 mx-auto" size={48} />
+          <div className="space-y-1">
+            <h4 className="text-base font-bold text-white">No hay preguntas frecuentes registradas</h4>
+            <p className="text-xs text-gray-400 max-w-md mx-auto">
+              Crea preguntas y respuestas claras para resolver las dudas recurrentes de tus clientes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenCreateFaqModal}
+            className="px-5 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition inline-flex items-center gap-2 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Crear Primera Pregunta</span>
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredAdminFaqs.map((faq) => (
+            <div
+              key={faq.id}
+              className="p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] hover:border-[#2d5a27] transition shadow-md flex flex-col justify-between gap-4"
+            >
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-md bg-[#162a1b] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider border border-[#23422a]">
+                      {faq.category || 'General'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[#142619] text-gray-400 text-[10px] font-mono border border-[#1f3b25]">
+                      Orden: {faq.order_index ?? 0}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        faq.is_active !== false
+                          ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-yellow-950/80 text-yellow-400 border border-yellow-500/30'
+                      }`}
+                    >
+                      {faq.is_active !== false ? '● Visible en Tienda' : '○ Oculta'}
+                    </span>
+                  </div>
+                </div>
+
+                <h3 className="text-base font-bold text-white leading-snug">
+                  {faq.question}
+                </h3>
+
+                <p className="text-xs text-gray-300 bg-[#0a140d]/70 p-3.5 rounded-xl border border-[#162a1b] leading-relaxed whitespace-pre-line">
+                  {faq.answer}
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-[#18311d] flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleFaqActive(faq)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 ${
+                    faq.is_active !== false
+                      ? 'bg-[#142619] text-gray-400 hover:text-white border-[#23422a]'
+                      : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40'
+                  }`}
+                >
+                  {faq.is_active !== false ? <EyeOff size={13} /> : <Eye size={13} />}
+                  <span>{faq.is_active !== false ? 'Ocultar' : 'Publicar'}</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditFaqModal(faq)}
+                    className="px-3 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit size={13} />
+                    <span>Editar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeleteFaqConfirmId(faq.id)}
+                    className="p-1.5 rounded-lg bg-[#1a1414] hover:bg-red-950 text-gray-400 hover:text-red-400 border border-red-900/40 transition cursor-pointer"
+                    title="Eliminar pregunta"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {deleteFaqConfirmId === faq.id && (
+                <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/50 space-y-2 text-xs">
+                  <span className="text-red-200 block text-xs font-semibold">
+                    ¿Estás seguro de que deseas eliminar esta pregunta frecuente permanentemente?
+                  </span>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteFaqConfirmId(null)}
+                      className="px-3 py-1 rounded bg-[#142619] text-gray-300 text-xs cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFaq(faq.id)}
+                      className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12">
       {/* Notificación flotante de estado */}
@@ -1610,7 +1976,7 @@ export const AdminDashboard = () => {
           <span>Datos de Pago / Alias</span>
         </button>
 
-        <button
+                <button
           onClick={() => setActiveTab('institucional')}
           className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
             activeTab === 'institucional'
@@ -1620,6 +1986,18 @@ export const AdminDashboard = () => {
         >
           <BookOpen size={16} />
           <span>Institucional & Instagram ({safeAboutSections.length + safeInstagramVideos.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('faq')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'faq'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <HelpCircle size={16} />
+          <span>Preguntas Frecuentes FAQ ({safeFaqs.length})</span>
         </button>
       </div>
 
@@ -2905,7 +3283,7 @@ export const AdminDashboard = () => {
                 <span>Textos "Sobre Nosotros" ({safeAboutSections.length})</span>
               </button>
 
-              <button
+                            <button
                 type="button"
                 onClick={() => setSubTabInstitucional('instagram')}
                 className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
@@ -2916,6 +3294,19 @@ export const AdminDashboard = () => {
               >
                 <Instagram size={14} />
                 <span>Galería de Instagram ({safeInstagramVideos.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSubTabInstitucional('faq')}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  subTabInstitucional === 'faq'
+                    ? 'bg-[#2d5a27] text-white shadow-md'
+                    : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+                }`}
+              >
+                <HelpCircle size={14} />
+                <span>Preguntas FAQ ({safeFaqs.length})</span>
               </button>
             </div>
           </div>
@@ -3298,6 +3689,46 @@ export const AdminDashboard = () => {
               )}
             </div>
           )}
+
+          {/* SUB-PESTAÑA 3: PREGUNTAS FRECUENTES (FAQ) */}
+          {subTabInstitucional === 'faq' && (
+            <div className="space-y-4">
+              {renderFaqSectionContent()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* SECCIÓN 7: GESTIÓN DE PREGUNTAS FRECUENTES (FAQ) */}
+      {/* ============================================================ */}
+      {activeTab === 'faq' && (
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e0a96d] mb-1">
+                <HelpCircle size={15} />
+                <span>Gestión de Preguntas Frecuentes</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading">
+                PREGUNTAS FRECUENTES (FAQ)
+              </h2>
+              <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
+                Controlá de forma dinámica las preguntas y respuestas públicas sobre envíos, medios de pago, sustratos, fertilizantes y normativa legal Reprocann (Ley 27.350).
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenCreateFaqModal}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md cursor-pointer shrink-0"
+            >
+              <Plus size={16} />
+              <span>Nueva Pregunta</span>
+            </button>
+          </div>
+
+          {renderFaqSectionContent()}
         </div>
       )}
 
@@ -5103,6 +5534,132 @@ export const AdminDashboard = () => {
                 >
                   <Save size={15} />
                   <span>{isSavingInstagram ? 'Guardando...' : 'Guardar Video'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ============================================================ */}
+      {/* MODAL PARA CREAR / MODIFICAR PREGUNTAS FRECUENTES (FAQ) */}
+      {/* ============================================================ */}
+      {isFaqModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-5 sm:p-7 shadow-2xl my-6 flex flex-col max-h-[92vh]">
+            <div className="flex items-start justify-between pb-3 border-b border-[#1f3b25] shrink-0">
+              <div>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  faqModalMode === 'create' ? 'bg-[#2d5a27] text-white' : 'bg-[#e0a96d]/20 text-[#e0a96d] border border-[#e0a96d]/40'
+                }`}>
+                  {faqModalMode === 'create' ? 'Nueva Pregunta' : 'Editar Pregunta'}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading mt-1">
+                  {faqModalMode === 'create' ? 'Crear Pregunta Frecuente' : 'Modificar Pregunta Frecuente'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFaqModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#142619] transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFaq} className="space-y-4 py-4 overflow-y-auto pr-1 flex-grow">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Pregunta Frecuente *
+                </label>
+                <input
+                  type="text"
+                  value={faqFormQuestion}
+                  onChange={(e) => setFaqFormQuestion(e.target.value)}
+                  placeholder="Ej: ¿Cuáles son las formas de envío en Posadas?"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Categoría
+                  </label>
+                  <input
+                    type="text"
+                    value={faqFormCategory}
+                    onChange={(e) => setFaqFormCategory(e.target.value)}
+                    list="faq-category-suggestions"
+                    placeholder="Ej: Compras & Pagos, Envíos..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  />
+                  <datalist id="faq-category-suggestions">
+                    <option value="Compras & Pagos" />
+                    <option value="Envíos & Entregas" />
+                    <option value="Local & Horarios" />
+                    <option value="Cultivo & Insumos" />
+                    <option value="Cultivo & Normativa" />
+                    <option value="Asesoramiento" />
+                    <option value="General" />
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Orden de Visualización
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={faqFormOrder}
+                    onChange={(e) => setFaqFormOrder(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Respuesta Detallada *
+                </label>
+                <textarea
+                  rows={6}
+                  value={faqFormAnswer}
+                  onChange={(e) => setFaqFormAnswer(e.target.value)}
+                  placeholder="Escribe la respuesta clara que resolverá la inquietud de los cultivadores..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none leading-relaxed"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center pt-2">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={faqFormIsActive}
+                    onChange={(e) => setFaqFormIsActive(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                  />
+                  <span>Pregunta Activa y Visible en la Tienda (/faq)</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+                <button
+                  type="button"
+                  onClick={() => setIsFaqModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingFaq}
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={15} />
+                  <span>{isSavingFaq ? 'Guardando...' : 'Guardar Pregunta'}</span>
                 </button>
               </div>
             </form>
