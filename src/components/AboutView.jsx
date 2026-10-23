@@ -81,11 +81,22 @@ const FALLBACK_INSTAGRAM_VIDEOS = [
 
 export const AboutView = () => {
   const { locationSettings } = useShop();
-  const currentLocation = locationSettings || DEFAULT_LOCATION_SETTINGS;
+  const currentLocation = {
+    ...DEFAULT_LOCATION_SETTINGS,
+    ...(locationSettings || {})
+  };
 
-  const [sections, setSections] = useState([]);
-  const [instagramVideos, setInstagramVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const safeAddress = currentLocation.address || DEFAULT_LOCATION_SETTINGS.address;
+  const safeHours = currentLocation.hours || DEFAULT_LOCATION_SETTINGS.hours;
+  const safePhone = currentLocation.phone || DEFAULT_LOCATION_SETTINGS.phone;
+  const safeGoogleMapsUrl = currentLocation.google_maps_url || DEFAULT_LOCATION_SETTINGS.google_maps_url;
+  const safeEmbedUrl = currentLocation.google_maps_embed_url || DEFAULT_LOCATION_SETTINGS.google_maps_embed_url;
+
+  // Inicializar siempre con datos por defecto para garantizar un renderizado instantáneo sin pantallas en blanco
+  const [sections, setSections] = useState(FALLBACK_ABOUT_SECTIONS);
+  const [instagramVideos, setInstagramVideos] = useState(FALLBACK_INSTAGRAM_VIDEOS);
+  const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Si viene con ancla (#visitanos o #instagram-videos), realizar scroll suave al elemento
@@ -105,16 +116,22 @@ export const AboutView = () => {
     let isMounted = true;
 
     const fetchPublicData = async () => {
-      setLoading(true);
+      setIsRefreshing(true);
       try {
-        // 1. Cargar bloques institucionales
+        // 1. Cargar bloques institucionales con respaldo seguro
         const aboutPromise = fetch(buildApiUrl('about'))
-          .then((res) => (res.ok ? res.json() : null))
+          .then(async (res) => {
+            if (!res.ok) return null;
+            try { return await res.json(); } catch { return null; }
+          })
           .catch(() => null);
 
-        // 2. Cargar videos de Instagram
+        // 2. Cargar videos de Instagram con respaldo seguro
         const instaPromise = fetch(buildApiUrl('instagram'))
-          .then((res) => (res.ok ? res.json() : null))
+          .then(async (res) => {
+            if (!res.ok) return null;
+            try { return await res.json(); } catch { return null; }
+          })
           .catch(() => null);
 
         const [aboutData, instaData] = await Promise.all([aboutPromise, instaPromise]);
@@ -123,25 +140,18 @@ export const AboutView = () => {
           const loadedSections = aboutData?.sections || aboutData?.data;
           if (Array.isArray(loadedSections) && loadedSections.length > 0) {
             setSections(loadedSections);
-          } else {
-            setSections(FALLBACK_ABOUT_SECTIONS);
           }
 
           const loadedVideos = instaData?.videos || instaData?.data;
           if (Array.isArray(loadedVideos) && loadedVideos.length > 0) {
             setInstagramVideos(loadedVideos);
-          } else {
-            setInstagramVideos(FALLBACK_INSTAGRAM_VIDEOS);
           }
         }
       } catch (err) {
-        console.error('Error cargando información de Sobre Nosotros:', err);
-        if (isMounted) {
-          setSections(FALLBACK_ABOUT_SECTIONS);
-          setInstagramVideos(FALLBACK_INSTAGRAM_VIDEOS);
-        }
+        console.warn('Aviso al refrescar información de Sobre Nosotros, manteniendo datos de respaldo:', err?.message || err);
       } finally {
         if (isMounted) {
+          setIsRefreshing(false);
           setLoading(false);
         }
       }
@@ -212,13 +222,7 @@ export const AboutView = () => {
       {/* 2. BLOQUES NARRATIVOS INSTITUCIONALES (ABOUT_SECTIONS) */}
       {/* ============================================================ */}
       <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24 space-y-16 sm:space-y-24">
-        {loading ? (
-          <div className="text-center py-20 space-y-4">
-            <RefreshCw className="animate-spin text-[#4aa036] mx-auto" size={36} />
-            <p className="text-sm font-bold text-gray-300">Cargando historia y valores de CultiShop...</p>
-          </div>
-        ) : (
-          sections.map((section, index) => {
+        {(Array.isArray(sections) && sections.length > 0 ? sections : FALLBACK_ABOUT_SECTIONS).map((section, index) => {
             const isReversed = index % 2 !== 0;
 
             return (
@@ -284,8 +288,7 @@ export const AboutView = () => {
                 </div>
               </div>
             );
-          })
-        )}
+          })}
       </section>
 
       {/* ============================================================ */}
@@ -420,7 +423,7 @@ export const AboutView = () => {
                   <div className="space-y-1">
                     <span className="text-[11px] font-bold text-[#e0a96d] uppercase tracking-wider">Dirección Comercial</span>
                     <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
-                      {currentLocation.address}
+                      {safeAddress}
                     </h3>
                     <p className="text-xs text-gray-400">
                       Ubicación de fácil acceso y estacionamiento en Posadas, Misiones.
@@ -430,7 +433,7 @@ export const AboutView = () => {
 
                 <div className="pt-3 border-t border-[#18311d]">
                   <a
-                    href={currentLocation.google_maps_url}
+                    href={safeGoogleMapsUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-[#e0a96d] hover:text-white border border-[#23422a] text-xs font-bold transition group"
@@ -450,7 +453,7 @@ export const AboutView = () => {
                   <div className="space-y-1">
                     <span className="text-[11px] font-bold text-[#4aa036] uppercase tracking-wider">Horarios de Atención</span>
                     <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
-                      {currentLocation.hours}
+                      {safeHours}
                     </h3>
                     <p className="text-xs text-gray-400">
                       Retiros en el día de compras online y asesoramiento técnico de dosis y prevención.
@@ -475,7 +478,7 @@ export const AboutView = () => {
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-black font-black text-xs uppercase tracking-wider transition shadow-md hover:scale-[1.01] active:scale-[0.99]"
                 >
                   <WhatsAppIcon size={17} />
-                  <span>Consultar por WhatsApp ({currentLocation.phone})</span>
+                  <span>Consultar por WhatsApp ({safePhone})</span>
                 </a>
               </div>
             </div>
@@ -493,7 +496,7 @@ export const AboutView = () => {
                   </div>
 
                   <a
-                    href={currentLocation.google_maps_url}
+                    href={safeGoogleMapsUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#e0a96d] hover:text-white transition font-medium text-[11px] inline-flex items-center gap-1"
@@ -507,7 +510,7 @@ export const AboutView = () => {
                 <div className="relative flex-grow w-full bg-[#070e09]">
                   <iframe
                     title="Ubicación y mapa interactivo de CultiShop en Posadas, Misiones"
-                    src={currentLocation.google_maps_embed_url}
+                    src={safeEmbedUrl}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -521,7 +524,7 @@ export const AboutView = () => {
                 {/* Pie con dirección y consejos de navegación */}
                 <div className="px-4 py-2.5 bg-[#0e1c12]/95 border-t border-[#1f3b25] flex items-center justify-between text-[11px] text-gray-400">
                   <span className="truncate">
-                    📍 {currentLocation.address}
+                    📍 {safeAddress}
                   </span>
                   <span className="hidden sm:inline text-gray-500 shrink-0">
                     Arrastra o usa +/- para navegar en el mapa
