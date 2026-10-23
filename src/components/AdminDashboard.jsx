@@ -3255,7 +3255,7 @@ export const AdminDashboard = () => {
       {activeTab === 'institucional' && (
         <div className="space-y-6">
           {/* Cabecera y Selector de Sub-pestañas */}
-          <div className="p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e0a96d] mb-1">
                 <BookOpen size={15} />
@@ -3269,44 +3269,44 @@ export const AdminDashboard = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 p-1.5 rounded-xl bg-[#0a140d] border border-[#1f3b25] self-stretch md:self-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-[#0a140d] border border-[#1f3b25] w-full xl:w-auto shrink-0 shadow-inner">
               <button
                 type="button"
                 onClick={() => setSubTabInstitucional('sobre-nosotros')}
-                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
                   subTabInstitucional === 'sobre-nosotros'
                     ? 'bg-[#2d5a27] text-white shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-[#142619]'
                 }`}
               >
-                <FileText size={14} />
-                <span>Textos "Sobre Nosotros" ({safeAboutSections.length})</span>
+                <FileText size={14} className="shrink-0" />
+                <span className="truncate">Sobre Nosotros ({safeAboutSections.length})</span>
               </button>
 
-                            <button
+              <button
                 type="button"
                 onClick={() => setSubTabInstitucional('instagram')}
-                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
                   subTabInstitucional === 'instagram'
                     ? 'bg-[#2d5a27] text-white shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-[#142619]'
                 }`}
               >
-                <Instagram size={14} />
-                <span>Galería de Instagram ({safeInstagramVideos.length})</span>
+                <Instagram size={14} className="shrink-0" />
+                <span className="truncate">Instagram ({safeInstagramVideos.length})</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSubTabInstitucional('faq')}
-                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
                   subTabInstitucional === 'faq'
                     ? 'bg-[#2d5a27] text-white shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-[#142619]'
                 }`}
               >
-                <HelpCircle size={14} />
-                <span>Preguntas FAQ ({safeFaqs.length})</span>
+                <HelpCircle size={14} className="shrink-0" />
+                <span className="truncate">Preguntas FAQ ({safeFaqs.length})</span>
               </button>
             </div>
           </div>
@@ -5285,9 +5285,9 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Selector de Imagen (Local o URL) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-gray-300">
+              <div className="space-y-3 p-4 rounded-2xl bg-[#0a140d] border border-[#1f3b25]">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wide">
                     Imagen Ilustrativa del Bloque (Opcional)
                   </label>
                   {aboutFormImageUrl && (
@@ -5297,9 +5297,10 @@ export const AdminDashboard = () => {
                         setAboutFormImageUrl('');
                         setAboutImageFileName('');
                       }}
-                      className="text-[10px] text-red-400 hover:text-red-300 transition"
+                      className="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1 cursor-pointer font-medium"
                     >
-                      Quitar imagen
+                      <X size={13} />
+                      <span>Quitar imagen</span>
                     </button>
                   )}
                 </div>
@@ -5316,52 +5317,56 @@ export const AdminDashboard = () => {
                   }}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                  <div className="sm:col-span-2 space-y-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  {/* Vista previa con proporción estética */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
+                    {aboutFormImageUrl ? (
+                      <img src={aboutFormImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] text-gray-500 text-center px-2 leading-tight">Sin imagen asignada</span>
+                    )}
+                  </div>
+
+                  {/* Campo de URL y Botones de acción */}
+                  <div className="flex-1 w-full space-y-2.5">
                     <input
                       type="url"
                       value={aboutFormImageUrl}
                       onChange={(e) => setAboutFormImageUrl(e.target.value)}
-                      placeholder="Insertar URL de imagen o dejar vacío..."
+                      placeholder="Insertar URL directa (https://...) o subir archivo..."
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                     />
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => aboutFileInputRef.current?.click()}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                        className="py-2.5 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm"
                       >
-                        <Upload size={14} />
-                        <span>{aboutImageFileName ? `Archivo: ${aboutImageFileName}` : 'Insertar imagen'}</span>
+                        <Upload size={14} className="shrink-0" />
+                        <span className="truncate">{aboutImageFileName ? `Archivo: ${aboutImageFileName}` : 'Subir imagen local'}</span>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           setAboutFormImageUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200');
                           setAboutImageFileName('cultivo_oficial.jpg');
                         }}
-                        className="py-2 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shrink-0"
+                        className="py-2.5 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm"
                         title="Cargar foto institucional recomendada"
                       >
-                        <ImageIcon size={13} />
-                        <span>Agregar imagen por defecto</span>
+                        <ImageIcon size={14} className="shrink-0 text-[#e0a96d]" />
+                        <span className="truncate">Imagen por defecto</span>
                       </button>
                     </div>
-                  </div>
-
-                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center relative">
-                    {aboutFormImageUrl ? (
-                      <img src={aboutFormImageUrl} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[10px] text-gray-500 text-center px-2">Sin imagen asignada (Opcional)</span>
-                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
                     Orden de Visualización
                   </label>
                   <input
@@ -5373,34 +5378,34 @@ export const AdminDashboard = () => {
                   />
                 </div>
 
-                <div className="flex items-center pt-5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                <div className="sm:self-end">
+                  <label className="flex items-center gap-2.5 text-xs font-semibold text-gray-300 cursor-pointer bg-[#0a140d] px-3.5 py-2.5 rounded-xl border border-[#1f3b25] hover:border-[#2d5a27] transition">
                     <input
                       type="checkbox"
                       checked={aboutFormIsActive}
                       onChange={(e) => setAboutFormIsActive(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a] cursor-pointer"
                     />
                     <span>Bloque Visible en la Tienda Pública</span>
                   </label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25] shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAboutModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                  className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingAbout}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Save size={15} />
-                  <span>{isSavingAbout ? 'Guardando...' : 'Guardar Bloque'}</span>
+                  <span>{isSavingAbout ? 'Guardando...' : (aboutModalMode === 'edit' ? 'Guardar Cambios' : 'Guardar Bloque')}</span>
                 </button>
               </div>
             </form>
@@ -5471,9 +5476,9 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Selector de Miniatura */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-gray-300">
+              <div className="space-y-3 p-4 rounded-2xl bg-[#0a140d] border border-[#1f3b25]">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wide">
                     Imagen de Portada / Miniatura (Thumbnail)
                   </label>
                   {instagramFormThumbnailUrl && (
@@ -5483,9 +5488,10 @@ export const AdminDashboard = () => {
                         setInstagramFormThumbnailUrl('');
                         setInstagramThumbnailFileName('');
                       }}
-                      className="text-[10px] text-red-400 hover:text-red-300 transition"
+                      className="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1 cursor-pointer font-medium"
                     >
-                      Quitar portada
+                      <X size={13} />
+                      <span>Quitar portada</span>
                     </button>
                   )}
                 </div>
@@ -5502,55 +5508,59 @@ export const AdminDashboard = () => {
                   }}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                  <div className="sm:col-span-2 space-y-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  {/* Vista previa con proporción estética */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
+                    {instagramFormThumbnailUrl ? (
+                      <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-500 p-2 text-center">
+                        <Video size={22} className="mb-1 text-gray-600" />
+                        <span className="text-[10px] leading-tight">Sin portada</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campo de URL y Botones de acción */}
+                  <div className="flex-1 w-full space-y-2.5">
                     <input
                       type="url"
                       value={instagramFormThumbnailUrl}
                       onChange={(e) => setInstagramFormThumbnailUrl(e.target.value)}
-                      placeholder="Insertar URL de imagen o dejar vacío..."
+                      placeholder="Insertar URL directa (https://...) o subir archivo..."
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                     />
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => instagramFileInputRef.current?.click()}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition"
+                        className="py-2.5 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm"
                       >
-                        <Upload size={14} />
-                        <span>{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Insertar imagen'}</span>
+                        <Upload size={14} className="shrink-0" />
+                        <span className="truncate">{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Subir portada local'}</span>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=800');
                           setInstagramThumbnailFileName('portada_cultishop.jpg');
                         }}
-                        className="py-2 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shrink-0"
+                        className="py-2.5 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm"
                         title="Cargar portada temática por defecto"
                       >
-                        <ImageIcon size={13} />
-                        <span>Agregar imagen por defecto</span>
+                        <ImageIcon size={14} className="shrink-0 text-[#e0a96d]" />
+                        <span className="truncate">Portada por defecto</span>
                       </button>
                     </div>
-                  </div>
-
-                  <div className="h-24 rounded-xl bg-[#0a140d] border border-[#23422a] overflow-hidden flex items-center justify-center relative">
-                    {instagramFormThumbnailUrl ? (
-                      <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <Video size={20} className="mb-0.5 text-gray-600" />
-                        <span className="text-[9px]">Sin portada asignada (Opcional)</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
                     Orden de Cuadrícula
                   </label>
                   <input
@@ -5562,34 +5572,34 @@ export const AdminDashboard = () => {
                   />
                 </div>
 
-                <div className="flex items-center pt-5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                <div className="sm:self-end">
+                  <label className="flex items-center gap-2.5 text-xs font-semibold text-gray-300 cursor-pointer bg-[#0a140d] px-3.5 py-2.5 rounded-xl border border-[#1f3b25] hover:border-[#2d5a27] transition">
                     <input
                       type="checkbox"
                       checked={instagramFormIsActive}
                       onChange={(e) => setInstagramFormIsActive(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                      className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a] cursor-pointer"
                     />
                     <span>Publicación Visible en la Galería</span>
                   </label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25] shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsInstagramModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                  className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingInstagram}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Save size={15} />
-                  <span>{isSavingInstagram ? 'Guardando...' : 'Guardar Video'}</span>
+                  <span>{isSavingInstagram ? 'Guardando...' : (instagramModalMode === 'edit' ? 'Guardar Cambios' : 'Guardar Video')}</span>
                 </button>
               </div>
             </form>
@@ -5689,33 +5699,33 @@ export const AdminDashboard = () => {
                 />
               </div>
 
-              <div className="flex items-center pt-2">
-                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 text-xs font-semibold text-gray-300 cursor-pointer bg-[#0a140d] px-3.5 py-2.5 rounded-xl border border-[#1f3b25] hover:border-[#2d5a27] transition">
                   <input
                     type="checkbox"
                     checked={faqFormIsActive}
                     onChange={(e) => setFaqFormIsActive(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a]"
+                    className="w-4 h-4 rounded text-[#4aa036] focus:ring-0 bg-[#142619] border-[#23422a] cursor-pointer"
                   />
                   <span>Pregunta Activa y Visible en la Tienda (/faq)</span>
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25]">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1f3b25] shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsFaqModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#142619] text-gray-300 text-xs font-bold hover:bg-[#1f3b25] transition"
+                  className="px-5 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-xs font-bold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingFaq}
-                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white text-xs font-bold transition shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Save size={15} />
-                  <span>{isSavingFaq ? 'Guardando...' : 'Guardar Pregunta'}</span>
+                  <span>{isSavingFaq ? 'Guardando...' : (faqModalMode === 'edit' ? 'Guardar Cambios' : 'Guardar Pregunta')}</span>
                 </button>
               </div>
             </form>
