@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Leaf, Package, ArrowLeft, Search, X, RefreshCw } from 'lucide-react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Leaf, Package, ArrowLeft, Search, X, RefreshCw, Layers } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -12,43 +12,14 @@ export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
   const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch, categories: shopCategories } = useShop();
-  const currentCategorySlug = category || slug;
+
+  const rawCategorySlug = category || slug;
+  const cleanCategorySlug = rawCategorySlug ? decodeURIComponent(rawCategorySlug).trim() : null;
+  const cleanSubcategorySlug = subcategory ? decodeURIComponent(subcategory).trim() : null;
+
   const [selectedCategory, setSelectedCategory] = useState('todos');
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Sincronizar si hay query param en la URL
-  useEffect(() => {
-    const urlQuery = searchParams.get('search') || searchParams.get('q');
-    if (urlQuery !== null && urlQuery !== searchQuery) {
-      setSearchQuery(urlQuery);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (currentCategorySlug) {
-      setSelectedCategory(currentCategorySlug);
-    } else {
-      setSelectedCategory('todos');
-    }
-  }, [currentCategorySlug, subcategory]);
-
-  // Resetear a página 1 cada vez que cambien los filtros o búsquedas
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, searchQuery, currentCategorySlug, subcategory]);
-
-  const activeCategoriesList = (Array.isArray(shopCategories) && shopCategories.length > 0) ? shopCategories : CATEGORIES;
-  const matchedCategory = activeCategoriesList.find(c => c.slug === currentCategorySlug);
-  const matchedSubcategory = matchedCategory?.subcategories?.find(s => s.slug === subcategory);
-
-  const categories = [
-    { id: 'todos', label: 'Todos los Productos' },
-    { id: 'fertilizantes', label: 'Fertilizantes Namasté' },
-    { id: 'control-de-plagas', label: 'Control De Plagas' },
-    { id: 'transporte-legal', label: 'Transporte Legal' },
-    { id: 'riego', label: 'Riego & Jardinería' },
-    { id: 'kits', label: 'Kits' },
-  ];
 
   // Función auxiliar para normalizar texto (sin tildes, minúsculas, espacios recortados)
   const normalizeText = (text) => {
@@ -61,6 +32,91 @@ export const ProductSection = () => {
       .trim();
   };
 
+  const activeCategoriesList = (Array.isArray(shopCategories) && shopCategories.length > 0) ? shopCategories : CATEGORIES;
+
+  // Resolución bidireccional y robusta de categoría principal y subcategoría
+  let matchedCategory = null;
+  let matchedSubcategory = null;
+
+  if (cleanCategorySlug && cleanCategorySlug !== 'todos') {
+    const slugNorm = normalizeText(cleanCategorySlug);
+
+    // 1. Buscar en categorías principales por slug, ID o nombre normalizado
+    matchedCategory = activeCategoriesList.find(c => 
+      c.slug === cleanCategorySlug || 
+      String(c.id) === cleanCategorySlug || 
+      normalizeText(c.slug) === slugNorm || 
+      normalizeText(c.name) === slugNorm
+    );
+
+    if (matchedCategory) {
+      if (cleanSubcategorySlug) {
+        const subNorm = normalizeText(cleanSubcategorySlug);
+        matchedSubcategory = matchedCategory.subcategories?.find(s => 
+          s.slug === cleanSubcategorySlug || 
+          String(s.id) === cleanSubcategorySlug || 
+          normalizeText(s.slug) === subNorm || 
+          normalizeText(s.name) === subNorm
+        );
+      }
+    } else {
+      // 2. Si cleanCategorySlug no es una categoría principal, verificar si es directamente una subcategoría
+      for (const cat of activeCategoriesList) {
+        const foundSub = cat.subcategories?.find(s => 
+          s.slug === cleanCategorySlug || 
+          String(s.id) === cleanCategorySlug || 
+          normalizeText(s.slug) === slugNorm || 
+          normalizeText(s.name) === slugNorm
+        );
+        if (foundSub) {
+          matchedCategory = cat;
+          matchedSubcategory = foundSub;
+          break;
+        }
+      }
+    }
+  }
+
+  // Sincronizar si hay query param en la URL (?search o ?q)
+  useEffect(() => {
+    const urlQuery = searchParams.get('search') || searchParams.get('q');
+    if (urlQuery !== null && urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+    }
+  }, [searchParams]);
+
+  // Sincronizar estados locales al cambiar la URL o resolver categorías
+  useEffect(() => {
+    if (matchedSubcategory && matchedCategory) {
+      setSelectedCategory(matchedCategory.slug);
+      setSelectedSubcategory(matchedSubcategory.slug);
+    } else if (matchedCategory) {
+      setSelectedCategory(matchedCategory.slug);
+      setSelectedSubcategory(null);
+    } else if (cleanCategorySlug && cleanCategorySlug !== 'todos') {
+      setSelectedCategory(cleanCategorySlug);
+      setSelectedSubcategory(cleanSubcategorySlug || null);
+    } else {
+      setSelectedCategory('todos');
+      setSelectedSubcategory(null);
+    }
+  }, [cleanCategorySlug, cleanSubcategorySlug, matchedCategory?.slug, matchedSubcategory?.slug]);
+
+  // Resetear a página 1 cada vez que cambien los filtros o búsquedas
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedSubcategory, searchQuery, cleanCategorySlug, cleanSubcategorySlug]);
+
+  // Lista dinámica de categorías para las píldoras de filtrado en el catálogo
+  const dynamicCategoryPills = [
+    { id: 'todos', label: 'Todos los Productos' },
+    ...activeCategoriesList.map((cat) => ({
+      id: cat.slug || String(cat.id),
+      label: cat.name,
+      count: cat.total_products_count || cat.products_count
+    }))
+  ];
+
   const normalizedQuery = normalizeText(searchQuery);
   const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
   const isSearchActive = queryTokens.length > 0;
@@ -70,61 +126,130 @@ export const ProductSection = () => {
     if (isSearchActive) {
       const titleNorm = normalizeText(product.title);
       const catNorm = normalizeText(product.category);
+      const subcatNorm = normalizeText(product.subcategory);
       const descNorm = normalizeText(product.description);
       const badgeNorm = normalizeText(product.badge);
-      const optionsNorm = (product.options || []).map(normalizeText);
+      const brandNorm = normalizeText(product.brand);
+      const optionsNorm = (product.options || []).map(opt => 
+        typeof opt === 'object' ? normalizeText(opt?.name) : normalizeText(opt)
+      );
 
       const matches = queryTokens.every(token => 
         titleNorm.includes(token) ||
         catNorm.includes(token) ||
+        subcatNorm.includes(token) ||
         descNorm.includes(token) ||
         badgeNorm.includes(token) ||
+        brandNorm.includes(token) ||
         optionsNorm.some(opt => opt.includes(token))
       );
 
       if (!matches) return false;
     }
 
-    // 2. Filtrado por categoría y subcategoría
-    // Si hay búsqueda activa pero no hay categoría fija en la URL y selectedCategory es 'todos', busca en todo el catálogo
-    const active = currentCategorySlug || (isSearchActive ? (selectedCategory !== 'todos' ? selectedCategory : null) : selectedCategory);
-    if (!active || active === 'todos') return true;
+    // 2. Filtrado por Categoría y Subcategoría
+    // Determinar categoría activa: URL fija o selección manual en catálogo
+    const activeCategorySlug = matchedCategory?.slug || (cleanCategorySlug && cleanCategorySlug !== 'todos' ? cleanCategorySlug : (selectedCategory !== 'todos' ? selectedCategory : null));
+    
+    // Si no hay categoría activa (o es 'todos'), pasa todos los productos
+    if (!activeCategorySlug) return true;
 
-    // Validación de subcategoría específica (ej: /categoria/fertilizantes/lavado-de-raices)
-    if (subcategory) {
-      const subNorm = subcategory.toLowerCase();
-      const productSubNorm = (product.subcategory_slug || product.subcategory || '').toLowerCase();
-      const productTitleNorm = (product.title || '').toLowerCase();
-      const productDescNorm = (product.description || '').toLowerCase();
+    // Objeto de la categoría activa
+    const activeCatObj = matchedCategory || activeCategoriesList.find(c => 
+      c.slug === activeCategorySlug || 
+      String(c.id) === String(activeCategorySlug) ||
+      normalizeText(c.slug) === normalizeText(activeCategorySlug) ||
+      normalizeText(c.name) === normalizeText(activeCategorySlug)
+    );
 
-      if (subNorm === 'lavado-de-raices') {
-        const matchesLavado = productSubNorm.includes('lavado') || productTitleNorm.includes('lavado') || productDescNorm.includes('lavado') || product.category?.toLowerCase().includes('lavado');
-        if (!matchesLavado) return false;
-      } else if (subNorm === 'accesorios') {
-        const matchesAccesorios = productSubNorm.includes('accesorio') || productTitleNorm.includes('accesorio') || productDescNorm.includes('accesorio') || product.category?.toLowerCase().includes('accesorio');
-        if (!matchesAccesorios) return false;
-      } else if (subNorm === 'control-de-plagas') {
-        const matchesPlagas = product.category === 'Control de Plagas' || productSubNorm.includes('plagas');
-        if (!matchesPlagas) return false;
-      } else {
-        const cleanSub = subNorm.replace(/-/g, ' ');
-        const matchesGenericSub = productSubNorm.includes(subNorm) || productSubNorm.includes(cleanSub) || productTitleNorm.includes(cleanSub);
-        if (!matchesGenericSub && productSubNorm) return false;
+    const subcatList = activeCatObj?.subcategories || [];
+    const subcatIds = subcatList.map(s => Number(s.id)).filter(id => !isNaN(id));
+    const subcatSlugs = subcatList.map(s => s.slug).filter(Boolean);
+    const subcatNamesNorm = subcatList.map(s => normalizeText(s.name)).filter(Boolean);
+
+    // 3. Si hay una subcategoría seleccionada (por URL o filtro)
+    const effectiveSubSlug = matchedSubcategory?.slug || cleanSubcategorySlug || selectedSubcategory;
+    if (effectiveSubSlug) {
+      const activeSubObj = matchedSubcategory || subcatList.find(s => 
+        s.slug === effectiveSubSlug || 
+        String(s.id) === String(effectiveSubSlug) ||
+        normalizeText(s.slug) === normalizeText(effectiveSubSlug) ||
+        normalizeText(s.name) === normalizeText(effectiveSubSlug)
+      );
+
+      const targetSubId = activeSubObj?.id ? Number(activeSubObj.id) : null;
+      const targetSubSlug = activeSubObj?.slug || effectiveSubSlug;
+      const targetSubNameNorm = activeSubObj ? normalizeText(activeSubObj.name) : normalizeText(effectiveSubSlug.replace(/-/g, ' '));
+
+      const prodCatId = product.category_id ? Number(product.category_id) : null;
+      const prodSubId = product.subcategory_id ? Number(product.subcategory_id) : null;
+      const prodCatSlug = product.category_slug || '';
+      const prodSubSlug = product.subcategory_slug || '';
+      const prodCatNorm = normalizeText(product.category);
+      const prodSubNorm = normalizeText(product.subcategory);
+      const prodTitleNorm = normalizeText(product.title);
+
+      if (targetSubId && (prodSubId === targetSubId || prodCatId === targetSubId)) {
+        return true;
       }
+      if (targetSubSlug && (prodSubSlug === targetSubSlug || prodCatSlug === targetSubSlug)) {
+        return true;
+      }
+      if (targetSubNameNorm && (prodSubNorm === targetSubNameNorm || prodCatNorm === targetSubNameNorm)) {
+        return true;
+      }
+      if (targetSubNameNorm && (prodSubNorm.includes(targetSubNameNorm) || prodTitleNorm.includes(targetSubNameNorm))) {
+        return true;
+      }
+      return false;
     }
 
-    if (active === 'fertilizantes') {
-      if (subcategory === 'control-de-plagas') return product.category === 'Control de Plagas' || product.category === 'Fertilizantes';
-      return product.category === 'Fertilizantes' || product.category?.toLowerCase().includes('fertilizante');
-    }
-    if (active === 'parafernalia') return product.category === 'Parafernalia' || product.category?.toLowerCase().includes('parafernalia');
-    if (active === 'control-de-plagas') return product.category === 'Control de Plagas';
-    if (active === 'transporte-legal') return product.category === 'Transporte Legal';
-    if (active === 'riego') return product.category === 'Riego';
-    if (active === 'kits') return product.category === 'Kits';
-    if (active === 'sustratos-macetas') return product.category.toLowerCase().includes('sustrato') || product.category.toLowerCase().includes('maceta');
+    // 4. Filtrado por Categoría Principal:
+    // Debe incluir productos asignados a la categoría principal O a cualquiera de sus subcategorías asociadas
+    const catId = activeCatObj?.id ? Number(activeCatObj.id) : null;
+    const catSlug = activeCatObj?.slug || activeCategorySlug;
+    const catNameNorm = activeCatObj ? normalizeText(activeCatObj.name) : normalizeText(activeCategorySlug.replace(/-/g, ' '));
 
-    return product.category.toLowerCase().includes(active.toLowerCase());
+    const prodCatId = product.category_id ? Number(product.category_id) : null;
+    const prodSubId = product.subcategory_id ? Number(product.subcategory_id) : null;
+    const prodCatSlug = product.category_slug || '';
+    const prodSubSlug = product.subcategory_slug || '';
+    const prodCatNorm = normalizeText(product.category);
+    const prodSubNorm = normalizeText(product.subcategory);
+
+    // A. ID de categoría principal coincide directamente
+    if (catId && prodCatId === catId) {
+      return true;
+    }
+
+    // B. Subcategoría del producto pertenece a las subcategorías de esta categoría principal
+    if (subcatIds.length > 0) {
+      if (prodSubId && subcatIds.includes(prodSubId)) return true;
+      if (prodCatId && subcatIds.includes(prodCatId)) return true;
+    }
+
+    // C. Slug de categoría principal coincide
+    if (catSlug && prodCatSlug === catSlug) {
+      return true;
+    }
+
+    // D. Slug de subcategoría del producto pertenece a la lista de hijas
+    if (subcatSlugs.length > 0) {
+      if (prodSubSlug && subcatSlugs.includes(prodSubSlug)) return true;
+      if (prodCatSlug && subcatSlugs.includes(prodCatSlug)) return true;
+    }
+
+    // E. Nombre de categoría normalizado coincide
+    if (catNameNorm && (prodCatNorm === catNameNorm || prodCatNorm.includes(catNameNorm) || catNameNorm.includes(prodCatNorm))) {
+      return true;
+    }
+
+    // F. Nombre de subcategoría coincide con alguna hija
+    if (subcatNamesNorm.length > 0 && prodSubNorm && subcatNamesNorm.includes(prodSubNorm)) {
+      return true;
+    }
+
+    return false;
   });
 
   // Cálculos de Paginación (Exactamente 9 productos por defecto en cada página)
@@ -180,7 +305,7 @@ export const ProductSection = () => {
       )}
 
       {/* Encabezado con estética de flyers */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 border-b border-[#1f3b25] pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-6 border-b border-[#1f3b25] pb-6">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#e0a96d] mb-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#4aa036]"></span>
@@ -244,7 +369,7 @@ export const ProductSection = () => {
             </Link>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+              {dynamicCategoryPills.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
@@ -261,6 +386,39 @@ export const ProductSection = () => {
           )}
         </div>
       </div>
+
+      {/* Subcategorías de la categoría actual como chips interactivos */}
+      {matchedCategory && matchedCategory.subcategories && matchedCategory.subcategories.length > 0 && !isSearchActive && (
+        <div className="mb-8 p-3 rounded-2xl bg-[#0c1a10] border border-[#1f3b25] flex items-center gap-2 overflow-x-auto no-scrollbar shadow-md">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 pl-2 pr-1 shrink-0 flex items-center gap-1.5">
+            <Layers size={13} className="text-[#e0a96d]" />
+            <span>Subcategorías:</span>
+          </span>
+          <Link
+            to={`/categoria/${matchedCategory.slug}`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap border shrink-0 ${
+              !matchedSubcategory
+                ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-sm'
+                : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
+            }`}
+          >
+            Todas las opciones ({matchedCategory.total_products_count || matchedCategory.products_count || totalProducts})
+          </Link>
+          {matchedCategory.subcategories.map((sub) => (
+            <Link
+              key={sub.slug}
+              to={`/categoria/${matchedCategory.slug}/${sub.slug}`}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap border shrink-0 ${
+                matchedSubcategory?.slug === sub.slug
+                  ? 'bg-[#2d5a27] text-white border-[#4aa036] shadow-sm'
+                  : 'bg-[#122317] text-gray-300 border-[#1f3b25] hover:text-[#e0a96d] hover:border-[#38761d]'
+              }`}
+            >
+              {sub.name} {typeof sub.products_count === 'number' && sub.products_count > 0 ? `(${sub.products_count})` : ''}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Indicador de sincronización en segundo plano si ya hay productos visibles */}
       {loadingProducts && products.length > 0 && (

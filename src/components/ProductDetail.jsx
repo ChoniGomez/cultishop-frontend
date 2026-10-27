@@ -252,7 +252,13 @@ export const ProductDetail = () => {
           </Link>
           <ChevronRight size={13} className="text-gray-600" />
           <Link 
-            to={product.category ? `/categoria/${product.category.toLowerCase().replace(/\s+/g, '-')}` : '/'} 
+            to={
+              product.category_slug 
+                ? `/categoria/${product.category_slug}` 
+                : (product.category 
+                    ? `/categoria/${product.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, '-')}` 
+                    : '/')
+            } 
             className="hover:text-[#e0a96d] transition font-medium"
           >
             {product.category || 'Catálogo'}
