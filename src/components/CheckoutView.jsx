@@ -21,7 +21,9 @@ import {
   HelpCircle, 
   ExternalLink,
   UserPlus,
-  Shield
+  Shield,
+  Store,
+  Bike
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -139,20 +141,23 @@ export const CheckoutView = () => {
       errors.fullName = 'Ingresá tu nombre y apellido completo.';
     }
 
-    if (!formData.streetAddress.trim()) {
-      errors.streetAddress = 'Ingresá la calle y número de tu domicilio.';
-    }
+    // Para retiro en local no es obligatoria la dirección domiciliaria
+    if (formData.shippingMethod !== 'retiro_local') {
+      if (!formData.streetAddress.trim()) {
+        errors.streetAddress = 'Ingresá la calle y número de tu domicilio para el envío.';
+      }
 
-    if (!formData.city.trim()) {
-      errors.city = 'Ingresá tu localidad o ciudad.';
-    }
+      if (!formData.city.trim()) {
+        errors.city = 'Ingresá tu localidad o ciudad.';
+      }
 
-    if (!formData.state.trim()) {
-      errors.state = 'Seleccioná una provincia de Argentina.';
-    }
+      if (!formData.state.trim()) {
+        errors.state = 'Seleccioná una provincia de Argentina.';
+      }
 
-    if (!formData.postalCode.trim()) {
-      errors.postalCode = 'Ingresá tu código postal.';
+      if (!formData.postalCode.trim()) {
+        errors.postalCode = 'Ingresá tu código postal.';
+      }
     }
 
     if (!formData.phone.trim()) {
@@ -201,8 +206,12 @@ export const CheckoutView = () => {
     setIsSubmitting(true);
 
     try {
-      // Formatear dirección limpia
-      const fullShippingAddress = `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}, ${formData.city}, ${formData.state} (CP: ${formData.postalCode}), Argentina`;
+      // Formatear dirección limpia y coherente con el método elegido
+      const fullShippingAddress = formData.shippingMethod === 'retiro_local'
+        ? (formData.streetAddress.trim()
+            ? `${formData.streetAddress.trim()}${formData.apartment ? ', ' + formData.apartment.trim() : ''}, ${formData.city.trim() || 'Posadas'}, ${formData.state.trim() || 'Misiones'} (Retiro en Local Oficial: Av. López y Planes casi Lavalle - adentro del ACUARIUM)`
+            : 'Retiro por Local Oficial - Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones')
+        : `${formData.streetAddress.trim()}${formData.apartment ? ', ' + formData.apartment.trim() : ''}, ${formData.city.trim()}, ${formData.state.trim()} (CP: ${formData.postalCode.trim()}), Argentina`;
 
       const payload = {
         customer_name: formData.fullName.trim(),
@@ -210,11 +219,11 @@ export const CheckoutView = () => {
         phone: formData.phone.trim(),
         whatsapp_phone: formData.phone.trim(),
         country: 'Argentina',
-        street_address: formData.streetAddress.trim(),
+        street_address: formData.streetAddress.trim() || (formData.shippingMethod === 'retiro_local' ? 'Retiro en Local' : ''),
         apartment: formData.apartment.trim() || null,
-        city: formData.city.trim(),
-        state: formData.state.trim(),
-        postal_code: formData.postalCode.trim(),
+        city: formData.city.trim() || (formData.shippingMethod === 'retiro_local' ? 'Posadas' : ''),
+        state: formData.state.trim() || (formData.shippingMethod === 'retiro_local' ? 'Misiones' : ''),
+        postal_code: formData.postalCode.trim() || (formData.shippingMethod === 'retiro_local' ? '3300' : ''),
         shipping_address: fullShippingAddress,
         payment_method: formData.paymentMethod,
         shipping_method: formData.shippingMethod,
@@ -282,9 +291,9 @@ export const CheckoutView = () => {
       'A coordinar por WhatsApp';
     
     const shippingLabel = 
-      order.shipping_method === 'retiro_local' ? 'Retiro en Local Oficial (Av. López y Planes 2919)' :
-      order.shipping_method === 'envio_posadas' ? 'Envío a domicilio en Posadas/Garupá' :
-      'Envío Nacional';
+      order.shipping_method === 'retiro_local' ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle - adentro del ACUARIUM, Posadas, Misiones)' :
+      order.shipping_method === 'envio_posadas' ? 'Envío Local en Posadas / Garupá (Moto, Uber o Líder Mandados)' :
+      'Envío Nacional a todo el país (Correo Argentino o Vía Cargo - costo adicional según destino)';
 
     const itemsSummary = (order.items || cart || [])
       .map(it => `• ${it.quantity}x ${it.title}${it.selectedOption ? ` (${it.selectedOption})` : ''} - ${formatPrice((it.unitPrice || it.price) * it.quantity)}`)
@@ -416,7 +425,13 @@ export const CheckoutView = () => {
                 <span className="text-gray-400 block font-semibold">Destino de Entrega:</span>
                 <span className="text-white font-bold">{completedOrder.shipping_address}</span>
                 <span className="text-gray-400 block mt-1">
-                  Modalidad: <strong className="text-gray-200">{completedOrder.shipping_method === 'retiro_local' ? 'Retiro en Local (Posadas)' : 'Envío a coordinar'}</strong>
+                  Modalidad: <strong className="text-gray-200">
+                    {completedOrder.shipping_method === 'retiro_local'
+                      ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle - adentro del ACUARIUM)'
+                      : completedOrder.shipping_method === 'envio_posadas'
+                      ? 'Envío Local en Posadas / Garupá (Moto, Uber o Líder Mandados)'
+                      : 'Envío Nacional (Correo Argentino o Vía Cargo - costo adicional según destino)'}
+                  </strong>
                 </span>
               </div>
               <div className="sm:col-span-2 pt-2 border-t border-[#1f3b25] flex justify-between items-center">
@@ -630,17 +645,76 @@ export const CheckoutView = () => {
                   </span>
                 </div>
 
+                {/* Aviso contextual según modalidad de entrega */}
+                {formData.shippingMethod === 'retiro_local' ? (
+                  <div className="p-4 rounded-2xl bg-[#142918] border border-[#2d5a27] text-xs text-gray-300 flex items-start gap-3 shadow-md animate-in fade-in">
+                    <Store size={18} className="text-[#4aa036] shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="text-white font-bold flex items-center gap-2">
+                        <span>Retiro por Local Comercial</span>
+                        <span className="text-[10px] font-black text-[#4aa036] uppercase bg-[#0e1f12] px-2 py-0.5 rounded-full border border-[#4aa036]/50">Sin Costo</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">
+                        📍 Dirección del local: <strong className="text-[#e0a96d]">Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.</strong>
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        No es obligatorio ingresar dirección de entrega. Te avisaremos por WhatsApp cuando tu pedido esté empaquetado para retirar.
+                      </p>
+                    </div>
+                  </div>
+                ) : formData.shippingMethod === 'envio_posadas' ? (
+                  <div className="p-4 rounded-2xl bg-[#1d2716] border border-amber-600/40 text-xs text-gray-300 flex items-start gap-3 shadow-md animate-in fade-in">
+                    <Bike size={18} className="text-[#e0a96d] shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="text-white font-bold flex items-center gap-2">
+                        <span>Envío Local (Posadas / Garupá)</span>
+                        <span className="text-[10px] font-semibold text-gray-300 uppercase bg-[#122317] px-2 py-0.5 rounded-full border border-amber-600/40">A coordinar</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">
+                        🛵 Coordinación de envío ágil por <strong className="text-white">moto, Uber o Líder Mandados</strong>.
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        Ingresá tu domicilio exacto. El costo de cadetería se abona contra entrega o se coordina por WhatsApp según la distancia.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-[#102230] border border-blue-600/40 text-xs text-gray-300 flex items-start gap-3 shadow-md animate-in fade-in">
+                    <Truck size={18} className="text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="text-white font-bold flex items-center gap-2">
+                        <span>Envíos Nacionales a Todo el País</span>
+                        <span className="text-[10px] font-bold text-amber-300 uppercase bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-600/40">Costo adicional</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">
+                        📦 Envío a todo el país por <strong className="text-white">Correo Argentino o Vía Cargo</strong> con embalaje 100% seguro y discreto.
+                      </p>
+                      <p className="text-[11px] text-amber-300 font-medium">
+                        ⚠️ Tiene un costo adicional que dependerá del lugar de destino (se calcula y coordina por WhatsApp).
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Dirección de la calle */}
                 <div>
                   <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Dirección de la calle <span className="text-red-400">*</span>
+                    Dirección de la calle {formData.shippingMethod === 'retiro_local' ? (
+                      <span className="text-gray-500 font-normal lowercase">(opcional para retiro en local)</span>
+                    ) : (
+                      <span className="text-red-400">*</span>
+                    )}
                   </label>
                   <input
                     type="text"
                     name="streetAddress"
                     value={formData.streetAddress}
                     onChange={handleChange}
-                    placeholder="Número de casa y nombre de la calle (ej: Av. San Martín 1234)"
+                    placeholder={
+                      formData.shippingMethod === 'retiro_local'
+                        ? 'Opcional (se retira en Av. López y Planes casi Lavalle - adentro del ACUARIUM)'
+                        : 'Número de casa y nombre de la calle (ej: Av. San Martín 1234)'
+                    }
                     className={`w-full py-2.5 px-4 rounded-xl bg-[#142619] text-gray-100 placeholder-gray-500 border text-xs focus:outline-none transition ${
                       validationErrors.streetAddress ? 'border-red-500 ring-1 ring-red-500' : 'border-[#23422a] focus:border-[#4aa036]'
                     }`}
@@ -1122,50 +1196,95 @@ export const CheckoutView = () => {
                 <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider">
                   Modalidad de Entrega
                 </label>
-                <div className="space-y-1.5 text-xs">
-                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#122317] border border-[#23442a] cursor-pointer hover:border-[#4aa036] transition">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="shippingMethod"
-                        value="retiro_local"
-                        checked={formData.shippingMethod === 'retiro_local'}
-                        onChange={handleChange}
-                        className="text-[#2d5a27] focus:ring-[#4aa036]"
-                      />
-                      <span>Retiro en Local Oficial (Posadas)</span>
+                <div className="space-y-2 text-xs">
+                  {/* Opción 1: Retiro por Local */}
+                  <label className={`flex flex-col p-3 rounded-2xl border cursor-pointer transition ${
+                    formData.shippingMethod === 'retiro_local'
+                      ? 'bg-[#18311d] border-[#4aa036] shadow-md shadow-[#4aa036]/10'
+                      : 'bg-[#122317] border-[#23442a] hover:border-[#4aa036]/60'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="retiro_local"
+                          checked={formData.shippingMethod === 'retiro_local'}
+                          onChange={handleChange}
+                          className="text-[#2d5a27] focus:ring-[#4aa036]"
+                        />
+                        <div className="flex items-center gap-1.5 font-bold text-white">
+                          <Store size={15} className="text-[#4aa036]" />
+                          <span>Retiro por Local</span>
+                        </div>
+                      </div>
+                      <span className="font-black text-[#4aa036] text-[10px] uppercase tracking-wider bg-[#0e1f12] px-2 py-0.5 rounded-full border border-[#4aa036]/40">
+                        Sin costo
+                      </span>
                     </div>
-                    <span className="font-bold text-[#4aa036] text-[11px] uppercase">Gratis</span>
+                    <p className="text-[11px] text-gray-400 pl-6 mt-1 leading-relaxed">
+                      Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.
+                    </p>
                   </label>
 
-                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#122317] border border-[#23442a] cursor-pointer hover:border-[#4aa036] transition">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="shippingMethod"
-                        value="envio_posadas"
-                        checked={formData.shippingMethod === 'envio_posadas'}
-                        onChange={handleChange}
-                        className="text-[#2d5a27] focus:ring-[#4aa036]"
-                      />
-                      <span>Envío en Posadas / Garupá</span>
+                  {/* Opción 2: Envío Local */}
+                  <label className={`flex flex-col p-3 rounded-2xl border cursor-pointer transition ${
+                    formData.shippingMethod === 'envio_posadas'
+                      ? 'bg-[#18311d] border-[#4aa036] shadow-md shadow-[#4aa036]/10'
+                      : 'bg-[#122317] border-[#23442a] hover:border-[#4aa036]/60'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="envio_posadas"
+                          checked={formData.shippingMethod === 'envio_posadas'}
+                          onChange={handleChange}
+                          className="text-[#2d5a27] focus:ring-[#4aa036]"
+                        />
+                        <div className="flex items-center gap-1.5 font-bold text-white">
+                          <Bike size={15} className="text-[#e0a96d]" />
+                          <span>Envío Local (Posadas / Garupá)</span>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-gray-300 text-[10px] uppercase bg-[#1a2e1d] px-2 py-0.5 rounded-full border border-[#2d5a27]">
+                        A coordinar
+                      </span>
                     </div>
-                    <span className="font-medium text-gray-400 text-[11px]">A coordinar</span>
+                    <p className="text-[11px] text-gray-400 pl-6 mt-1 leading-relaxed">
+                      Coordinación de envío por moto, Uber o Líder Mandados.
+                    </p>
                   </label>
 
-                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#122317] border border-[#23442a] cursor-pointer hover:border-[#4aa036] transition">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="shippingMethod"
-                        value="envio_nacional"
-                        checked={formData.shippingMethod === 'envio_nacional'}
-                        onChange={handleChange}
-                        className="text-[#2d5a27] focus:ring-[#4aa036]"
-                      />
-                      <span>Envío Nacional por Encomienda</span>
+                  {/* Opción 3: Envíos Nacionales */}
+                  <label className={`flex flex-col p-3 rounded-2xl border cursor-pointer transition ${
+                    formData.shippingMethod === 'envio_nacional'
+                      ? 'bg-[#18311d] border-[#4aa036] shadow-md shadow-[#4aa036]/10'
+                      : 'bg-[#122317] border-[#23442a] hover:border-[#4aa036]/60'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="envio_nacional"
+                          checked={formData.shippingMethod === 'envio_nacional'}
+                          onChange={handleChange}
+                          className="text-[#2d5a27] focus:ring-[#4aa036]"
+                        />
+                        <div className="flex items-center gap-1.5 font-bold text-white">
+                          <Truck size={15} className="text-blue-400" />
+                          <span>Envío Nacional</span>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-amber-400 text-[10px] uppercase bg-[#2a2210] px-2 py-0.5 rounded-full border border-amber-500/40">
+                        Costo adicional
+                      </span>
                     </div>
-                    <span className="font-medium text-gray-400 text-[11px]">A coordinar</span>
+                    <p className="text-[11px] text-gray-400 pl-6 mt-1 leading-relaxed">
+                      Envío a todo el país por Correo Argentino o Vía Cargo (el costo dependerá del destino).
+                    </p>
                   </label>
                 </div>
               </div>
@@ -1176,10 +1295,16 @@ export const CheckoutView = () => {
                   <span>Subtotal productos:</span>
                   <span className="text-white font-semibold">{formattedTotalPrice}</span>
                 </div>
-                <div className="flex justify-between text-gray-400">
+                <div className="flex justify-between items-start text-gray-400 gap-2">
                   <span>Costo de envío:</span>
-                  <span className="text-[#4aa036] font-semibold">
-                    {formData.shippingMethod === 'retiro_local' ? 'Gratis (Retiro en local)' : 'A coordinar'}
+                  <span className="font-semibold text-right">
+                    {formData.shippingMethod === 'retiro_local' ? (
+                      <span className="text-[#4aa036]">Sin costo (Retiro en local)</span>
+                    ) : formData.shippingMethod === 'envio_posadas' ? (
+                      <span className="text-gray-300">A coordinar (Moto / Uber / Líder Mandados)</span>
+                    ) : (
+                      <span className="text-amber-400 text-[11px]">Costo adicional según destino (Correo Arg. / Vía Cargo)</span>
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t border-[#1f3b25]">

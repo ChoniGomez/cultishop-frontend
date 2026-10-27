@@ -698,26 +698,26 @@ export const ProductDetail = () => {
                 <div className="flex items-center justify-between font-bold">
                   <span className="text-white flex items-center gap-1.5">
                     <MapPin size={14} className="text-[#4aa036] shrink-0" />
-                    Retiro en Local
+                    Retiro por Local
                   </span>
-                  <span className="text-[#25d366] font-black uppercase text-[11px]">¡Gratis!</span>
+                  <span className="text-[#25d366] font-black uppercase text-[10px] bg-[#102a16] px-2 py-0.5 rounded-full border border-[#4aa036]/40">Sin costo</span>
                 </div>
                 <p className="text-gray-400 text-[11px] pl-5 leading-relaxed">
-                  Av. López y Planes 2919, Posadas. Lunes a Viernes de 09 a 12 hs y 16:30 a 19:30 hs.
+                  Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.
                 </p>
               </div>
 
-              {/* Envío en el día Posadas */}
+              {/* Envío Local Posadas */}
               <div className="space-y-1 text-xs pt-2 border-t border-[#18311d]">
                 <div className="flex items-center justify-between font-bold">
                   <span className="text-white flex items-center gap-1.5">
                     <Clock size={14} className="text-[#e0a96d] shrink-0" />
-                    Envío en el Día
+                    Envío Local (Posadas / Garupá)
                   </span>
-                  <span className="text-gray-300 text-[11px]">Posadas / Garupá</span>
+                  <span className="text-gray-400 text-[10px] uppercase font-semibold">A coordinar</span>
                 </div>
                 <p className="text-gray-400 text-[11px] pl-5 leading-relaxed">
-                  Cadetería exprés directa. Coordinás horario exacto con nosotros por WhatsApp.
+                  Coordinación de envío por moto, Uber o Líder Mandados.
                 </p>
               </div>
 
@@ -726,12 +726,12 @@ export const ProductDetail = () => {
                 <div className="flex items-center justify-between font-bold">
                   <span className="text-white flex items-center gap-1.5">
                     <PackageCheck size={14} className="text-blue-400 shrink-0" />
-                    Correo Argentino
+                    Envíos Nacionales
                   </span>
-                  <span className="text-gray-300 text-[11px]">A todo el país</span>
+                  <span className="text-amber-400 text-[10px] uppercase font-semibold">A todo el país</span>
                 </div>
                 <p className="text-gray-400 text-[11px] pl-5 leading-relaxed">
-                  Despachamos encomiendas con código de seguimiento oficial en 24 a 48 hs.
+                  Por Correo Argentino o Vía Cargo (tiene un costo adicional que dependerá del lugar de destino).
                 </p>
               </div>
 
@@ -971,24 +971,34 @@ export const ProductDetail = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded-2xl bg-[#122317] border border-[#1f3b25] space-y-2">
                     <h4 className="font-bold text-white text-sm flex items-center gap-2">
                       <MapPin size={16} className="text-[#4aa036]" />
-                      Retiro en Posadas (Misiones)
+                      Retiro por Local (Sin costo)
                     </h4>
-                    <p className="text-gray-400 leading-relaxed">
-                      Podés retirar tus productos sin costo adicional en nuestro local en Av. López y Planes 2919. Aceptamos efectivo con descuento directo, transferencia y tarjetas.
+                    <p className="text-gray-400 leading-relaxed text-[11px]">
+                      Podés retirar tus compras sin costo adicional en nuestro local comercial ubicado en <strong className="text-gray-200">Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones</strong>. Coordinamos la preparación de tu paquete por WhatsApp.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-[#122317] border border-[#1f3b25] space-y-2">
                     <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                      <Truck size={16} className="text-[#e0a96d]" />
-                      Envíos a Domicilio y Todo el País
+                      <Clock size={16} className="text-[#e0a96d]" />
+                      Envío Local (Posadas / Garupá)
                     </h4>
-                    <p className="text-gray-400 leading-relaxed">
-                      En Posadas y alrededores contamos con cadetería propia en el día. Para envíos al interior de Misiones y otras provincias, despachamos vía Correo Argentino o empresas de encomiendas con embalaje discreto y seguro.
+                    <p className="text-gray-400 leading-relaxed text-[11px]">
+                      Coordinación ágil de envío a domicilio a través de <strong className="text-gray-200">moto, Uber o Líder Mandados</strong>. Coordinás el horario y forma de entrega directamente con nuestro equipo.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#122317] border border-[#1f3b25] space-y-2">
+                    <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                      <Truck size={16} className="text-blue-400" />
+                      Envíos Nacionales
+                    </h4>
+                    <p className="text-gray-400 leading-relaxed text-[11px]">
+                      Envíos a todo el país por <strong className="text-gray-200">Correo Argentino o Vía Cargo</strong> con embalaje seguro y discreto. <span className="text-amber-300 font-semibold block mt-1">Tené en cuenta que tiene un costo adicional que dependerá del lugar de destino.</span>
                     </p>
                   </div>
                 </div>

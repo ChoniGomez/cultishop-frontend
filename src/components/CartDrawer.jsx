@@ -243,7 +243,7 @@ export const CartDrawer = () => {
             {/* Aviso de entrega */}
             <div className="p-2.5 rounded-xl bg-[#102315] border border-[#23442a] flex items-center gap-2.5 text-[11px] text-gray-300">
               <ShieldCheck size={16} className="text-[#4aa036] shrink-0" />
-              <span>Coordinación directa de entrega en Posadas o retiro en local.</span>
+              <span>Retiro por local sin costo • Envíos por Moto, Uber, Líder Mandados, Correo Argentino o Vía Cargo.</span>
             </div>
 
             {/* Botón Principal: Finalizar la Compra */}

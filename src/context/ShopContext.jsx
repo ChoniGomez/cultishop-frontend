@@ -24,16 +24,16 @@ export const DEFAULT_PAYMENT_SETTINGS = {
 };
 
 export const DEFAULT_LOCATION_SETTINGS = {
-  address: 'Av. López y Planes 2919 (entre Lavalle y Santa Catalina), Posadas, Misiones, Argentina',
+  address: 'Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones, Argentina',
   hours: 'Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs',
   phone: '+54 9 376 435-6995',
-  google_maps_url: 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina',
-  google_maps_embed_url: 'https://maps.google.com/maps?q=Av.+L%C3%B3pez+y+Planes+2919,+Posadas,+Misiones,+Argentina&t=&z=16&ie=UTF8&iwloc=&output=embed',
+  google_maps_url: 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+y+Lavalle,+Posadas,+Misiones,+Argentina',
+  google_maps_embed_url: 'https://maps.google.com/maps?q=Av.+L%C3%B3pez+y+Planes+y+Lavalle,+Posadas,+Misiones,+Argentina&t=&z=16&ie=UTF8&iwloc=&output=embed',
   latitude: -27.3719,
   longitude: -55.9084
 };
 
-const LOCATION_SETTINGS_KEY = 'cultishop_location_settings_v1';
+const LOCATION_SETTINGS_KEY = 'cultishop_location_settings_v2';
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.

@@ -31,17 +31,17 @@ const FALLBACK_FAQS = [
   },
   {
     id: 2,
-    question: '¿Hacen envíos en Posadas y al interior de Misiones o el país?',
-    answer: '¡Sí! Realizamos envíos rápidos en Posadas (cadetería o retiro en tienda) y despachamos encomiendas seguras y embaladas discretamente a toda la provincia de Misiones y a todo el país a través de expresos y empresas de transporte oficial.',
-    category: 'Envíos & Entregas',
+    question: '¿Cuáles son los métodos de envío y retiro disponibles?',
+    answer: 'Disponemos de las siguientes modalidades de entrega: 1) Retiro por Local sin costo en Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones. 2) Envíos locales (Posadas / Garupá): Coordinación ágil de envío por moto, Uber o Líder Mandados. 3) Envíos Nacionales: Realizamos envíos a todo el país por Correo Argentino o Vía Cargo (con costo adicional dependiendo del lugar de destino).',
+    category: 'Envíos & Retiro',
     order_index: 2,
     is_active: true
   },
   {
     id: 3,
     question: '¿Dónde queda el local físico y cuáles son los horarios de atención?',
-    answer: 'Estamos ubicados en Av. López y Planes 2919, Posadas, Misiones. Te invitamos a visitarnos para conocer todos los productos exhibidos y recibir asesoramiento técnico personalizado para tus cultivos.',
-    category: 'Local & Horarios',
+    answer: 'Estamos ubicados en Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones. Te invitamos a visitarnos para conocer todos los productos exhibidos y recibir asesoramiento técnico personalizado para tus cultivos.',
+    category: 'Local & Retiro',
     order_index: 3,
     is_active: true
   },
@@ -305,9 +305,9 @@ export const FaqView = () => {
             <div className="w-10 h-10 rounded-xl bg-[#162a1b] text-[#4aa036] flex items-center justify-center border border-[#2d5a27]">
               <Truck size={20} />
             </div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wide">Envíos Discretos & Seguros</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wide">Envíos & Retiro en Local</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Despachos rápidos en Posadas por cadetería y envíos a toda la provincia y el país con embalaje 100% neutro.
+              Retiro por local sin costo, envíos en Posadas por moto, Uber o Líder Mandados, y envíos a todo el país por Correo Argentino o Vía Cargo (costo adicional según destino).
             </p>
           </div>
 
