@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Package, 
   ArrowRight, 
   Sparkles, 
   Leaf, 
@@ -56,17 +55,14 @@ export const HomeFeaturedProducts = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-2.5">
           {activeCategoriesList.slice(0, 8).map((cat) => (
             <Link
               key={cat.slug || cat.id}
               to={`/categoria/${cat.slug}`}
-              className="p-3 rounded-2xl bg-[#0c1a10] hover:bg-[#152e1c] border border-[#1f3b25] hover:border-[#4aa036] transition-all text-center flex flex-col items-center justify-center gap-1.5 shadow-sm group hover:-translate-y-0.5"
+              className="py-3 px-2 rounded-xl bg-[#0c1a10] hover:bg-[#152e1c] border border-[#1f3b25] hover:border-[#38761d] transition-all text-center flex items-center justify-center shadow-sm group hover:-translate-y-0.5"
             >
-              <div className="w-8 h-8 rounded-full bg-[#142918] group-hover:bg-[#204226] border border-[#23452b] flex items-center justify-center text-[#4aa036] group-hover:text-[#e0a96d] transition-colors">
-                <Leaf size={15} />
-              </div>
-              <span className="text-[11px] sm:text-xs font-bold text-gray-200 group-hover:text-white line-clamp-1">
+              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-[#e0a96d] transition-colors line-clamp-1">
                 {cat.name}
               </span>
             </Link>
@@ -139,51 +135,50 @@ export const HomeFeaturedProducts = () => {
         </div>
       )}
 
-      {/* 4. BANNER ESTÉTICO Y BOTÓN GRANDE "EXPLORAR TIENDA / CATÁLOGO COMPLETO" */}
-      <div className="relative rounded-3xl p-8 sm:p-12 border border-[#2d5a27] bg-gradient-to-br from-[#0c1b11] via-[#102416] to-[#08120b] shadow-2xl overflow-hidden text-center space-y-6">
-        {/* Luces de fondo y detalles visuales */}
-        <div className="absolute -top-24 -left-24 w-64 h-64 bg-[#4aa036]/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-[#e0a96d]/15 rounded-full blur-3xl pointer-events-none" />
+      {/* 4. BANNER DISCRETO Y BOTÓN ELEGANTE "EXPLORAR TODO EL CATÁLOGO" */}
+      <div className="relative rounded-3xl p-6 sm:p-10 border border-[#1e3b25] bg-gradient-to-b from-[#0c1b11] via-[#0f2316] to-[#08120b] shadow-xl overflow-hidden text-center space-y-5">
+        {/* Luces de fondo y detalles visuales sutiles */}
+        <div className="absolute -top-24 -left-24 w-56 h-56 bg-[#4aa036]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-56 h-56 bg-[#e0a96d]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-3 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1b3620] border border-[#2f5e38] text-[11px] font-black uppercase tracking-wider text-[#e0a96d]">
-            <Sparkles size={13} className="text-[#e0a96d]" />
+        <div className="relative z-10 space-y-2.5 max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#142819] border border-[#23452b] text-[10px] font-bold uppercase tracking-wider text-[#e0a96d]">
+            <Sparkles size={12} className="text-[#e0a96d]" />
             <span>MÁS DE 630 PRODUCTOS EN STOCK PERMANENTE</span>
           </div>
 
-          <h3 className="text-2xl sm:text-4xl font-black text-white font-heading tracking-tight leading-tight">
+          <h3 className="text-xl sm:text-3xl font-black text-white font-heading tracking-tight leading-tight">
             ¿Buscás más opciones para tu cultivo?
           </h3>
 
           <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-            Contamos con fertilizantes de todas las marcas, iluminación LED y halógena, carpas indoor, sustratos premium, sistemas de riego y parafernalia completa con asesoramiento profesional en Posadas, Misiones.
+            Fertilizantes de todas las marcas, iluminación LED y halógena, carpas indoor, sustratos premium, sistemas de riego y parafernalia completa con asesoramiento profesional en Posadas, Misiones.
           </p>
         </div>
 
-        {/* BOTÓN PRINCIPAL PROMINENTE */}
-        <div className="relative z-10 pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {/* BOTÓN DISCRETO Y ELEGANTE */}
+        <div className="relative z-10 pt-1 flex items-center justify-center">
           <Link
             to="/catalogo"
-            className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2d5a27] via-[#38761d] to-[#4aa036] hover:from-[#38761d] hover:to-[#52b339] text-white font-black text-sm sm:text-base px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl shadow-xl shadow-[#2d5a27]/50 hover:shadow-[#4aa036]/40 hover:scale-105 active:scale-95 transition-all duration-300 border border-[#4aa036]/60 uppercase tracking-wider font-heading group w-full sm:w-auto"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-full bg-[#142619] hover:bg-[#1f3b25] text-gray-200 hover:text-white border border-[#2d5a27] hover:border-[#e0a96d] text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md group"
           >
-            <Package size={22} className="text-[#e0a96d] group-hover:rotate-12 transition-transform duration-300" />
-            <span>Explorar tienda y catálogo completo</span>
-            <ArrowRight size={20} className="text-white group-hover:translate-x-1.5 transition-transform duration-300" />
+            <span>Explorar todo el catálogo</span>
+            <ArrowRight size={14} className="text-[#e0a96d] group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        {/* Insignias de confianza rápidas debajo del botón */}
-        <div className="relative z-10 pt-4 border-t border-[#1a3320]/80 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-semibold text-gray-400">
+        {/* Insignias sutiles debajo del botón */}
+        <div className="relative z-10 pt-3 border-t border-[#162e1a] flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-medium text-gray-400">
           <div className="flex items-center gap-1.5">
-            <Zap size={13} className="text-[#e0a96d]" />
+            <Zap size={12} className="text-[#e0a96d]" />
             <span>Filtros interactivos por categoría</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Flame size={13} className="text-[#4aa036]" />
+            <Flame size={12} className="text-[#4aa036]" />
             <span>Buscador en tiempo real</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Package size={13} className="text-[#e0a96d]" />
+            <Layers size={12} className="text-[#e0a96d]" />
             <span>Paginación fluida y stock sincronizado</span>
           </div>
         </div>
