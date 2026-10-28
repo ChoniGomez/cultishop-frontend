@@ -6,6 +6,7 @@ import { ProductSection } from './components/ProductSection';
 import { CultiShopLogo } from './components/CultiShopLogo';
 import { WhatsAppIcon } from './components/WhatsAppIcon';
 import { HeroCarousel } from './components/HeroCarousel';
+import { HomeFeaturedProducts } from './components/HomeFeaturedProducts';
 import { AuthView } from './components/AuthView';
 import { NotFound } from './components/NotFound';
 import { FavoritesView } from './components/FavoritesView';
@@ -28,10 +29,14 @@ const HomePage = () => (
     {/* HERO CAROUSEL ROTATIVO */}
     <HeroCarousel interval={5000} />
 
-    {/* SECCIÓN DE PRODUCTOS */}
-    <div id="catalogo">
-      <ProductSection />
-    </div>
+    {/* SECCIÓN DE PRODUCTOS DESTACADOS Y ÚLTIMOS INGRESOS (OPTIMIZADA) */}
+    <HomeFeaturedProducts />
+  </div>
+);
+
+const CatalogPage = () => (
+  <div id="catalogo" className="w-full">
+    <ProductSection />
   </div>
 );
 
@@ -68,7 +73,8 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/productos" element={<HomePage />} />
+                <Route path="/catalogo" element={<CatalogPage />} />
+                <Route path="/productos" element={<CatalogPage />} />
                 <Route path="/producto/:id" element={<ProductDetail />} />
                 <Route path="/producto/:id/:slug" element={<ProductDetail />} />
                 <Route path="/categoria/:category/:subcategory" element={<ProductSection />} />

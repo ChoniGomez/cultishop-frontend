@@ -11,7 +11,14 @@ const PRODUCTS_PER_PAGE = 9;
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
-  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch, categories: shopCategories } = useShop();
+  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch, categories: shopCategories, fetchProducts } = useShop();
+
+  // Asegurar que los productos del catálogo se carguen si aún no están en memoria
+  useEffect(() => {
+    if (products.length === 0 && fetchProducts) {
+      fetchProducts();
+    }
+  }, [products.length, fetchProducts]);
 
   const rawCategorySlug = category || slug;
   const cleanCategorySlug = rawCategorySlug ? decodeURIComponent(rawCategorySlug).trim() : null;
@@ -287,22 +294,26 @@ export const ProductSection = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-14">
-      {/* Breadcrumb si está navegando por categoría */}
-      {matchedCategory && (
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 flex-wrap">
-          <Link to="/" className="hover:text-[#4aa036] transition">Inicio</Link>
-          <ChevronRight size={12} />
-          <Link to={`/categoria/${matchedCategory.slug}`} className="hover:text-[#e0a96d] transition font-medium">
-            {matchedCategory.name}
-          </Link>
-          {matchedSubcategory && (
-            <>
-              <ChevronRight size={12} />
-              <span className="text-[#e0a96d] font-bold">{matchedSubcategory.name}</span>
-            </>
-          )}
-        </div>
-      )}
+      {/* Breadcrumb navegable */}
+      <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 flex-wrap">
+        <Link to="/" className="hover:text-[#4aa036] transition">Inicio</Link>
+        <ChevronRight size={12} />
+        {matchedCategory ? (
+          <>
+            <Link to={`/categoria/${matchedCategory.slug}`} className="hover:text-[#e0a96d] transition font-medium">
+              {matchedCategory.name}
+            </Link>
+            {matchedSubcategory && (
+              <>
+                <ChevronRight size={12} />
+                <span className="text-[#e0a96d] font-bold">{matchedSubcategory.name}</span>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-[#e0a96d] font-bold">Catálogo Completo</span>
+        )}
+      </div>
 
       {/* Encabezado con estética de flyers */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-6 border-b border-[#1f3b25] pb-6">
@@ -311,8 +322,10 @@ export const ProductSection = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-[#4aa036]"></span>
             {isSearchActive ? (
               <>RESULTADOS DE BÚSQUEDA • {filteredProducts.length} PRODUCTO{filteredProducts.length === 1 ? '' : 'S'}</>
+            ) : matchedCategory ? (
+              <>CULTISHOP • {matchedCategory.name.toUpperCase()}</>
             ) : (
-              <>CULTISHOP • {matchedCategory ? matchedCategory.name.toUpperCase() : 'CATÁLOGO EN STOCK'}</>
+              <>CULTISHOP • CATÁLOGO COMPLETO ({totalProducts} PRODUCTOS)</>
             )}
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-white font-heading">
@@ -330,7 +343,7 @@ export const ProductSection = () => {
               </>
             ) : (
               <>
-                CONTAMOS CON <span className="text-[#e0a96d] text-glow-gold">STOCK</span> DE TODOS NUESTROS PRODUCTOS
+                CATÁLOGO COMPLETO DE <span className="text-[#e0a96d] text-glow-gold">PRODUCTOS</span>
               </>
             )}
           </h2>

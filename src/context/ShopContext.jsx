@@ -10,6 +10,8 @@ const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
 const PRODUCTS_STORAGE_KEY = 'cultishop_products_v3';
 const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché local
+const FEATURED_PRODUCTS_KEY = 'cultishop_featured_v2';
+const FEATURED_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos para productos destacados
 const CATEGORIES_STORAGE_KEY = 'cultishop_categories_v2';
 const CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de validez para categorías
 const SETTINGS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos de validez para configuración
@@ -296,8 +298,23 @@ export const ShopProvider = ({ children }) => {
         }
       }
     } catch (e) {}
-    return true;
+    return false; // No bloquea la UI inicial; se carga bajo demanda
   });
+
+  // Productos destacados / nuevos para la página de inicio (carga ultra liviana)
+  const [featuredProducts, setFeaturedProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(FEATURED_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.timestamp && (Date.now() - parsed.timestamp < FEATURED_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
+          return parsed.products;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [loadingFeatured, setLoadingFeatured] = useState(() => featuredProducts.length === 0);
 
   const [categories, setCategories] = useState(() => {
     try {
@@ -523,7 +540,80 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // Sincronizar con Backend y persistir en LocalStorage con control de versión
+  const formatApiProduct = (p) => ({
+    ...p,
+    image: p.image_url || p.image,
+    image_url: p.image_url || p.image,
+    badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
+    numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
+    price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
+    stock: p.stock ?? 20,
+    brand: p.brand || '',
+    origin: p.origin || '',
+    format: p.format || '',
+    cultivationStage: p.cultivation_stage || p.cultivationStage || '',
+    dosage: p.dosage || '',
+    phRecommended: p.ph_recommended || p.phRecommended || '',
+    ecRecommended: p.ec_recommended || p.ecRecommended || '',
+    suitableFor: p.suitable_for || p.suitableFor || '',
+    keyBenefits: p.key_benefits || p.keyBenefits || [],
+    applicationGuide: p.application_guide || p.applicationGuide || [],
+    cannabisSpecs: p.cannabis_specs || p.cannabisSpecs || null,
+    shippingInfo: p.shipping_info || p.shippingInfo || '',
+    details: p.details || null,
+    subcategory: p.subcategory || null,
+    subcategory_id: p.subcategory_id || null,
+    subcategory_slug: p.subcategory_slug || null
+  });
+
+  // Carga ligera de productos destacados / recientes para la Home (ultra rápida)
+  const fetchFeaturedProducts = async (force = false) => {
+    if (!force) {
+      try {
+        const saved = localStorage.getItem(FEATURED_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.timestamp && (Date.now() - parsed.timestamp < FEATURED_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
+            setFeaturedProducts(parsed.products);
+            setLoadingFeatured(false);
+            return parsed.products;
+          }
+        }
+      } catch {}
+    }
+
+    setLoadingFeatured(true);
+    try {
+      const res = await fetch(buildApiUrl('products?featured=true&limit=8'));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          const apiFeatured = data.products.map(formatApiProduct);
+          setFeaturedProducts(apiFeatured);
+          try {
+            localStorage.setItem(FEATURED_STORAGE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              products: apiFeatured
+            }));
+          } catch {}
+          return apiFeatured;
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/products?featured=true no disponible, usando fallback:', err);
+    } finally {
+      setLoadingFeatured(false);
+    }
+
+    if (products.length > 0) {
+      const fallbackList = products.slice(0, 8);
+      setFeaturedProducts(fallbackList);
+      return fallbackList;
+    }
+    return featuredProducts;
+  };
+
+  // Sincronizar con Backend el catálogo completo (bajo demanda para /catalogo y categorías)
   const fetchProducts = async (force = false) => {
     if (!force) {
       try {
@@ -544,32 +634,7 @@ export const ShopProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.products)) {
-          const apiProducts = data.products.map((p) => ({
-            ...p,
-            image: p.image_url || p.image,
-            image_url: p.image_url || p.image,
-            badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
-            numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
-            price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
-            stock: p.stock ?? 20,
-            brand: p.brand || '',
-            origin: p.origin || '',
-            format: p.format || '',
-            cultivationStage: p.cultivation_stage || p.cultivationStage || '',
-            dosage: p.dosage || '',
-            phRecommended: p.ph_recommended || p.phRecommended || '',
-            ecRecommended: p.ec_recommended || p.ecRecommended || '',
-            suitableFor: p.suitable_for || p.suitableFor || '',
-            keyBenefits: p.key_benefits || p.keyBenefits || [],
-            applicationGuide: p.application_guide || p.applicationGuide || [],
-            cannabisSpecs: p.cannabis_specs || p.cannabisSpecs || null,
-            shippingInfo: p.shipping_info || p.shippingInfo || '',
-            details: p.details || null,
-            subcategory: p.subcategory || null,
-            subcategory_id: p.subcategory_id || null,
-            subcategory_slug: p.subcategory_slug || null
-          }));
-
+          const apiProducts = data.products.map(formatApiProduct);
           setProducts(apiProducts);
           saveProductsCache(apiProducts);
         }
@@ -582,7 +647,7 @@ export const ShopProvider = ({ children }) => {
           return FALLBACK_PRODUCTS.map((p) => ({
             ...p,
             image: p.image || p.image_url,
-            image_url: p.image || p.image_url,
+            image_url: p.image_url || p.image,
             badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
             stock: p.stock ?? 25,
             numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
@@ -596,10 +661,21 @@ export const ShopProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchFeaturedProducts();
     fetchCategories();
     fetchPaymentSettings();
     fetchLocationSettings();
+
+    // Si ya existen productos en caché local, cargarlos en memoria para navegación instantánea
+    try {
+      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.timestamp && (Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
+          setProducts(parsed.products);
+        }
+      }
+    } catch {}
   }, []);
 
   /**
@@ -1085,6 +1161,9 @@ export const ShopProvider = ({ children }) => {
         products,
         loadingProducts,
         fetchProducts,
+        featuredProducts: (featuredProducts && featuredProducts.length > 0) ? featuredProducts : (products.slice(0, 8)),
+        loadingFeatured,
+        fetchFeaturedProducts,
         updateProduct,
         addProduct,
         deleteProduct,

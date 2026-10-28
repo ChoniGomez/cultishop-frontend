@@ -58,11 +58,14 @@ export const Navbar = () => {
     const val = e.target.value;
     setSearchQuery(val);
 
-    // Si el usuario no está en el catálogo (/ o /productos), redirigir automáticamente
-    if (location.pathname !== '/' && location.pathname !== '/productos') {
-      navigate(val.trim() ? `/?search=${encodeURIComponent(val)}#catalogo` : '/#catalogo');
+    // Si el usuario no está en el catálogo (/catalogo, /productos o /categoria), redirigir al catálogo
+    const isCatalogPath = location.pathname.startsWith('/catalogo') || 
+                          location.pathname.startsWith('/productos') || 
+                          location.pathname.startsWith('/categoria');
+    
+    if (!isCatalogPath) {
+      navigate(val.trim() ? `/catalogo?search=${encodeURIComponent(val)}` : '/catalogo');
     } else {
-      // Si ya está en /, actualizar los query params de forma limpia
       if (val.trim()) {
         setSearchParams({ search: val }, { replace: true });
       } else {
@@ -76,15 +79,18 @@ export const Navbar = () => {
     if (e) e.preventDefault();
     const query = searchQuery.trim();
 
-    if (location.pathname !== '/' && location.pathname !== '/productos') {
-      navigate(query ? `/?search=${encodeURIComponent(query)}#catalogo` : '/#catalogo');
+    const isCatalogPath = location.pathname.startsWith('/catalogo') || 
+                          location.pathname.startsWith('/productos') || 
+                          location.pathname.startsWith('/categoria');
+
+    if (!isCatalogPath) {
+      navigate(query ? `/catalogo?search=${encodeURIComponent(query)}` : '/catalogo');
     } else {
       if (query) {
         setSearchParams({ search: query }, { replace: true });
       } else {
         setSearchParams({}, { replace: true });
       }
-      // Desplazamiento suave hacia la sección de productos
       const catalogEl = document.getElementById('catalogo');
       if (catalogEl) {
         catalogEl.scrollIntoView({ behavior: 'smooth' });
@@ -96,7 +102,7 @@ export const Navbar = () => {
   // Limpiar búsqueda
   const handleClearSearch = () => {
     clearSearch();
-    if (location.pathname === '/' || location.pathname === '/productos') {
+    if (location.pathname.startsWith('/catalogo') || location.pathname.startsWith('/productos')) {
       setSearchParams({}, { replace: true });
     }
   };
@@ -357,7 +363,7 @@ export const Navbar = () => {
           <div className="hidden lg:flex items-center w-full justify-between gap-1.5 xl:gap-3 py-1 relative">
             <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1">
               <Link 
-                to="/" 
+                to="/catalogo" 
                 className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
               >
                 TODOS
@@ -543,11 +549,11 @@ export const Navbar = () => {
               </form>
 
               <Link
-                to="/"
+                to="/catalogo"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full block text-center py-2.5 px-4 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
               >
-                Ver Todos Los Productos
+                Ver Catálogo Completo
               </Link>
 
               {/* Botón Carrito o Acceso Admin en menú móvil */}
