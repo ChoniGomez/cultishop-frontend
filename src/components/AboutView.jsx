@@ -351,7 +351,7 @@ export const AboutView = () => {
               <span className="text-[#e0a96d] text-glow-gold">SANIDAD VEGETAL</span> Y COMUNIDAD
             </h1>
 
-            <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed font-sans">
+            <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed font-sans text-justify sm:text-center">
               Somos tu grow shop especializado en Misiones. Te acompañamos con insumos seleccionados de máxima pureza, asesoramiento agronómico cercano y soluciones reales para cada etapa de tu cultivo.
             </p>
 
@@ -439,7 +439,7 @@ export const AboutView = () => {
                     {section.title}
                   </h2>
 
-                  <p className="text-sm sm:text-base text-gray-300 leading-relaxed font-sans whitespace-pre-line">
+                  <p className="text-sm sm:text-base text-gray-300 leading-relaxed font-sans whitespace-pre-line text-justify">
                     {section.content}
                   </p>
 

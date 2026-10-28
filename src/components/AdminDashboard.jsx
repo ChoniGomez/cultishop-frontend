@@ -46,8 +46,7 @@ import {
   Play,
   HelpCircle,
   MapPin,
-  PhoneCall,
-  Sparkles
+  PhoneCall
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -5805,7 +5804,7 @@ export const AdminDashboard = () => {
                       </>
                     ) : (
                       <>
-                        <Sparkles size={12} className="text-[#e0a96d]" />
+                        <RefreshCw size={12} className="text-[#e0a96d]" />
                         <span>Obtener miniatura automáticamente</span>
                       </>
                     )}

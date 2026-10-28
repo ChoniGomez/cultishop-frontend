@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
-  Sparkles, 
   Leaf, 
   Truck, 
   Store, 
@@ -80,7 +79,7 @@ export const HomeFeaturedProducts = () => {
           <h2 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
             ÚLTIMOS INGRESOS Y <span className="text-[#e0a96d] text-glow-gold">DESTACADOS</span>
           </h2>
-          <p className="text-gray-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+          <p className="text-gray-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed text-justify">
             Una selección especial de los insumos más elegidos y recién ingresados para potenciar cada etapa de tu cultivo.
           </p>
         </div>
@@ -142,8 +141,7 @@ export const HomeFeaturedProducts = () => {
         <div className="absolute -bottom-24 -right-24 w-56 h-56 bg-[#e0a96d]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-2.5 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#142819] border border-[#23452b] text-[10px] font-bold uppercase tracking-wider text-[#e0a96d]">
-            <Sparkles size={12} className="text-[#e0a96d]" />
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#142819] border border-[#23452b] text-[10px] font-bold uppercase tracking-wider text-[#e0a96d]">
             <span>MÁS DE 630 PRODUCTOS EN STOCK PERMANENTE</span>
           </div>
 
@@ -151,7 +149,7 @@ export const HomeFeaturedProducts = () => {
             ¿Buscás más opciones para tu cultivo?
           </h3>
 
-          <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+          <p className="text-gray-300 text-xs sm:text-sm leading-relaxed text-justify">
             Fertilizantes de todas las marcas, iluminación LED y halógena, carpas indoor, sustratos premium, sistemas de riego y parafernalia completa con asesoramiento profesional en Posadas, Misiones.
           </p>
         </div>
@@ -195,7 +193,7 @@ export const HomeFeaturedProducts = () => {
             <h4 className="text-sm font-black text-white font-heading uppercase tracking-wide">
               Retiro por Local Sin Costo
             </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed text-justify">
               Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones.
             </p>
           </div>
@@ -210,7 +208,7 @@ export const HomeFeaturedProducts = () => {
             <h4 className="text-sm font-black text-white font-heading uppercase tracking-wide">
               Envíos Locales y a Todo el País
             </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed text-justify">
               Envíos por moto, Uber o Lider Mandados en Posadas. A todo el país por Correo Argentino o Vía Cargo.
             </p>
           </div>
@@ -225,7 +223,7 @@ export const HomeFeaturedProducts = () => {
             <h4 className="text-sm font-black text-white font-heading uppercase tracking-wide">
               Asesoramiento Cannábico Experto
             </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed text-justify">
               Te orientamos en dosificación, prevención de plagas y armado de salas para optimizar tu rendimiento.
             </p>
           </div>

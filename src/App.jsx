@@ -114,7 +114,7 @@ function App() {
             {/* Columna 1: Marca CultiShop */}
             <div className="space-y-3">
               <CultiShopLogo size="md" />
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-gray-400 leading-relaxed text-justify">
                 Tu tienda especializada en cultivo en Posadas. Insumos seleccionados de alta calidad, resultados comprobados y asesoramiento técnico profesional para cada etapa de tu cultivo.
               </p>
               <span className="inline-block text-[10px] tracking-widest text-[#e0a96d] font-bold uppercase">
