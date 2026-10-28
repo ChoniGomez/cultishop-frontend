@@ -508,19 +508,18 @@ export const AboutView = () => {
                 >
                   {/* Contenedor de Miniatura */}
                   <div className="aspect-[4/5] relative bg-[#070e09] overflow-hidden flex items-center justify-center">
-                    {video.thumbnail_url ? (
-                      <img
-                        src={video.thumbnail_url}
-                        alt={video.title || 'Video Instagram CultiShop'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-gray-500 p-6 text-center">
-                        <Video size={36} className="text-[#e0a96d] mb-2 opacity-80" />
-                        <span className="text-xs font-bold text-gray-300">CultiShop Reel</span>
-                        <span className="text-[10px] text-gray-500">@culti.shopp</span>
-                      </div>
-                    )}
+                    <img
+                      src={video.thumbnail_url || FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url}
+                      alt={video.title || 'Video Instagram CultiShop'}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      onError={(e) => {
+                        const fallbackThumb = FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url;
+                        if (fallbackThumb && e.currentTarget.src !== fallbackThumb) {
+                          e.currentTarget.src = fallbackThumb;
+                        }
+                      }}
+                    />
 
                     {/* Badge superior de Instagram */}
                     <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/10">

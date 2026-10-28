@@ -46,7 +46,8 @@ import {
   Play,
   HelpCircle,
   MapPin,
-  PhoneCall
+  PhoneCall,
+  Sparkles
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -247,7 +248,8 @@ export const AdminDashboard = () => {
   const [instagramFormThumbnailUrl, setInstagramFormThumbnailUrl] = useState('');
   const [instagramFormOrder, setInstagramFormOrder] = useState('1');
   const [instagramFormIsActive, setInstagramFormIsActive] = useState(true);
-    const [instagramThumbnailFileName, setInstagramThumbnailFileName] = useState('');
+  const [isDetectingThumbnail, setIsDetectingThumbnail] = useState(false);
+  const [instagramThumbnailFileName, setInstagramThumbnailFileName] = useState('');
   const instagramFileInputRef = useRef(null);
 
   // Estados para Preguntas Frecuentes (faqs)
@@ -976,6 +978,44 @@ export const AdminDashboard = () => {
     setInstagramFormOrder(String(video.order_index ?? 1));
     setInstagramFormIsActive(video.is_active !== false);
     setIsInstagramModalOpen(true);
+  };
+
+  // Obtener miniatura automáticamente desde Instagram
+  const handleAutoFetchInstagramThumbnail = async () => {
+    if (!instagramFormPostUrl || !instagramFormPostUrl.trim()) {
+      showNotification('error', 'Por favor, ingresa primero el enlace (URL) del Reel o publicación de Instagram.');
+      return;
+    }
+
+    setIsDetectingThumbnail(true);
+    try {
+      const res = await fetch(buildApiUrl(`instagram/fetch-thumbnail?url=${encodeURIComponent(instagramFormPostUrl.trim())}`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo obtener la miniatura automáticamente.');
+      }
+
+      if (data.success && data.thumbnail_url) {
+        setInstagramFormThumbnailUrl(data.thumbnail_url);
+        setInstagramThumbnailFileName(`portada_instagram_${data.shortcode || 'reel'}.jpg`);
+        if (!instagramFormTitle.trim() && data.title) {
+          setInstagramFormTitle(data.title);
+        }
+        showNotification('success', '¡Portada obtenida exitosamente desde Instagram!');
+      } else {
+        showNotification('info', data.message || 'No fue posible obtener la imagen automáticamente. Puedes subir una foto o pegar el enlace de la portada.');
+      }
+    } catch (err) {
+      console.warn('Error detectando miniatura de Instagram:', err);
+      showNotification('info', 'No se pudo auto-detectar la miniatura de Instagram. Puedes cargar la imagen directamente desde tu equipo o ingresar su URL.');
+    } finally {
+      setIsDetectingThumbnail(false);
+    }
   };
 
   const handleSaveInstagramVideo = async (e) => {
@@ -5747,9 +5787,30 @@ export const AdminDashboard = () => {
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                   />
                 </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">
-                  Pega el link directo copiado desde Instagram al compartir el video o reel.
-                </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1.5">
+                  <span className="text-[10px] text-gray-400">
+                    Pega el link directo copiado desde Instagram al compartir el video o reel.
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isDetectingThumbnail || !instagramFormPostUrl.trim()}
+                    onClick={handleAutoFetchInstagramThumbnail}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a3822] hover:bg-[#255030] text-[#e0a96d] hover:text-white border border-[#2f633d] text-[11px] font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                    title="Consultar los servidores de Instagram para obtener la miniatura oficial"
+                  >
+                    {isDetectingThumbnail ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin text-[#e0a96d]" />
+                        <span>Detectando miniatura...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={12} className="text-[#e0a96d]" />
+                        <span>Obtener miniatura automáticamente</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -5800,7 +5861,7 @@ export const AdminDashboard = () => {
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   {/* Vista previa con proporción estética */}
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
+                  <div className="w-24 h-28 sm:w-28 sm:h-32 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
                     {instagramFormThumbnailUrl ? (
                       <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                     ) : (
@@ -5809,6 +5870,10 @@ export const AdminDashboard = () => {
                         <span className="text-[10px] leading-tight">Sin portada</span>
                       </div>
                     )}
+                    <div className="absolute top-1.5 left-1.5 bg-black/70 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-1">
+                      <Instagram size={9} className="text-[#e0a96d]" />
+                      <span>Reel</span>
+                    </div>
                   </div>
 
                   {/* Campo de URL y Botones de acción */}
@@ -5821,28 +5886,68 @@ export const AdminDashboard = () => {
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036]"
                     />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => instagramFileInputRef.current?.click()}
-                        className="py-2.5 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm"
+                        className="py-2 px-3 rounded-xl bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] border border-[#2d5a27] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm"
                       >
-                        <Upload size={14} className="shrink-0" />
-                        <span className="truncate">{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Subir portada local'}</span>
+                        <Upload size={13} className="shrink-0" />
+                        <span className="truncate">{instagramThumbnailFileName ? `Archivo: ${instagramThumbnailFileName}` : 'Subir foto desde tu equipo'}</span>
                       </button>
+                    </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=800');
-                          setInstagramThumbnailFileName('portada_cultishop.jpg');
-                        }}
-                        className="py-2.5 px-3 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm"
-                        title="Cargar portada temática por defecto"
-                      >
-                        <ImageIcon size={14} className="shrink-0 text-[#e0a96d]" />
-                        <span className="truncate">Portada por defecto</span>
-                      </button>
+                    {/* Portadas temáticas diferenciadas */}
+                    <div className="pt-2 border-t border-[#1a3320]">
+                      <span className="block text-[10px] text-gray-400 mb-1.5 font-medium">
+                        O seleccionar una portada temática representativa:
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=800');
+                            setInstagramThumbnailFileName('nutricion_namaste.jpg');
+                          }}
+                          className="px-2 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-[10px] font-semibold transition truncate"
+                          title="Portada Nutrición & Fertilizantes"
+                        >
+                          🌿 Fertilizantes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=800');
+                            setInstagramThumbnailFileName('sanidad_plagas.jpg');
+                          }}
+                          className="px-2 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-[10px] font-semibold transition truncate"
+                          title="Portada Sanidad & Control Plagas"
+                        >
+                          🛡️ Plagas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1624990833801-56c1b6a56ba7?auto=format&fit=crop&q=80&w=800');
+                            setInstagramThumbnailFileName('indoor_led.jpg');
+                          }}
+                          className="px-2 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-[10px] font-semibold transition truncate"
+                          title="Portada Iluminación & Indoor"
+                        >
+                          💡 Indoor LED
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInstagramFormThumbnailUrl('https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=800');
+                            setInstagramThumbnailFileName('local_cultishop.jpg');
+                          }}
+                          className="px-2 py-1.5 rounded-lg bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#23422a] text-[10px] font-semibold transition truncate"
+                          title="Portada Local Comercial Posadas"
+                        >
+                          🏪 Local Posadas
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
