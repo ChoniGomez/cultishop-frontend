@@ -90,6 +90,8 @@ export const ProductCard = ({ product }) => {
           <img 
             src={buildImageUrl(product.image || product.image_url)} 
             alt={product.title} 
+            loading="lazy"
+            decoding="async"
             className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
               isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
             }`} 

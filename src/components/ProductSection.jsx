@@ -11,18 +11,31 @@ const PRODUCTS_PER_PAGE = 9;
 export const ProductSection = () => {
   const { slug, category, subcategory } = useParams();
   const [searchParams] = useSearchParams();
-  const { products, loadingProducts, searchQuery, setSearchQuery, clearSearch, categories: shopCategories, fetchProducts } = useShop();
-
-  // Asegurar que los productos del catálogo se carguen si aún no están en memoria
-  useEffect(() => {
-    if (products.length === 0 && fetchProducts) {
-      fetchProducts();
-    }
-  }, [products.length, fetchProducts]);
+  const { 
+    products, 
+    loadingProducts, 
+    searchQuery, 
+    setSearchQuery, 
+    clearSearch, 
+    categories: shopCategories, 
+    fetchProducts, 
+    fetchCategoryProducts 
+  } = useShop();
 
   const rawCategorySlug = category || slug;
   const cleanCategorySlug = rawCategorySlug ? decodeURIComponent(rawCategorySlug).trim() : null;
   const cleanSubcategorySlug = subcategory ? decodeURIComponent(subcategory).trim() : null;
+
+  // Carga instantánea y ligera por categoría desde el backend (evita transferir 600+ productos a móviles)
+  useEffect(() => {
+    if (cleanCategorySlug && cleanCategorySlug !== 'todos') {
+      if (fetchCategoryProducts) {
+        fetchCategoryProducts(cleanCategorySlug, cleanSubcategorySlug);
+      }
+    } else if (products.length === 0 && fetchProducts) {
+      fetchProducts();
+    }
+  }, [cleanCategorySlug, cleanSubcategorySlug, fetchCategoryProducts, fetchProducts]);
 
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);

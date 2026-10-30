@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { buildApiUrl, buildImageUrl } from '../config/api';
@@ -702,6 +702,66 @@ export const ShopProvider = ({ children }) => {
     return inFlightProductsPromise;
   };
 
+  // Caché en memoria por categoría con TTL de 5 minutos para navegación móvil ultra-rápida
+  const categoryCacheRef = useRef(new Map());
+
+  /**
+   * Consulta optimizada y ligera de productos filtrados directamente en el Backend por categoría/subcategoría.
+   * Evita transferir el catálogo completo de 600+ productos al teléfono móvil.
+   */
+  const fetchCategoryProducts = async (categorySlug, subcategorySlug = null, force = false) => {
+    if (!categorySlug || categorySlug === 'todos') {
+      return fetchProducts(force);
+    }
+
+    const cleanCat = String(categorySlug).trim().toLowerCase();
+    const cleanSub = subcategorySlug ? String(subcategorySlug).trim().toLowerCase() : 'all';
+    const cacheKey = `${cleanCat}:${cleanSub}`;
+
+    // 1. Si está en caché de memoria reciente, devolver inmediatamente (0 ms)
+    if (!force && categoryCacheRef.current.has(cacheKey)) {
+      const entry = categoryCacheRef.current.get(cacheKey);
+      if (Date.now() - entry.timestamp < PRODUCTS_CACHE_TTL_MS) {
+        return entry.data;
+      }
+    }
+
+    setLoadingProducts(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('category', cleanCat);
+      if (subcategorySlug && cleanSub !== 'all') {
+        params.set('subcategory', cleanSub);
+      }
+
+      const res = await fetch(buildApiUrl(`products?${params.toString()}`));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.products)) {
+          const apiProducts = data.products.map(formatApiProduct);
+          categoryCacheRef.current.set(cacheKey, {
+            timestamp: Date.now(),
+            data: apiProducts
+          });
+
+          // Mezclar en el estado general de productos
+          setProducts((prev) => {
+            const map = new Map(prev.map(p => [String(p.id), p]));
+            apiProducts.forEach(p => map.set(String(p.id), p));
+            return Array.from(map.values());
+          });
+
+          return apiProducts;
+        }
+      }
+    } catch (err) {
+      console.warn(`Error al obtener productos de categoría "${cleanCat}":`, err);
+    } finally {
+      setLoadingProducts(false);
+    }
+    return [];
+  };
+
   useEffect(() => {
     fetchFeaturedProducts();
     fetchCategories();
@@ -1184,6 +1244,7 @@ export const ShopProvider = ({ children }) => {
         products,
         loadingProducts,
         fetchProducts,
+        fetchCategoryProducts,
         featuredProducts: (featuredProducts && featuredProducts.length > 0) ? featuredProducts : (products.slice(0, 8)),
         loadingFeatured,
         fetchFeaturedProducts,

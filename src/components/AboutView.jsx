@@ -410,6 +410,8 @@ export const AboutView = () => {
                         <img
                           src={buildImageUrl(section.image_url)}
                           alt={section.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                         />
                       ) : (
@@ -512,6 +514,7 @@ export const AboutView = () => {
                       src={buildImageUrl(video.thumbnail_url) || FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url}
                       alt={video.title || 'Video Instagram CultiShop'}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       onError={(e) => {
                         const fallbackThumb = FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url;
