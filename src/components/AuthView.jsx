@@ -28,8 +28,7 @@ import { formatPrice } from '../context/ShopContext';
 import { buildApiUrl } from '../config/api';
 import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '104719283749-demo-cultishop-client.apps.googleusercontent.com';
+import { GOOGLE_CLIENT_ID } from '../config/googleAuth';
 
 export const AuthView = () => {
   const { user, token, login, register, loginWithGoogle, logout, changePassword, loading, isAdmin: authIsAdmin } = useAuth();

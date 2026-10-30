@@ -19,6 +19,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
 import { CartDrawer } from './components/CartDrawer';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GOOGLE_CLIENT_ID } from './config/googleAuth';
 import { 
   MapPin, 
   Instagram 
@@ -61,9 +63,10 @@ const PlaceholderPage = ({ title, description }) => (
 
 function App() {
   return (
-    <AuthProvider>
-      <ShopProvider>
-        <BrowserRouter>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <ShopProvider>
+          <BrowserRouter>
           <div className="min-h-screen w-full flex flex-col bg-[#0a140d] text-gray-100 selection:bg-[#38761d] selection:text-white overflow-x-hidden">
             <AgeVerificationModal />
             <CartDrawer />
@@ -242,6 +245,7 @@ function App() {
     </BrowserRouter>
   </ShopProvider>
 </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 
