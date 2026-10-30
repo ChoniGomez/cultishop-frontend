@@ -730,10 +730,8 @@ export const AuthView = () => {
   // ==========================================
   // VISTA DE FORMULARIO (LOGIN / REGISTRO)
   // ==========================================
-  console.log('🔍 [Google OAuth Debug] import.meta.env.VITE_GOOGLE_CLIENT_ID en tiempo de ejecución:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId="163160853962-l05qnhbr5cfqek40vq5tavh9gkasnuh6.apps.googleusercontent.com">
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
           {/* Adorno superior dorado */}
