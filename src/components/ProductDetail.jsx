@@ -34,6 +34,7 @@ import { useAuth } from '../context/AuthContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { getProductDetails } from '../data/productDetailsData';
+import { buildImageUrl } from '../config/api';
 
 export const ProductDetail = () => {
   const { id } = useParams();
@@ -159,7 +160,7 @@ export const ProductDetail = () => {
   const details = getProductDetails(product);
   const isFav = isFavorite(product.id);
   const stockCount = typeof product.stock === 'number' ? product.stock : 25;
-  const imageUrl = product.image || product.image_url;
+  const imageUrl = buildImageUrl(product.image || product.image_url);
 
   // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption

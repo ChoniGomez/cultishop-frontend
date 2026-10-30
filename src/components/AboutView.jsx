@@ -17,7 +17,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { CultiShopLogo } from './CultiShopLogo';
 import { useShop, DEFAULT_LOCATION_SETTINGS } from '../context/ShopContext';
@@ -408,7 +408,7 @@ export const AboutView = () => {
                     <div className="relative h-64 sm:h-80 md:h-96 w-full rounded-2xl overflow-hidden bg-[#0d1a10] border border-[#23422a] shadow-2xl">
                       {section.image_url ? (
                         <img
-                          src={section.image_url}
+                          src={buildImageUrl(section.image_url)}
                           alt={section.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                         />
@@ -509,7 +509,7 @@ export const AboutView = () => {
                   {/* Contenedor de Miniatura */}
                   <div className="aspect-[4/5] relative bg-[#070e09] overflow-hidden flex items-center justify-center">
                     <img
-                      src={video.thumbnail_url || FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url}
+                      src={buildImageUrl(video.thumbnail_url) || FALLBACK_INSTAGRAM_VIDEOS[idx % FALLBACK_INSTAGRAM_VIDEOS.length]?.thumbnail_url}
                       alt={video.title || 'Video Instagram CultiShop'}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"

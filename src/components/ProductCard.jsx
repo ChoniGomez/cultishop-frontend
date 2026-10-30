@@ -4,6 +4,7 @@ import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield }
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
+import { buildImageUrl } from '../config/api';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, isFavorite, toggleFavorite } = useShop();
@@ -87,7 +88,7 @@ export const ProductCard = ({ product }) => {
           title={`Ver detalle de ${product.title}`}
         >
           <img 
-            src={product.image || product.image_url} 
+            src={buildImageUrl(product.image || product.image_url)} 
             alt={product.title} 
             className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
               isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'

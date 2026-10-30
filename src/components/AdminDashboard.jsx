@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 import { formatPrice, parsePrice, useShop, getProductOptions } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
@@ -2195,7 +2195,7 @@ export const AdminDashboard = () => {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin" />
                           <span className="text-xs text-gray-400 font-semibold">
-                            Cargando catálogo de productos en tiempo real desde Neon DB...
+                            Cargando catálogo de productos en tiempo real...
                           </span>
                         </div>
                       </td>
@@ -2212,7 +2212,7 @@ export const AdminDashboard = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <img
-                              src={prod.image_url || prod.image}
+                              src={buildImageUrl(prod.image_url || prod.image)}
                               alt={prod.title}
                               className="w-12 h-12 rounded-xl object-contain bg-[#0b1610] p-0.5 border border-[#2d5a27] shrink-0"
                             />
@@ -2615,7 +2615,7 @@ export const AdminDashboard = () => {
                             title="Clic para ajustar zoom y encuadre"
                           >
                             <img
-                              src={banner.image_url}
+                              src={buildImageUrl(banner.image_url)}
                               alt={banner.title}
                               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                               onError={(e) => {
@@ -3274,7 +3274,7 @@ export const AdminDashboard = () => {
                   className="w-full py-3 px-6 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={16} className={isSavingPayment ? 'animate-spin' : ''} />
-                  <span>{isSavingPayment ? 'Guardando en Base de Datos Neon...' : 'Guardar y Publicar en Tienda'}</span>
+                  <span>{isSavingPayment ? 'Guardando en Base de Datos...' : 'Guardar y Publicar en Tienda'}</span>
                 </button>
               </div>
             </form>
@@ -3373,7 +3373,7 @@ export const AdminDashboard = () => {
                 <div className="p-3.5 rounded-xl bg-[#142619] border border-[#23422a] text-[11px] text-gray-300 flex items-start gap-2.5">
                   <Shield size={16} className="text-[#4aa036] shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    Al presionar <strong>"Guardar Cambios"</strong>, la información se persiste en la tabla <code className="text-[#e0a96d]">settings</code> de tu base de datos Neon DB, reflejándose inmediatamente sin tiempos de espera.
+                    Al presionar <strong>"Guardar Cambios"</strong>, la información se persiste en la tabla <code className="text-[#e0a96d]">settings</code> de tu base de datos PostgreSQL, reflejándose inmediatamente sin tiempos de espera.
                   </p>
                 </div>
               </div>
@@ -3516,7 +3516,7 @@ export const AdminDashboard = () => {
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-[#0a140d] border border-[#23422a] shrink-0 flex items-center justify-center">
                           {sec.image_url ? (
                             <img
-                              src={sec.image_url}
+                              src={buildImageUrl(sec.image_url)}
                               alt={sec.title}
                               className="w-full h-full object-cover"
                             />
@@ -3892,7 +3892,7 @@ export const AdminDashboard = () => {
                       <div className="h-44 relative bg-[#0a140d] overflow-hidden flex items-center justify-center">
                         {vid.thumbnail_url ? (
                           <img
-                            src={vid.thumbnail_url}
+                            src={buildImageUrl(vid.thumbnail_url)}
                             alt={vid.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           />
@@ -4429,7 +4429,7 @@ export const AdminDashboard = () => {
                         <div className="flex items-center gap-3">
                           <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#2d5a27] bg-black/60 shrink-0 shadow-inner">
                             <img
-                              src={formImageUrl}
+                              src={buildImageUrl(formImageUrl)}
                               alt="Previsualización"
                               className="w-full h-full object-contain p-1 bg-[#0b1610]"
                               onError={(e) => {
@@ -4910,7 +4910,7 @@ export const AdminDashboard = () => {
                     {/* Vista previa panorámica interactiva con proporción exacta 16:5 */}
                     <div className="relative w-full h-40 sm:h-48 rounded-2xl overflow-hidden border-2 border-[#2d5a27] bg-[#0b1610] shadow-inner group">
                       <img
-                        src={bannerFormImageUrl}
+                        src={buildImageUrl(bannerFormImageUrl)}
                         alt="Vista previa banner"
                         className="w-full h-full object-cover object-center"
                         onError={(e) => {
@@ -5650,7 +5650,7 @@ export const AdminDashboard = () => {
                   {/* Vista previa con proporción estética */}
                   <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
                     {aboutFormImageUrl ? (
-                      <img src={aboutFormImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={buildImageUrl(aboutFormImageUrl)} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-[10px] text-gray-500 text-center px-2 leading-tight">Sin imagen asignada</span>
                     )}
@@ -5862,7 +5862,7 @@ export const AdminDashboard = () => {
                   {/* Vista previa con proporción estética */}
                   <div className="w-24 h-28 sm:w-28 sm:h-32 shrink-0 rounded-xl bg-[#142619] border border-[#23422a] overflow-hidden flex items-center justify-center relative shadow-inner">
                     {instagramFormThumbnailUrl ? (
-                      <img src={instagramFormThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                      <img src={buildImageUrl(instagramFormThumbnailUrl)} alt="Thumbnail" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-gray-500 p-2 text-center">
                         <Video size={22} className="mb-1 text-gray-600" />

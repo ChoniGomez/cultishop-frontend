@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 import { useAuth } from './AuthContext';
 
 const ShopContext = createContext();
@@ -565,31 +565,35 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  const formatApiProduct = (p) => ({
-    ...p,
-    image: p.image_url || p.image,
-    image_url: p.image_url || p.image,
-    badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
-    numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
-    price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
-    stock: p.stock ?? 20,
-    brand: p.brand || '',
-    origin: p.origin || '',
-    format: p.format || '',
-    cultivationStage: p.cultivation_stage || p.cultivationStage || '',
-    dosage: p.dosage || '',
-    phRecommended: p.ph_recommended || p.phRecommended || '',
-    ecRecommended: p.ec_recommended || p.ecRecommended || '',
-    suitableFor: p.suitable_for || p.suitableFor || '',
-    keyBenefits: p.key_benefits || p.keyBenefits || [],
-    applicationGuide: p.application_guide || p.applicationGuide || [],
-    cannabisSpecs: p.cannabis_specs || p.cannabisSpecs || null,
-    shippingInfo: p.shipping_info || p.shippingInfo || '',
-    details: p.details || null,
-    subcategory: p.subcategory || null,
-    subcategory_id: p.subcategory_id || null,
-    subcategory_slug: p.subcategory_slug || null
-  });
+  const formatApiProduct = (p) => {
+    const rawImage = p.image_url || p.image;
+    const resolvedImage = buildImageUrl(rawImage);
+    return {
+      ...p,
+      image: resolvedImage,
+      image_url: resolvedImage,
+      badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
+      numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
+      price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
+      stock: p.stock ?? 20,
+      brand: p.brand || '',
+      origin: p.origin || '',
+      format: p.format || '',
+      cultivationStage: p.cultivation_stage || p.cultivationStage || '',
+      dosage: p.dosage || '',
+      phRecommended: p.ph_recommended || p.phRecommended || '',
+      ecRecommended: p.ec_recommended || p.ecRecommended || '',
+      suitableFor: p.suitable_for || p.suitableFor || '',
+      keyBenefits: p.key_benefits || p.keyBenefits || [],
+      applicationGuide: p.application_guide || p.applicationGuide || [],
+      cannabisSpecs: p.cannabis_specs || p.cannabisSpecs || null,
+      shippingInfo: p.shipping_info || p.shippingInfo || '',
+      details: p.details || null,
+      subcategory: p.subcategory || null,
+      subcategory_id: p.subcategory_id || null,
+      subcategory_slug: p.subcategory_slug || null
+    };
+  };
 
   // Carga ligera de productos destacados / recientes para la Home (ultra rápida)
   const fetchFeaturedProducts = async (force = false) => {

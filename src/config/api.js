@@ -1,10 +1,9 @@
 /**
  * Configuración centralizada y segura de la URL de la API de CultiShop.
  * 
- * Sanitiza la variable de entorno VITE_API_URL para prevenir que caracteres
- * accidentales (como corchetes [..], comillas o espacios colocados en el panel de Vercel)
- * provoquen que el navegador interprete la dirección como una ruta relativa y la concatene
- * con el dominio actual (ej: https://cultishop.vercel.app/[https://cultishop-backend.onrender.com/api]).
+ * Sanitiza la variable de entorno VITE_API_URL para prevenir caracteres
+ * accidentales (como corchetes [..], comillas o espacios)
+ * y garantizar que la conexión apunte siempre a una URL absoluta válida.
  */
 export const getApiBaseUrl = () => {
   const rawUrl = import.meta.env.VITE_API_URL;
@@ -36,8 +35,8 @@ export const getApiBaseUrl = () => {
     return 'http://localhost:4000/api';
   }
 
-  // Fallback seguro y directo de producción hacia el backend desplegado en Render
-  return 'https://cultishop-backend.onrender.com/api';
+  // Fallback seguro y directo de producción hacia el dominio oficial
+  return 'https://www.cultishop.com.ar/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -49,4 +48,28 @@ export const buildApiUrl = (endpoint = '') => {
   const base = getApiBaseUrl();
   const cleanEndpoint = endpoint.replace(/^\/+/, '');
   return `${base}/${cleanEndpoint}`;
+};
+
+/**
+ * Resuelve una URL de imagen para que siempre apunte al servidor correcto.
+ * Si es una ruta relativa local (como '/uploads/...'), antepone el origen de la API
+ * (ej: http://localhost:4000 o https://www.cultishop.com.ar).
+ * Si ya es una URL absoluta (http://, https://, data:, blob:), la retorna tal cual.
+ */
+export const buildImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+  const apiBase = getApiBaseUrl();
+  // Quitar el sufijo '/api' para obtener el origen del backend
+  const serverOrigin = apiBase.replace(/\/api\/?$/i, '');
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${serverOrigin}${cleanPath}`;
 };

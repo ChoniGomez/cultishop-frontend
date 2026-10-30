@@ -430,7 +430,7 @@ export const AuthView = () => {
             {loadingOrders && orders.length === 0 ? (
               <div className="py-12 text-center space-y-3">
                 <div className="w-9 h-9 border-2 border-[#4aa036] border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-gray-400 font-medium">Consultando tus pedidos en tiempo real con Neon DB...</p>
+                <p className="text-xs text-gray-400 font-medium">Consultando tus pedidos en tiempo real...</p>
               </div>
             ) : orders.length === 0 ? (
               /* Estado sin pedidos */

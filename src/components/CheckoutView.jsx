@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useShop, formatPrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 const PROVINCIAS_ARGENTINA = [
@@ -1164,7 +1164,7 @@ export const CheckoutView = () => {
                     className="flex items-center gap-3 p-2.5 rounded-xl bg-[#09150d] border border-[#1b3420] text-xs"
                   >
                     <img
-                      src={item.image || item.image_url}
+                      src={buildImageUrl(item.image || item.image_url)}
                       alt={item.title}
                       className="w-12 h-12 object-contain bg-[#0b1610] p-0.5 rounded-lg border border-[#23422a] shrink-0"
                       onError={(e) => {

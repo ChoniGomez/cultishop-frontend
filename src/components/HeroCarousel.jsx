@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight, Leaf, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WhatsAppIcon } from './WhatsAppIcon';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 
 const DEFAULT_BANNERS = [
   {
@@ -261,7 +261,7 @@ export const HeroCarousel = ({ interval = 5000 }) => {
       <div className="relative w-full aspect-[16/9] sm:aspect-[16/6] md:aspect-[16/5] min-h-[190px] sm:min-h-[260px] md:min-h-[340px] lg:min-h-[380px] max-h-[500px] flex items-center justify-center bg-[#0b1610] overflow-hidden">
         {banners.map((slide, index) => {
           const isActive = index === currentSlide;
-          const imageUrl = slide.image_url || slide.image;
+          const imageUrl = buildImageUrl(slide.image_url || slide.image);
           const showText = slide.show_text !== false && slide.show_overlay !== false;
           const title = slide.title || (slide.titlePrefix ? `${slide.titlePrefix}${slide.titleHighlight || ''}` : 'CultiShop');
           const subtitle = slide.subtitle || '';
