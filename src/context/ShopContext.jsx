@@ -1133,7 +1133,7 @@ export const ShopProvider = ({ children }) => {
           selectedOption: finalOptionName,
           unitPrice,
           formattedPrice: formattedItemPrice,
-          image: product.image || product.image_url,
+          image: buildImageUrl(product.image || product.image_url),
           quantity,
         };
         return [...prevCart, newItem];

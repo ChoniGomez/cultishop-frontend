@@ -92,6 +92,12 @@ export const ProductCard = ({ product }) => {
             alt={product.title} 
             loading="lazy"
             decoding="async"
+            onError={(e) => {
+              const fallback = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+              if (e.currentTarget.src !== fallback) {
+                e.currentTarget.src = fallback;
+              }
+            }}
             className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
               isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
             }`} 

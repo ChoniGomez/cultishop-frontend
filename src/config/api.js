@@ -51,14 +51,24 @@ export const buildApiUrl = (endpoint = '') => {
 };
 
 /**
- * Resuelve una URL de imagen para que siempre apunte al servidor correcto.
- * Si es una ruta relativa local (como '/uploads/...'), antepone el origen de la API
- * (ej: http://localhost:4000 o https://www.cultishop.com.ar).
- * Si ya es una URL absoluta (http://, https://, data:, blob:), la retorna tal cual.
+ * Resuelve una URL de imagen para que siempre apunte al servidor correcto (Backend / VPS).
+ * 
+ * Si es una ruta relativa local (como '/uploads/...'):
+ * En producción, si el frontend está alojado de forma separada o servido por Nginx como SPA,
+ * las peticiones puramente relativas a '/uploads/...' son interceptadas por la regla SPA
+ * (try_files $uri $uri/ /index.html), devolviendo 'text/html' y provocando cuadros negros en las imágenes.
+ * 
+ * Para solucionarlo de raíz:
+ * 1. Si la ruta apunta a '/uploads/...', se enruta a través de la URL base del backend
+ *    (ej: `${apiBase}/uploads/...` -> 'https://www.cultishop.com.ar/api/uploads/...'),
+ *    garantizando que alcance siempre al proceso Express en Node.js mediante el proxy de la API.
+ * 2. Si ya es una URL absoluta (http://, https://, data:, blob:), se retorna tal cual.
  */
 export const buildImageUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
+
+  // 1. Si ya es una URL absoluta o binario en memoria, retornar tal cual
   if (
     trimmed.startsWith('data:') ||
     trimmed.startsWith('blob:') ||
@@ -67,9 +77,26 @@ export const buildImageUrl = (url) => {
   ) {
     return trimmed;
   }
-  const apiBase = getApiBaseUrl();
-  // Quitar el sufijo '/api' para obtener el origen del backend
-  const serverOrigin = apiBase.replace(/\/api\/?$/i, '');
+
+  const apiBase = getApiBaseUrl(); // ej: 'https://www.cultishop.com.ar/api' o 'http://localhost:4000/api'
+  const serverOrigin = apiBase.replace(/\/api\/?$/i, ''); // ej: 'https://www.cultishop.com.ar' o 'http://localhost:4000'
   const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+
+  // 2. Si la ruta ya incluye el prefijo de la API (/api/uploads/...)
+  if (cleanPath.startsWith('/api/')) {
+    return `${serverOrigin}${cleanPath}`;
+  }
+
+  // 3. Si es una ruta de subidas (/uploads/...)
+  if (cleanPath.startsWith('/uploads/')) {
+    // Si la URL de la API contiene /api, usar /api/uploads/... para aprovechar el proxy de Nginx
+    // que ya está configurado y garantizado hacia el backend
+    if (apiBase.endsWith('/api')) {
+      return `${apiBase}${cleanPath}`;
+    }
+    return `${serverOrigin}${cleanPath}`;
+  }
+
+  // 4. Cualquier otra ruta estática relativa
   return `${serverOrigin}${cleanPath}`;
 };

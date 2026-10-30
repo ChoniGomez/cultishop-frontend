@@ -5182,7 +5182,7 @@ export const AdminDashboard = () => {
       {/* ============================================================ */}
       <BannerCropperModal
         isOpen={isBannerCropperOpen}
-        imageUrl={rawBannerSourceImage || bannerFormImageUrl}
+        imageUrl={buildImageUrl(rawBannerSourceImage || bannerFormImageUrl)}
         title={bannerFormTitle}
         subtitle={bannerFormSubtitle}
         buttonText={bannerFormButtonText}
