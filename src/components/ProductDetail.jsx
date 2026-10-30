@@ -42,11 +42,19 @@ export const ProductDetail = () => {
   const { 
     products, 
     loadingProducts,
+    fetchProducts,
     addToCart, 
     openCart, 
     isFavorite, 
     toggleFavorite 
   } = useShop();
+
+  // Asegurar que el catálogo esté disponible si el usuario ingresó por enlace directo
+  useEffect(() => {
+    if (products.length === 0 && fetchProducts) {
+      fetchProducts();
+    }
+  }, [products.length, fetchProducts]);
 
   // Scroll al inicio al cambiar de producto
   useEffect(() => {

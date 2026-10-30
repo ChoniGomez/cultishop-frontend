@@ -46,12 +46,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && token) {
-      localStorage.setItem('cultishop_user', JSON.stringify(user));
-      localStorage.setItem('cultishop_token', token);
-    } else {
-      localStorage.removeItem('cultishop_user');
-      localStorage.removeItem('cultishop_token');
+    try {
+      if (user && token) {
+        localStorage.setItem('cultishop_user', JSON.stringify(user));
+        localStorage.setItem('cultishop_token', token);
+      } else {
+        localStorage.removeItem('cultishop_user');
+        localStorage.removeItem('cultishop_token');
+      }
+    } catch (e) {
+      console.warn('Aviso al guardar sesión de usuario en LocalStorage:', e);
     }
   }, [user, token]);
 

@@ -9,13 +9,78 @@ const ShopContext = createContext();
 const CART_STORAGE_KEY = 'cultishop_cart_v1';
 const FAVORITES_STORAGE_KEY = 'cultishop_favorites_v1';
 const PRODUCTS_STORAGE_KEY = 'cultishop_products_v3';
-const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché local
-const FEATURED_PRODUCTS_KEY = 'cultishop_featured_v2';
+const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de validez máxima para caché en memoria
+const FEATURED_STORAGE_KEY = 'cultishop_featured_v2';
 const FEATURED_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos para productos destacados
 const CATEGORIES_STORAGE_KEY = 'cultishop_categories_v2';
 const CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de validez para categorías
 const SETTINGS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos de validez para configuración
 const PAYMENT_SETTINGS_KEY = 'cultishop_payment_settings_v1';
+const LOCATION_SETTINGS_KEY = 'cultishop_location_settings_v2';
+
+/**
+ * Capa de almacenamiento seguro y tolerante a fallos (QuotaExceededError).
+ * Evita bloqueos en modo incógnito, localStorage desactivado o navegadores con cuota llena.
+ */
+export const safeStorage = {
+  getItem: (key) => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      return window.localStorage.getItem(key);
+    } catch (err) {
+      console.warn(`[safeStorage] Error al leer "${key}":`, err?.message || err);
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      window.localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      // Manejo específico de cuota excedida (QuotaExceededError)
+      const isQuotaError =
+        err?.name === 'QuotaExceededError' ||
+        err?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        err?.code === 22 ||
+        err?.code === 1014 ||
+        err?.number === -2147024882;
+
+      if (isQuotaError) {
+        console.warn(`[safeStorage] Cuota de LocalStorage excedida al guardar "${key}". Purgando claves pesadas...`);
+        try {
+          // Limpiar inmediatamente versiones de catálogo que sobrecargan los 5MB del navegador
+          window.localStorage.removeItem('cultishop_products_v3');
+          window.localStorage.removeItem('cultishop_products_v2');
+          window.localStorage.removeItem('cultishop_products_v1');
+          window.localStorage.removeItem('cultishop_products');
+          window.localStorage.setItem(key, value);
+          return true;
+        } catch {
+          console.warn(`[safeStorage] Imposible almacenar "${key}" tras purga.`);
+          return false;
+        }
+      }
+      console.warn(`[safeStorage] Error al persistir "${key}":`, err?.message || err);
+      return false;
+    }
+  },
+  removeItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {}
+  }
+};
+
+// ============================================================
+// CACHÉ DE PRODUCTOS EN MEMORIA (ESTADO GLOBAL LIVIANO)
+// ============================================================
+// Mantiene los 630+ productos en RAM para navegación instantánea sin saturar LocalStorage
+let inMemoryProductsCache = null;
+let inMemoryProductsTimestamp = 0;
+let inFlightProductsPromise = null;
 
 export const DEFAULT_PAYMENT_SETTINGS = {
   bank_alias: 'CULTISHOP.POSADAS',
@@ -34,8 +99,6 @@ export const DEFAULT_LOCATION_SETTINGS = {
   latitude: -27.3719,
   longitude: -55.9084
 };
-
-const LOCATION_SETTINGS_KEY = 'cultishop_location_settings_v2';
 
 /**
  * Parsea un string de precio (ej: "$14.500,00" o "$14500") a número.
@@ -205,13 +268,22 @@ export const getProductPriceInfo = (product) => {
 export const ShopProvider = ({ children }) => {
   const { user, isAdmin } = useAuth();
 
-  // Inicialización de carrito desde LocalStorage
+  // Limpieza proactiva de claves pesadas de catálogo que bloqueaban LocalStorage
+  useEffect(() => {
+    safeStorage.removeItem(PRODUCTS_STORAGE_KEY);
+    safeStorage.removeItem('cultishop_products_v3');
+    safeStorage.removeItem('cultishop_products_v2');
+    safeStorage.removeItem('cultishop_products_v1');
+    safeStorage.removeItem('cultishop_products');
+  }, []);
+
+  // Inicialización de carrito desde LocalStorage seguro
   const [cart, setCart] = useState(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const saved = safeStorage.getItem(CART_STORAGE_KEY);
       return saved ? JSON.parse(saved) : [];
     } catch (err) {
-      console.error('Error al cargar carrito de LocalStorage:', err);
+      console.warn('Aviso al cargar carrito:', err);
       return [];
     }
   });
@@ -222,89 +294,52 @@ export const ShopProvider = ({ children }) => {
   // Notificación breve cuando se añade un producto
   const [lastAddedItem, setLastAddedItem] = useState(null);
 
-  // Sincronizar en LocalStorage cada cambio
+  // Sincronizar en LocalStorage seguro cada cambio
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    } catch (err) {
-      console.error('Error al guardar carrito en LocalStorage:', err);
-    }
+    safeStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  // Inicialización de favoritos desde LocalStorage
+  // Inicialización de favoritos desde LocalStorage seguro
   const [favorites, setFavorites] = useState(() => {
     try {
-      const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      const saved = safeStorage.getItem(FAVORITES_STORAGE_KEY);
       return saved ? JSON.parse(saved) : [];
     } catch (err) {
-      console.error('Error al cargar favoritos de LocalStorage:', err);
+      console.warn('Aviso al cargar favoritos:', err);
       return [];
     }
   });
 
-  // Sincronizar favoritos en LocalStorage
+  // Sincronizar favoritos en LocalStorage seguro
   useEffect(() => {
-    try {
-      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
-    } catch (err) {
-      console.error('Error al guardar favoritos en LocalStorage:', err);
-    }
+    safeStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
   }, [favorites]);
 
   // ============================================================
-  // GESTIÓN Y PERSISTENCIA DE PRODUCTOS (CATÁLOGO DINÁMICO)
+  // GESTIÓN Y PERSISTENCIA DE PRODUCTOS (CATÁLOGO EN MEMORIA)
   // ============================================================
-  // Helper para persistir productos en LocalStorage con timestamp de control de expiración
+  // Helper para mantener la caché en memoria sincronizada sin tocar ni desbordar LocalStorage
   const saveProductsCache = (productsList) => {
-    try {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify({
-        timestamp: Date.now(),
-        products: productsList
-      }));
-    } catch (e) {
-      console.warn('Error guardando productos en LocalStorage:', e);
+    if (Array.isArray(productsList)) {
+      inMemoryProductsCache = productsList;
+      inMemoryProductsTimestamp = Date.now();
     }
   };
 
   const [products, setProducts] = useState(() => {
-    try {
-      // Limpiar versiones obsoletas sin expiración
-      localStorage.removeItem('cultishop_products_v2');
-      localStorage.removeItem('cultishop_products_v1');
-
-      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && parsed.timestamp && Array.isArray(parsed.products)) {
-          const isFresh = Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS;
-          if (isFresh && parsed.products.length > 0) {
-            return parsed.products;
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error al leer productos de LocalStorage:', err);
+    // Si ya existe en la caché en memoria del módulo, reusarlo inmediatamente
+    if (inMemoryProductsCache && Array.isArray(inMemoryProductsCache) && inMemoryProductsCache.length > 0) {
+      return inMemoryProductsCache;
     }
     return [];
   });
 
-  const [loadingProducts, setLoadingProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.timestamp && Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS && parsed.products?.length > 0) {
-          return false;
-        }
-      }
-    } catch (e) {}
-    return false; // No bloquea la UI inicial; se carga bajo demanda
-  });
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // Productos destacados / nuevos para la página de inicio (carga ultra liviana)
   const [featuredProducts, setFeaturedProducts] = useState(() => {
     try {
-      const saved = localStorage.getItem(FEATURED_STORAGE_KEY);
+      const saved = safeStorage.getItem(FEATURED_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.timestamp && (Date.now() - parsed.timestamp < FEATURED_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
@@ -318,7 +353,7 @@ export const ShopProvider = ({ children }) => {
 
   const [categories, setCategories] = useState(() => {
     try {
-      const saved = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+      const saved = safeStorage.getItem(CATEGORIES_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.timestamp && (Date.now() - parsed.timestamp < CATEGORIES_CACHE_TTL_MS) && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
@@ -334,7 +369,7 @@ export const ShopProvider = ({ children }) => {
   const fetchCategories = async (force = false) => {
     if (!force) {
       try {
-        const saved = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+        const saved = safeStorage.getItem(CATEGORIES_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed?.timestamp && (Date.now() - parsed.timestamp < CATEGORIES_CACHE_TTL_MS) && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
@@ -351,12 +386,10 @@ export const ShopProvider = ({ children }) => {
         const data = await res.json();
         if (Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
-          try {
-            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify({
-              timestamp: Date.now(),
-              categories: data.categories
-            }));
-          } catch {}
+          safeStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            categories: data.categories
+          }));
         }
       }
     } catch (err) {
@@ -371,7 +404,7 @@ export const ShopProvider = ({ children }) => {
   // ============================================================
   const [paymentSettings, setPaymentSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem(PAYMENT_SETTINGS_KEY);
+      const saved = safeStorage.getItem(PAYMENT_SETTINGS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         const data = parsed?.data || parsed;
@@ -387,7 +420,7 @@ export const ShopProvider = ({ children }) => {
   const fetchPaymentSettings = async (force = false) => {
     if (!force) {
       try {
-        const saved = localStorage.getItem(PAYMENT_SETTINGS_KEY);
+        const saved = safeStorage.getItem(PAYMENT_SETTINGS_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed?.timestamp && (Date.now() - parsed.timestamp < SETTINGS_CACHE_TTL_MS) && parsed.data) {
@@ -405,12 +438,10 @@ export const ShopProvider = ({ children }) => {
         if (data && data.payment) {
           const merged = { ...DEFAULT_PAYMENT_SETTINGS, ...data.payment };
           setPaymentSettings(merged);
-          try {
-            localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
-              timestamp: Date.now(),
-              data: merged
-            }));
-          } catch {}
+          safeStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: merged
+          }));
           return merged;
         }
       }
@@ -440,12 +471,10 @@ export const ShopProvider = ({ children }) => {
 
       const updated = { ...DEFAULT_PAYMENT_SETTINGS, ...(data.payment || newSettings) };
       setPaymentSettings(updated);
-      try {
-        localStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
-          timestamp: Date.now(),
-          data: updated
-        }));
-      } catch {}
+      safeStorage.setItem(PAYMENT_SETTINGS_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        data: updated
+      }));
 
       return { success: true, payment: updated, message: data.message };
     } catch (err) {
@@ -458,7 +487,7 @@ export const ShopProvider = ({ children }) => {
   // ============================================================
   const [locationSettings, setLocationSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem(LOCATION_SETTINGS_KEY);
+      const saved = safeStorage.getItem(LOCATION_SETTINGS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         const data = parsed?.data || parsed;
@@ -474,7 +503,7 @@ export const ShopProvider = ({ children }) => {
   const fetchLocationSettings = async (force = false) => {
     if (!force) {
       try {
-        const saved = localStorage.getItem(LOCATION_SETTINGS_KEY);
+        const saved = safeStorage.getItem(LOCATION_SETTINGS_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed?.timestamp && (Date.now() - parsed.timestamp < SETTINGS_CACHE_TTL_MS) && parsed.data) {
@@ -492,12 +521,10 @@ export const ShopProvider = ({ children }) => {
         if (data && data.location) {
           const merged = { ...DEFAULT_LOCATION_SETTINGS, ...data.location };
           setLocationSettings(merged);
-          try {
-            localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
-              timestamp: Date.now(),
-              data: merged
-            }));
-          } catch {}
+          safeStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: merged
+          }));
           return merged;
         }
       }
@@ -527,12 +554,10 @@ export const ShopProvider = ({ children }) => {
 
       const updated = { ...DEFAULT_LOCATION_SETTINGS, ...(data.location || newSettings) };
       setLocationSettings(updated);
-      try {
-        localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
-          timestamp: Date.now(),
-          data: updated
-        }));
-      } catch {}
+      safeStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        data: updated
+      }));
 
       return { success: true, location: updated, message: data.message };
     } catch (err) {
@@ -570,7 +595,7 @@ export const ShopProvider = ({ children }) => {
   const fetchFeaturedProducts = async (force = false) => {
     if (!force) {
       try {
-        const saved = localStorage.getItem(FEATURED_STORAGE_KEY);
+        const saved = safeStorage.getItem(FEATURED_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed?.timestamp && (Date.now() - parsed.timestamp < FEATURED_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
@@ -590,12 +615,10 @@ export const ShopProvider = ({ children }) => {
         if (Array.isArray(data.products) && data.products.length > 0) {
           const apiFeatured = data.products.map(formatApiProduct);
           setFeaturedProducts(apiFeatured);
-          try {
-            localStorage.setItem(FEATURED_STORAGE_KEY, JSON.stringify({
-              timestamp: Date.now(),
-              products: apiFeatured
-            }));
-          } catch {}
+          safeStorage.setItem(FEATURED_STORAGE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            products: apiFeatured
+          }));
           return apiFeatured;
         }
       }
@@ -613,51 +636,66 @@ export const ShopProvider = ({ children }) => {
     return featuredProducts;
   };
 
-  // Sincronizar con Backend el catálogo completo (bajo demanda para /catalogo y categorías)
+  // Sincronizar con Backend el catálogo completo (bajo demanda con deduplicación y caché en memoria)
   const fetchProducts = async (force = false) => {
-    if (!force) {
-      try {
-        const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed?.timestamp && (Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
-            setLoadingProducts(false);
-            return;
-          }
+    // 1. Si no es forzado y tenemos caché fresca en memoria, retornar sin peticiones innecesarias
+    if (!force && inMemoryProductsCache && Array.isArray(inMemoryProductsCache) && inMemoryProductsCache.length > 0) {
+      const isFresh = Date.now() - inMemoryProductsTimestamp < PRODUCTS_CACHE_TTL_MS;
+      if (isFresh) {
+        if (products.length === 0) {
+          setProducts(inMemoryProductsCache);
         }
-      } catch {}
+        setLoadingProducts(false);
+        return inMemoryProductsCache;
+      }
+    }
+
+    // 2. Si ya hay una consulta idéntica en vuelo, reutilizar la misma promesa (deduplicación)
+    if (inFlightProductsPromise && !force) {
+      return inFlightProductsPromise;
     }
 
     setLoadingProducts(true);
-    try {
-      const res = await fetch(buildApiUrl('products'));
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.products)) {
-          const apiProducts = data.products.map(formatApiProduct);
-          setProducts(apiProducts);
-          saveProductsCache(apiProducts);
+    inFlightProductsPromise = (async () => {
+      try {
+        const res = await fetch(buildApiUrl('products'));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.products)) {
+            const apiProducts = data.products.map(formatApiProduct);
+            inMemoryProductsCache = apiProducts;
+            inMemoryProductsTimestamp = Date.now();
+            setProducts(apiProducts);
+            return apiProducts;
+          }
         }
+      } catch (err) {
+        console.warn('API /api/products no disponible temporalmente, catálogo local en memoria activo:', err);
+        // Solo en caso de error y si no hay productos cargados en memoria, usar el fallback
+        setProducts((current) => {
+          if (current.length === 0) {
+            const fallbackFormatted = FALLBACK_PRODUCTS.map((p) => ({
+              ...p,
+              image: p.image || p.image_url,
+              image_url: p.image_url || p.image,
+              badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
+              stock: p.stock ?? 25,
+              numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
+            }));
+            inMemoryProductsCache = fallbackFormatted;
+            inMemoryProductsTimestamp = Date.now();
+            return fallbackFormatted;
+          }
+          return current;
+        });
+      } finally {
+        setLoadingProducts(false);
+        inFlightProductsPromise = null;
       }
-    } catch (err) {
-      console.warn('API /api/products no disponible temporalmente, catálogo local activo:', err);
-      // Solo en caso de error y si no hay productos cargados en memoria, usar el fallback
-      setProducts((current) => {
-        if (current.length === 0) {
-          return FALLBACK_PRODUCTS.map((p) => ({
-            ...p,
-            image: p.image || p.image_url,
-            image_url: p.image_url || p.image,
-            badgeType: p.badgeType || p.badge_type || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
-            stock: p.stock ?? 25,
-            numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price)
-          }));
-        }
-        return current;
-      });
-    } finally {
-      setLoadingProducts(false);
-    }
+      return products;
+    })();
+
+    return inFlightProductsPromise;
   };
 
   useEffect(() => {
@@ -665,28 +703,17 @@ export const ShopProvider = ({ children }) => {
     fetchCategories();
     fetchPaymentSettings();
     fetchLocationSettings();
-
-    // Si ya existen productos en caché local, cargarlos en memoria para navegación instantánea
-    try {
-      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.timestamp && (Date.now() - parsed.timestamp < PRODUCTS_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
-          setProducts(parsed.products);
-        }
-      }
-    } catch {}
   }, []);
 
   /**
    * Actualiza un producto existente (imagen, precio, stock, etc.).
-   * Persiste inmediatamente en LocalStorage y sincroniza con el backend.
+   * Actualiza inmediatamente el estado en memoria y sincroniza con el backend.
    */
   const updateProduct = async (id, updatedFields, authToken) => {
     const finalImage = updatedFields.image_url || updatedFields.image;
     const nowIso = new Date().toISOString();
 
-    // 1. Actualización inmediata en el estado de productos y LocalStorage
+    // 1. Actualización inmediata en el estado de productos y memoria
     setProducts((prev) => {
       const next = prev.map((p) => {
         if (p.id === id || String(p.id) === String(id)) {
@@ -703,11 +730,7 @@ export const ShopProvider = ({ children }) => {
         }
         return p;
       });
-      try {
-        saveProductsCache(next);
-      } catch (err) {
-        console.error('Error al guardar productos en LocalStorage:', err);
-      }
+      saveProductsCache(next);
       return next;
     });
 
@@ -724,9 +747,7 @@ export const ShopProvider = ({ children }) => {
         }
         return f;
       });
-      try {
-        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
-      } catch (e) {}
+      safeStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
       return nextFavs;
     });
 
@@ -742,9 +763,7 @@ export const ShopProvider = ({ children }) => {
         }
         return item;
       });
-      try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextCart));
-      } catch (e) {}
+      safeStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextCart));
       return nextCart;
     });
 
@@ -796,7 +815,7 @@ export const ShopProvider = ({ children }) => {
         }
       }
     } catch (apiErr) {
-      console.warn('PUT /api/products no sincronizado con backend, guardado en LocalStorage:', apiErr);
+      console.warn('PUT /api/products no sincronizado con backend, guardado en memoria:', apiErr);
     }
 
     return { success: true };
