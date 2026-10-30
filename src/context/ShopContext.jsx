@@ -91,7 +91,7 @@ export const DEFAULT_PAYMENT_SETTINGS = {
 };
 
 export const DEFAULT_LOCATION_SETTINGS = {
-  address: 'Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones, Argentina',
+  address: 'Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones',
   hours: 'Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs',
   phone: '+54 9 376 435-6995',
   google_maps_url: 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+y+Lavalle,+Posadas,+Misiones,+Argentina',

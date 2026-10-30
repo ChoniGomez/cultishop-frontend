@@ -281,7 +281,7 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     if (locationSettings) {
-      setLocAddress(locationSettings.address || 'Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones, Argentina');
+      setLocAddress(locationSettings.address || 'Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones');
       setLocHours(locationSettings.hours || 'Lunes a Sábados de 9:00 a 13:00 y de 16:30 a 20:30 hs');
       setLocPhone(locationSettings.phone || '+54 9 376 435-6995');
       setLocGoogleMapsUrl(locationSettings.google_maps_url || 'https://maps.google.com/?q=Av.+L%C3%B3pez+y+Planes+y+Lavalle,+Posadas,+Misiones,+Argentina');
@@ -3662,7 +3662,7 @@ export const AdminDashboard = () => {
                         type="text"
                         value={locAddress}
                         onChange={(e) => setLocAddress(e.target.value)}
-                        placeholder='Ej: Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones'
+                        placeholder='Ej: Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones'
                         className="w-full bg-[#122317] border border-[#23422a] focus:border-[#4aa036] rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition"
                       />
                       <p className="text-[11px] text-gray-500 mt-1">Dirección visible para los compradores y punto de retiro.</p>
@@ -4728,7 +4728,7 @@ export const AdminDashboard = () => {
                           rows="4"
                           value={formShippingInfo}
                           onChange={(e) => setFormShippingInfo(e.target.value)}
-                          placeholder='Ej: Insumo frágil despachado con embalaje térmico y cámara de aire. Disponible para retiro inmediato sin costo en nuestro local de Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones.'
+                          placeholder='Ej: Insumo frágil despachado con embalaje térmico y cámara de aire. Disponible para retiro inmediato sin costo en nuestro local de Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones.'
                           className="w-full px-3.5 py-2.5 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs outline-none focus:border-[#4aa036] resize-none leading-relaxed"
                         />
                         <p className="text-[10px] text-gray-400 mt-1">

@@ -718,7 +718,7 @@ export const ProductDetail = () => {
                   <span className="text-[#25d366] font-black uppercase text-[10px] bg-[#102a16] px-2 py-0.5 rounded-full border border-[#4aa036]/40">Sin costo</span>
                 </div>
                 <p className="text-gray-400 text-[11px] pl-5 leading-relaxed">
-                  Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.
+                  Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones.
                 </p>
               </div>
 
@@ -993,7 +993,7 @@ export const ProductDetail = () => {
                       Retiro por Local (Sin costo)
                     </h4>
                     <p className="text-gray-400 leading-relaxed text-[11px]">
-                      Podés retirar tus compras sin costo adicional en nuestro local comercial ubicado en <strong className="text-gray-200">Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones</strong>. Coordinamos la preparación de tu paquete por WhatsApp.
+                      Podés retirar tus compras sin costo adicional en nuestro local comercial ubicado en <strong className="text-gray-200">Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones</strong>. Coordinamos la preparación de tu paquete por WhatsApp.
                     </p>
                   </div>
 

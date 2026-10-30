@@ -36,7 +36,7 @@ const FALLBACK_ABOUT_SECTIONS = [
     id: 2,
     title: 'Asesoramiento Técnico & Cercanía',
     subtitle: 'Acompañamiento en cada etapa de tu ciclo',
-    content: 'Ya sea que estés dando tus primeros pasos con tu primera planta o gestionando salas indoor automatizadas de alta exigencia, te acompañamos en cada fase: germinación, vegetativo, floración y curado. En nuestro local físico en Av. López y Planes casi Lavalle ("adentro del ACUARIUM") y en nuestros canales digitales encontrás respuestas claras, tablas de nutrición y diagnóstico preventivo de plagas.',
+    content: 'Ya sea que estés dando tus primeros pasos con tu primera planta o gestionando salas indoor automatizadas de alta exigencia, te acompañamos en cada fase: germinación, vegetativo, floración y curado. En nuestro local físico en Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones y en nuestros canales digitales encontrás respuestas claras, tablas de nutrición y diagnóstico preventivo de plagas.',
     image_url: 'https://images.unsplash.com/photo-1536939459926-301728717817?auto=format&fit=crop&q=80&w=1200',
     order_index: 2
   },
@@ -74,7 +74,7 @@ const FALLBACK_INSTAGRAM_VIDEOS = [
   },
   {
     id: 4,
-    title: 'Recorrido por nuestro local oficial en Posadas • Av. López y Planes casi Lavalle ("adentro del ACUARIUM")',
+    title: 'Recorrido por nuestro local oficial en Posadas • Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones',
     post_url: 'https://www.instagram.com/culti.shopp/',
     thumbnail_url: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=800',
     order_index: 4
@@ -186,7 +186,7 @@ const GoogleMapFrame = ({ embedUrl, googleMapsUrl, address }) => {
             </div>
             <div className="space-y-1.5">
               <h4 className="text-sm sm:text-base font-bold text-white">
-                Av. López y Planes casi Lavalle ("adentro del ACUARIUM")
+                Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones
               </h4>
               <p className="text-xs text-gray-400 leading-relaxed">
                 {safeAddressText}
@@ -378,7 +378,7 @@ export const AboutView = () => {
               <div className="p-4 rounded-2xl bg-[#0e1c12]/80 border border-[#1f3b25] backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 shadow-sm">
                 <MapPin size={22} className="text-[#e0a96d]" />
                 <span className="text-xs font-bold text-white uppercase tracking-wider">Local en Posadas</span>
-                <span className="text-[11px] text-gray-400">Av. López y Planes casi Lavalle ("adentro del ACUARIUM")</span>
+                <span className="text-[11px] text-gray-400">Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones</span>
               </div>
             </div>
           </div>

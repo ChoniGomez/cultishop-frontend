@@ -32,7 +32,7 @@ const FALLBACK_FAQS = [
   {
     id: 2,
     question: '¿Cuáles son los métodos de envío y retiro disponibles?',
-    answer: 'Disponemos de las siguientes modalidades de entrega: 1) Retiro por Local sin costo en Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones. 2) Envíos locales (Posadas / Garupá): Coordinación ágil de envío por moto, Uber o Líder Mandados. 3) Envíos Nacionales: Realizamos envíos a todo el país por Correo Argentino o Vía Cargo (con costo adicional dependiendo del lugar de destino).',
+    answer: 'Disponemos de las siguientes modalidades de entrega: 1) Retiro por Local sin costo en Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones. 2) Envíos locales (Posadas / Garupá): Coordinación ágil de envío por moto, Uber o Líder Mandados. 3) Envíos Nacionales: Realizamos envíos a todo el país por Correo Argentino o Vía Cargo (con costo adicional dependiendo del lugar de destino).',
     category: 'Envíos & Retiro',
     order_index: 2,
     is_active: true
@@ -40,7 +40,7 @@ const FALLBACK_FAQS = [
   {
     id: 3,
     question: '¿Dónde queda el local físico y cuáles son los horarios de atención?',
-    answer: 'Estamos ubicados en Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones. Te invitamos a visitarnos para conocer todos los productos exhibidos y recibir asesoramiento técnico personalizado para tus cultivos.',
+    answer: 'Estamos ubicados en Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones. Te invitamos a visitarnos para conocer todos los productos exhibidos y recibir asesoramiento técnico personalizado para tus cultivos.',
     category: 'Local & Retiro',
     order_index: 3,
     is_active: true

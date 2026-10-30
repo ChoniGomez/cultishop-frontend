@@ -194,7 +194,7 @@ export const HomeFeaturedProducts = () => {
               Retiro por Local Sin Costo
             </h4>
             <p className="text-xs text-gray-400 leading-relaxed text-justify">
-              Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones.
+              Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones.
             </p>
           </div>
         </div>

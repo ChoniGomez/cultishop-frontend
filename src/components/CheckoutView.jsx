@@ -209,8 +209,8 @@ export const CheckoutView = () => {
       // Formatear dirección limpia y coherente con el método elegido
       const fullShippingAddress = formData.shippingMethod === 'retiro_local'
         ? (formData.streetAddress.trim()
-            ? `${formData.streetAddress.trim()}${formData.apartment ? ', ' + formData.apartment.trim() : ''}, ${formData.city.trim() || 'Posadas'}, ${formData.state.trim() || 'Misiones'} (Retiro en Local Oficial: Av. López y Planes casi Lavalle - adentro del ACUARIUM)`
-            : 'Retiro por Local Oficial - Av. López y Planes casi Lavalle ("adentro del ACUARIUM"), Posadas, Misiones')
+            ? `${formData.streetAddress.trim()}${formData.apartment ? ', ' + formData.apartment.trim() : ''}, ${formData.city.trim() || 'Posadas'}, ${formData.state.trim() || 'Misiones'} (Retiro en Local Oficial: Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones)`
+            : 'Retiro por Local Oficial - Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones')
         : `${formData.streetAddress.trim()}${formData.apartment ? ', ' + formData.apartment.trim() : ''}, ${formData.city.trim()}, ${formData.state.trim()} (CP: ${formData.postalCode.trim()}), Argentina`;
 
       const payload = {
@@ -291,7 +291,7 @@ export const CheckoutView = () => {
       'A coordinar por WhatsApp';
     
     const shippingLabel = 
-      order.shipping_method === 'retiro_local' ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle - adentro del ACUARIUM, Posadas, Misiones)' :
+      order.shipping_method === 'retiro_local' ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones)' :
       order.shipping_method === 'envio_posadas' ? 'Envío Local en Posadas / Garupá (Moto, Uber o Líder Mandados)' :
       'Envío Nacional a todo el país (Correo Argentino o Vía Cargo - costo adicional según destino)';
 
@@ -427,7 +427,7 @@ export const CheckoutView = () => {
                 <span className="text-gray-400 block mt-1">
                   Modalidad: <strong className="text-gray-200">
                     {completedOrder.shipping_method === 'retiro_local'
-                      ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle - adentro del ACUARIUM)'
+                      ? 'Retiro por Local sin costo (Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones)'
                       : completedOrder.shipping_method === 'envio_posadas'
                       ? 'Envío Local en Posadas / Garupá (Moto, Uber o Líder Mandados)'
                       : 'Envío Nacional (Correo Argentino o Vía Cargo - costo adicional según destino)'}
@@ -655,7 +655,7 @@ export const CheckoutView = () => {
                         <span className="text-[10px] font-black text-[#4aa036] uppercase bg-[#0e1f12] px-2 py-0.5 rounded-full border border-[#4aa036]/50">Sin Costo</span>
                       </div>
                       <p className="text-[11px] text-gray-300 leading-relaxed">
-                        📍 Dirección del local: <strong className="text-[#e0a96d]">Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.</strong>
+                        📍 Dirección del local: <strong className="text-[#e0a96d]">Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones.</strong>
                       </p>
                       <p className="text-[10px] text-gray-400">
                         No es obligatorio ingresar dirección de entrega. Te avisaremos por WhatsApp cuando tu pedido esté empaquetado para retirar.
@@ -712,7 +712,7 @@ export const CheckoutView = () => {
                     onChange={handleChange}
                     placeholder={
                       formData.shippingMethod === 'retiro_local'
-                        ? 'Opcional (se retira en Av. López y Planes casi Lavalle - adentro del ACUARIUM)'
+                        ? 'Opcional (se retira en Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones)'
                         : 'Número de casa y nombre de la calle (ej: Av. San Martín 1234)'
                     }
                     className={`w-full py-2.5 px-4 rounded-xl bg-[#142619] text-gray-100 placeholder-gray-500 border text-xs focus:outline-none transition ${
@@ -1223,7 +1223,7 @@ export const CheckoutView = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-400 pl-6 mt-1 leading-relaxed">
-                      Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones.
+                      Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones.
                     </p>
                   </label>
 

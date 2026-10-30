@@ -81,7 +81,7 @@ function App() {
                 <Route path="/categoria/:slug" element={<ProductSection />} />
                 <Route path="/sobre-nosotros" element={<AboutView />} />
                 <Route path="/faq" element={<FaqView />} />
-                <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes casi Lavalle (&quot;adentro del ACUARIUM&quot;), Posadas, Misiones. WhatsApp: +54 9 376 435-6995." />} />
+                <Route path="/contacto" element={<PlaceholderPage title="Contactanos" description="Estamos en Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones. WhatsApp: +54 9 376 435-6995." />} />
                 <Route path="/favoritos" element={<FavoritesView />} />
                 <Route path="/finalizar-compra" element={<CheckoutView />} />
                 <Route path="/checkout" element={<CheckoutView />} />
@@ -206,7 +206,7 @@ function App() {
                 <li className="flex items-start gap-2">
                   <MapPin size={15} className="text-[#e0a96d] shrink-0 mt-0.5" />
                   <div>
-                    <span>Av. López y Planes casi Lavalle (&ldquo;adentro del ACUARIUM&rdquo;), Posadas, Misiones</span>
+                    <span>Av. López y Planes casi Lavalle (adentro del ACUARIUM), Posadas, Misiones</span>
                     <div className="pt-0.5">
                       <Link to="/sobre-nosotros#visitanos" className="text-[#e0a96d] hover:underline text-[11px] font-semibold inline-flex items-center gap-1">
                         <span>Ver mapa interactivo &rarr;</span>
