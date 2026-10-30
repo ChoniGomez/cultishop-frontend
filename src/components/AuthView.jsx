@@ -28,7 +28,6 @@ import { formatPrice } from '../context/ShopContext';
 import { buildApiUrl } from '../config/api';
 import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
-import { GOOGLE_CLIENT_ID } from '../config/googleAuth';
 
 export const AuthView = () => {
   const { user, token, login, register, loginWithGoogle, logout, changePassword, loading, isAdmin: authIsAdmin } = useAuth();
@@ -731,8 +730,10 @@ export const AuthView = () => {
   // ==========================================
   // VISTA DE FORMULARIO (LOGIN / REGISTRO)
   // ==========================================
+  console.log('🔍 [Google OAuth Debug] import.meta.env.VITE_GOOGLE_CLIENT_ID en tiempo de ejecución:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="bg-[#0e1c12] border-2 border-[#2d5a27] rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
           {/* Adorno superior dorado */}
