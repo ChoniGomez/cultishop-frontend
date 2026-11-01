@@ -28,7 +28,22 @@ import { buildApiUrl } from '../config/api';
 import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
-const GOOGLE_CLIENT_ID = '163160853962-l05qnhbr5cfqek40vq5tavh9gkasnuh6.apps.googleusercontent.com';
+// Client ID de producción oficial para CultiShop registrado en Google Cloud Console
+const DEFAULT_GOOGLE_CLIENT_ID = '163160853962-l05qnhbr5cfqek40vq5tavh9gkasnuh6.apps.googleusercontent.com';
+
+// Obtener de forma segura el Client ID: prioriza variable de entorno si existe, o utiliza el valor directo
+const getActiveGoogleClientId = () => {
+  const envId = import.meta.env?.VITE_GOOGLE_CLIENT_ID;
+  if (envId && typeof envId === 'string') {
+    const cleaned = envId.trim().replace(/^["'`\[]+|["'`\]]+$/g, '').trim();
+    if (cleaned.length > 20 && !cleaned.toLowerCase().includes('demo')) {
+      return cleaned;
+    }
+  }
+  return DEFAULT_GOOGLE_CLIENT_ID;
+};
+
+const GOOGLE_CLIENT_ID = getActiveGoogleClientId();
 
 export const AuthView = () => {
   const { user, token, login, register, loginWithGoogle, logout, changePassword, loading, isAdmin: authIsAdmin } = useAuth();
@@ -228,10 +243,21 @@ export const AuthView = () => {
   const handleGoogleRedirectLogin = () => {
     setErrorMessage('');
     setSuccessMessage('');
-    const redirectUri = window.location.origin + window.location.pathname;
-    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+
+    // Origen normalizado y URI canónica autorizada en Google Cloud Console (/ingresar)
+    const origin = typeof window !== 'undefined' ? window.location.origin.replace(/\/+$/, '') : 'https://www.cultishop.com.ar';
+    const redirectUri = `${origin}/ingresar`;
+    const clientId = GOOGLE_CLIENT_ID.trim();
+
+    console.log('🚀 [Google OAuth] Iniciando redirección con Client ID:', clientId);
+    console.log('📍 [Google OAuth] Redirect URI configurada:', redirectUri);
+
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      clientId
+    )}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&response_type=token&scope=email%20profile&prompt=select_account`;
+
     window.location.href = oauthUrl;
   };
 
