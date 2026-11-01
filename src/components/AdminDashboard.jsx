@@ -82,6 +82,10 @@ export const AdminDashboard = () => {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
 
+  // Estadísticas ultraligeras iniciales del panel (Fast On-Demand Counts)
+  const [adminStats, setAdminStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   // Filtros de búsqueda en productos
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductCategory, setSelectedProductCategory] = useState('todas');
@@ -462,6 +466,31 @@ export const AdminDashboard = () => {
     }
   };
 
+  // 0. Cargar estadísticas rápidas de conteo (GET /api/admin/stats)
+  const fetchAdminStats = async () => {
+    if (!token) return;
+    setLoadingStats(true);
+    try {
+      const res = await fetch(buildApiUrl('admin/stats'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const statsData = data?.stats || data;
+        if (statsData) {
+          setAdminStats(statsData);
+        }
+      }
+    } catch (err) {
+      console.error('Error al cargar estadísticas rápidas del panel:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   // 1. Cargar pedidos desde el Backend
   const fetchOrders = async () => {
     if (!token) return;
@@ -637,6 +666,13 @@ export const AdminDashboard = () => {
   };
 
   const loadedTabsRef = useRef(new Set());
+
+  // Carga inicial inmediata de métricas y contadores de todas las secciones (Fast Stats)
+  useEffect(() => {
+    if (isAdmin && token) {
+      fetchAdminStats();
+    }
+  }, [isAdmin, token]);
 
   // Carga bajo demanda por pestaña activa: evita ejecutar 8 llamadas concurrentes al entrar a /admin
   useEffect(() => {
@@ -1746,6 +1782,49 @@ export const AdminDashboard = () => {
   const pendingOrdersCount = safeOrders.filter(o => o?.status === 'pending').length;
   const lowStockCount = safeProducts.filter(p => (parseInt(p?.stock, 10) || 0) <= 5).length;
 
+  // Métricas y Contadores Inteligentes:
+  // Muestran instantáneamente los conteos del endpoint /api/admin/stats al entrar al Dashboard,
+  // y hacen fallback o se sincronizan en vivo con los datos detallados cuando el usuario abre la pestaña.
+  const displayProductsCount = loadedTabsRef.current.has('productos') && safeProducts.length > 0
+    ? safeProducts.length
+    : (adminStats?.totalProducts ?? safeProducts.length);
+
+  const displayLowStockCount = loadedTabsRef.current.has('productos') && safeProducts.length > 0
+    ? lowStockCount
+    : (adminStats?.lowStockProducts ?? lowStockCount);
+
+  const displayOrdersCount = loadedTabsRef.current.has('pedidos')
+    ? safeOrders.length
+    : (adminStats?.totalOrders ?? safeOrders.length);
+
+  const displayPendingOrdersCount = loadedTabsRef.current.has('pedidos')
+    ? pendingOrdersCount
+    : (adminStats?.pendingOrders ?? pendingOrdersCount);
+
+  const displayBannersCount = loadedTabsRef.current.has('banners')
+    ? safeBanners.length
+    : (adminStats?.totalBanners ?? safeBanners.length);
+
+  const displayCategoriesCount = loadedTabsRef.current.has('categorias')
+    ? safeAdminCategories.length
+    : (adminStats?.totalCategories ?? safeAdminCategories.length);
+
+  const displayAboutCount = loadedTabsRef.current.has('institucional')
+    ? safeAboutSections.length
+    : (adminStats?.totalAboutSections ?? safeAboutSections.length);
+
+  const displayInstagramCount = loadedTabsRef.current.has('institucional')
+    ? safeInstagramVideos.length
+    : (adminStats?.totalInstagramVideos ?? safeInstagramVideos.length);
+
+  const displayInstitutionalCount = loadedTabsRef.current.has('institucional')
+    ? (safeAboutSections.length + safeInstagramVideos.length)
+    : (adminStats?.totalInstitutional ?? (displayAboutCount + displayInstagramCount));
+
+  const displayFaqsCount = loadedTabsRef.current.has('faq')
+    ? safeFaqs.length
+    : (adminStats?.totalFaqs ?? safeFaqs.length);
+
   // Render si NO es Administrador
   if (!authLoading && !isAdmin) {
     return (
@@ -2003,11 +2082,28 @@ export const AdminDashboard = () => {
             <span>Ver Tienda</span>
           </Link>
           <button
-            onClick={fetchProducts}
+            onClick={() => {
+              fetchAdminStats();
+              if (activeTab === 'productos') {
+                fetchProducts(true);
+                fetchAdminCategories();
+              } else if (activeTab === 'pedidos') {
+                fetchOrders();
+              } else if (activeTab === 'banners') {
+                fetchBannersAdmin();
+              } else if (activeTab === 'categorias') {
+                fetchAdminCategories();
+              } else if (activeTab === 'institucional') {
+                fetchAboutSectionsAdmin();
+                fetchInstagramVideosAdmin();
+              } else if (activeTab === 'faq') {
+                fetchFaqsAdmin();
+              }
+            }}
             className="p-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-[#e0a96d] border border-[#23422a] transition shadow-sm"
-            title="Refrescar catálogo"
+            title="Refrescar catálogo y métricas"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={15} className={loadingStats ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
@@ -2019,7 +2115,7 @@ export const AdminDashboard = () => {
             <span>Total Productos</span>
             <Package size={16} className="text-[#4aa036]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{safeProducts.length}</div>
+          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{displayProductsCount}</div>
           <span className="text-[10px] text-gray-500 mt-1 block">Catálogo en inventario</span>
         </div>
 
@@ -2028,8 +2124,8 @@ export const AdminDashboard = () => {
             <span>Pedidos Totales</span>
             <ShoppingBag size={16} className="text-[#e0a96d]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{safeOrders.length}</div>
-          <span className="text-[10px] text-gray-500 mt-1 block">{pendingOrdersCount} pendientes de entrega</span>
+          <div className="text-2xl sm:text-3xl font-black text-white font-heading">{displayOrdersCount}</div>
+          <span className="text-[10px] text-gray-500 mt-1 block">{displayPendingOrdersCount} pendientes de entrega</span>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] shadow-md">
@@ -2037,7 +2133,7 @@ export const AdminDashboard = () => {
             <span>Stock Crítico (&le;5)</span>
             <AlertTriangle size={16} className="text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-amber-400 font-heading">{lowStockCount}</div>
+          <div className="text-2xl sm:text-3xl font-black text-amber-400 font-heading">{displayLowStockCount}</div>
           <span className="text-[10px] text-gray-500 mt-1 block">Insumos por reponer</span>
         </div>
       </div>
@@ -2053,7 +2149,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <Package size={16} />
-          <span>Productos del Catálogo ({safeProducts.length})</span>
+          <span>Productos del Catálogo ({displayProductsCount})</span>
         </button>
 
         <button
@@ -2065,10 +2161,10 @@ export const AdminDashboard = () => {
           }`}
         >
           <ShoppingBag size={16} />
-          <span>Gestión de Pedidos ({safeOrders.length})</span>
-          {pendingOrdersCount > 0 && (
+          <span>Gestión de Pedidos ({displayOrdersCount})</span>
+          {displayPendingOrdersCount > 0 && (
             <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#e0a96d] text-black text-[9px] font-black">
-              {pendingOrdersCount}
+              {displayPendingOrdersCount}
             </span>
           )}
         </button>
@@ -2082,7 +2178,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <Sliders size={16} />
-          <span>Banners Publicitarios ({safeBanners.length})</span>
+          <span>Banners Publicitarios ({displayBannersCount})</span>
         </button>
 
         <button
@@ -2094,7 +2190,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <FolderTree size={16} />
-          <span>Categorías ({adminCategories.length})</span>
+          <span>Categorías ({displayCategoriesCount})</span>
         </button>
 
         <button
@@ -2109,7 +2205,7 @@ export const AdminDashboard = () => {
           <span>Datos de Pago / Alias</span>
         </button>
 
-                <button
+        <button
           onClick={() => setActiveTab('institucional')}
           className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
             activeTab === 'institucional'
@@ -2118,7 +2214,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <BookOpen size={16} />
-          <span>Institucional & Instagram ({safeAboutSections.length + safeInstagramVideos.length})</span>
+          <span>Institucional & Instagram ({displayInstitutionalCount})</span>
         </button>
 
         <button
@@ -2130,7 +2226,7 @@ export const AdminDashboard = () => {
           }`}
         >
           <HelpCircle size={16} />
-          <span>Preguntas Frecuentes FAQ ({safeFaqs.length})</span>
+          <span>Preguntas Frecuentes FAQ ({displayFaqsCount})</span>
         </button>
       </div>
 
@@ -3413,7 +3509,7 @@ export const AdminDashboard = () => {
                 }`}
               >
                 <FileText size={14} className="shrink-0" />
-                <span className="truncate">Sobre Nosotros ({safeAboutSections.length})</span>
+                <span className="truncate">Sobre Nosotros ({displayAboutCount})</span>
               </button>
 
               <button
@@ -3426,7 +3522,7 @@ export const AdminDashboard = () => {
                 }`}
               >
                 <Instagram size={14} className="shrink-0" />
-                <span className="truncate">Instagram ({safeInstagramVideos.length})</span>
+                <span className="truncate">Instagram ({displayInstagramCount})</span>
               </button>
 
               <button
@@ -3439,7 +3535,7 @@ export const AdminDashboard = () => {
                 }`}
               >
                 <HelpCircle size={14} className="shrink-0" />
-                <span className="truncate">Preguntas FAQ ({safeFaqs.length})</span>
+                <span className="truncate">Preguntas FAQ ({displayFaqsCount})</span>
               </button>
             </div>
           </div>
