@@ -29,7 +29,7 @@ import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 // Client ID de producción oficial para CultiShop registrado en Google Cloud Console
-const DEFAULT_GOOGLE_CLIENT_ID = '163160853962-l05qnhbr5cfqek40vq5tavh9gkasnuh6.apps.googleusercontent.com';
+const DEFAULT_GOOGLE_CLIENT_ID = '163160853962-bpbm2dbo4cr5364or47hu76sbbsbllar.apps.googleusercontent.com';
 
 // Obtener de forma segura el Client ID: prioriza variable de entorno si existe, o utiliza el valor directo
 const getActiveGoogleClientId = () => {
