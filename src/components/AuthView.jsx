@@ -28,22 +28,8 @@ import { buildApiUrl } from '../config/api';
 import { CultiShopLogo } from './CultiShopLogo';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
-// Client ID de producción oficial para CultiShop registrado en Google Cloud Console
-const DEFAULT_GOOGLE_CLIENT_ID = '163160853962-bpbm2dbo4cr5364or47hu76sbbsbllar.apps.googleusercontent.com';
-
-// Obtener de forma segura el Client ID: prioriza variable de entorno si existe, o utiliza el valor directo
-const getActiveGoogleClientId = () => {
-  const envId = import.meta.env?.VITE_GOOGLE_CLIENT_ID;
-  if (envId && typeof envId === 'string') {
-    const cleaned = envId.trim().replace(/^["'`\[]+|["'`\]]+$/g, '').trim();
-    if (cleaned.length > 20 && !cleaned.toLowerCase().includes('demo')) {
-      return cleaned;
-    }
-  }
-  return DEFAULT_GOOGLE_CLIENT_ID;
-};
-
-const GOOGLE_CLIENT_ID = getActiveGoogleClientId();
+// Client ID de producción oficial para CultiShop registrado en Google Cloud Console (Directo / Hardcodeado)
+const GOOGLE_CLIENT_ID = '163160853962-bpbm2dbo4cr5364or47hu76sbbsbllar.apps.googleusercontent.com';
 
 export const AuthView = () => {
   const { user, token, login, register, loginWithGoogle, logout, changePassword, loading, isAdmin: authIsAdmin } = useAuth();
