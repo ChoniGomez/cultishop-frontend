@@ -616,8 +616,9 @@ export const ShopProvider = ({ children }) => {
       const res = await fetch(buildApiUrl('products?featured=true&limit=8'));
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.products) && data.products.length > 0) {
-          const apiFeatured = data.products.map(formatApiProduct);
+        const rawFeatured = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
+        if (rawFeatured.length > 0) {
+          const apiFeatured = rawFeatured.map(formatApiProduct);
           setFeaturedProducts(apiFeatured);
           safeStorage.setItem(FEATURED_STORAGE_KEY, JSON.stringify({
             timestamp: Date.now(),
@@ -665,8 +666,9 @@ export const ShopProvider = ({ children }) => {
         const res = await fetch(buildApiUrl('products'));
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.products)) {
-            const apiProducts = data.products.map(formatApiProduct);
+          const rawProducts = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
+          if (rawProducts.length > 0 || Array.isArray(data.data) || Array.isArray(data.products)) {
+            const apiProducts = rawProducts.map(formatApiProduct);
             inMemoryProductsCache = apiProducts;
             inMemoryProductsTimestamp = Date.now();
             setProducts(apiProducts);
@@ -737,8 +739,9 @@ export const ShopProvider = ({ children }) => {
       const res = await fetch(buildApiUrl(`products?${params.toString()}`));
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.products)) {
-          const apiProducts = data.products.map(formatApiProduct);
+        const rawCatProducts = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
+        if (rawCatProducts.length > 0 || Array.isArray(data.data) || Array.isArray(data.products)) {
+          const apiProducts = rawCatProducts.map(formatApiProduct);
           categoryCacheRef.current.set(cacheKey, {
             timestamp: Date.now(),
             data: apiProducts

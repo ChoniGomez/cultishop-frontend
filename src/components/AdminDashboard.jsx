@@ -21,6 +21,7 @@ import {
   X,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Layers,
   FileText,
   CheckCircle2,
@@ -89,6 +90,18 @@ export const AdminDashboard = () => {
   // Filtros de búsqueda en productos
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductCategory, setSelectedProductCategory] = useState('todas');
+
+  // Paginación eficiente del catálogo de productos en el Admin (skip/take)
+  const [productPage, setProductPage] = useState(1);
+  const [productLimit, setProductLimit] = useState(50);
+  const [adminProducts, setAdminProducts] = useState([]);
+  const [loadingAdminProducts, setLoadingAdminProducts] = useState(false);
+  const [productPaginationMeta, setProductPaginationMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 50,
+    totalPages: 1
+  });
 
   // Filtro de pedidos
   const [orderStatusFilter, setOrderStatusFilter] = useState('todos');
@@ -491,6 +504,67 @@ export const AdminDashboard = () => {
     }
   };
 
+  // 0.1 Carga paginada eficiente de productos para el catálogo del panel (skip/take)
+  const fetchAdminProducts = async (
+    page = productPage,
+    limit = productLimit,
+    search = productSearch,
+    category = selectedProductCategory
+  ) => {
+    setLoadingAdminProducts(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        all: 'true'
+      });
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+      if (category && category !== 'todas') {
+        params.append('category', category);
+      }
+
+      const res = await fetch(buildApiUrl(`products?${params.toString()}`));
+      if (res.ok) {
+        const data = await res.json();
+        const items = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
+        setAdminProducts(items);
+        if (data.meta) {
+          setProductPaginationMeta(data.meta);
+        } else {
+          setProductPaginationMeta({
+            total: items.length,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.max(1, Math.ceil(items.length / limit))
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error al cargar productos paginados en panel de administración:', err);
+    } finally {
+      setLoadingAdminProducts(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (
+      newPage < 1 || 
+      newPage > (productPaginationMeta.totalPages || 1) || 
+      newPage === productPage ||
+      loadingAdminProducts
+    ) {
+      return;
+    }
+    setProductPage(newPage);
+    fetchAdminProducts(newPage, productLimit, productSearch, selectedProductCategory);
+    const tableEl = document.getElementById('admin-products-table');
+    if (tableEl) {
+      tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   // 1. Cargar pedidos desde el Backend
   const fetchOrders = async () => {
     if (!token) return;
@@ -674,6 +748,18 @@ export const AdminDashboard = () => {
     }
   }, [isAdmin, token]);
 
+  // Sincronización debounced de búsqueda y categoría para el catálogo paginado
+  useEffect(() => {
+    if (!isAdmin || activeTab !== 'productos') return;
+
+    const timer = setTimeout(() => {
+      setProductPage(1);
+      fetchAdminProducts(1, productLimit, productSearch, selectedProductCategory);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [productSearch, selectedProductCategory]);
+
   // Carga bajo demanda por pestaña activa: evita ejecutar 8 llamadas concurrentes al entrar a /admin
   useEffect(() => {
     if (!isAdmin) return;
@@ -681,7 +767,7 @@ export const AdminDashboard = () => {
     if (activeTab === 'productos') {
       if (!loadedTabsRef.current.has('productos')) {
         loadedTabsRef.current.add('productos');
-        fetchProducts();
+        fetchAdminProducts(productPage, productLimit, productSearch, selectedProductCategory);
         fetchAdminCategories();
       }
     } else if (activeTab === 'pedidos') {
@@ -1698,6 +1784,8 @@ export const AdminDashboard = () => {
         showNotification('success', '¡Producto y pestañas de información actualizados!');
       }
       setIsModalOpen(false);
+      fetchAdminProducts(productPage, productLimit, productSearch, selectedProductCategory);
+      fetchAdminStats();
     } catch (err) {
       console.error('Error guardando producto:', err);
       showNotification('error', 'Ocurrió un error al procesar el guardado.');
@@ -1711,6 +1799,8 @@ export const AdminDashboard = () => {
     try {
       await deleteProduct(id, token);
       showNotification('success', 'Producto eliminado exitosamente del catálogo.');
+      fetchAdminProducts(productPage, productLimit, productSearch, selectedProductCategory);
+      fetchAdminStats();
     } catch (err) {
       console.error('Error al eliminar producto:', err);
       showNotification('error', 'Error al eliminar el producto.');
@@ -2085,7 +2175,7 @@ export const AdminDashboard = () => {
             onClick={() => {
               fetchAdminStats();
               if (activeTab === 'productos') {
-                fetchProducts(true);
+                fetchAdminProducts(productPage, productLimit, productSearch, selectedProductCategory);
                 fetchAdminCategories();
               } else if (activeTab === 'pedidos') {
                 fetchOrders();
@@ -2271,7 +2361,7 @@ export const AdminDashboard = () => {
           </div>
 
           {/* Tabla de Productos del Catálogo */}
-          <div className="bg-[#0e1c12] border border-[#1f3b25] rounded-2xl overflow-hidden shadow-xl">
+          <div id="admin-products-table" className="bg-[#0e1c12] border border-[#1f3b25] rounded-2xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-gray-300">
                 <thead className="bg-[#142619] text-gray-400 font-bold uppercase tracking-wider border-b border-[#1f3b25]">
@@ -2285,7 +2375,7 @@ export const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1f3b25]">
-                  {loadingProducts ? (
+                  {loadingAdminProducts ? (
                     <tr>
                       <td colSpan="6" className="py-16 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
@@ -2296,14 +2386,14 @@ export const AdminDashboard = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredProducts.length === 0 ? (
+                  ) : adminProducts.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="py-12 text-center text-gray-400">
                         No se encontraron productos que coincidan con la búsqueda.
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((prod) => (
+                    adminProducts.map((prod) => (
                       <tr key={prod.id} className="hover:bg-[#122317] transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
@@ -2400,6 +2490,58 @@ export const AdminDashboard = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Barra de Navegación Inferior de Paginación */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 bg-[#0a140d] border-t border-[#1f3b25] text-xs">
+              <div className="text-gray-400 text-center sm:text-left">
+                Mostrando{' '}
+                <span className="font-bold text-white">
+                  {productPaginationMeta.total === 0 ? 0 : (productPaginationMeta.page - 1) * productPaginationMeta.limit + 1}
+                </span>{' '}
+                a{' '}
+                <span className="font-bold text-white">
+                  {Math.min(productPaginationMeta.page * productPaginationMeta.limit, productPaginationMeta.total)}
+                </span>{' '}
+                de <span className="font-bold text-[#e0a96d]">{productPaginationMeta.total}</span> productos registrados
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(productPaginationMeta.page - 1)}
+                  disabled={productPaginationMeta.page <= 1 || loadingAdminProducts}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold transition border ${
+                    productPaginationMeta.page <= 1 || loadingAdminProducts
+                      ? 'bg-[#142619]/40 text-gray-600 border-[#1f3b25]/40 cursor-not-allowed opacity-50'
+                      : 'bg-[#142619] hover:bg-[#1f3b25] text-gray-200 hover:text-white border-[#23422a] active:scale-95 cursor-pointer shadow-sm'
+                  }`}
+                  title="Página anterior"
+                >
+                  <ChevronLeft size={15} />
+                  <span>Anterior</span>
+                </button>
+
+                <div className="px-4 py-2 rounded-xl bg-[#122317] border border-[#1f3b25] text-gray-300 font-medium">
+                  Página <strong className="text-white font-bold">{productPaginationMeta.page}</strong> de{' '}
+                  <strong className="text-white font-bold">{productPaginationMeta.totalPages || 1}</strong>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(productPaginationMeta.page + 1)}
+                  disabled={productPaginationMeta.page >= (productPaginationMeta.totalPages || 1) || loadingAdminProducts}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold transition border ${
+                    productPaginationMeta.page >= (productPaginationMeta.totalPages || 1) || loadingAdminProducts
+                      ? 'bg-[#142619]/40 text-gray-600 border-[#1f3b25]/40 cursor-not-allowed opacity-50'
+                      : 'bg-[#142619] hover:bg-[#1f3b25] text-gray-200 hover:text-white border-[#23422a] active:scale-95 cursor-pointer shadow-sm'
+                  }`}
+                  title="Página siguiente"
+                >
+                  <span>Siguiente</span>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
