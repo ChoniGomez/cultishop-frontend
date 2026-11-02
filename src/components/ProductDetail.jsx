@@ -274,6 +274,21 @@ export const ProductDetail = () => {
   const isFav = isFavorite(product.id);
   const stockCount = typeof product.stock === 'number' ? product.stock : 25;
 
+  // Manejo de cantidades
+  const handleIncreaseQty = () => {
+    if (quantity < currentVariantStock) {
+      setQuantity((prev) => prev + 1);
+      if (validationError) setValidationError('');
+    }
+  };
+
+  const handleDecreaseQty = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+      if (validationError) setValidationError('');
+    }
+  };
+
   // Añadir al carrito
   const handleAddToCart = () => {
     if (isAdmin) {
