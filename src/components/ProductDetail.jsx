@@ -84,9 +84,12 @@ export const ProductDetail = () => {
       return;
     }
 
-    const currentCached = products.find(
-      (p) => p.id === parseInt(productParam, 10) || String(p.id) === String(productParam) || p.slug === productParam
-    );
+    // Comprobar si ya está en el catálogo en memoria
+    const currentCached = Array.isArray(products)
+      ? products.find(
+          (p) => p && (p.id === parseInt(productParam, 10) || String(p.id) === String(productParam) || p.slug === productParam)
+        )
+      : null;
 
     if (currentCached) {
       setProduct(currentCached);
@@ -125,7 +128,7 @@ export const ProductDetail = () => {
     return () => {
       isCancelled = true;
     };
-  }, [productParam, products, fetchProductById]);
+  }, [productParam, fetchProductById]);
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
@@ -983,7 +986,7 @@ export const ProductDetail = () => {
                     Detalles y Características del Producto
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed">
-                    {product.description}
+                    {product.description || 'Sin descripción disponible para este insumo.'}
                   </p>
                 </div>
 
@@ -993,7 +996,7 @@ export const ProductDetail = () => {
                     Ventajas Destacadas para tu Cultivo:
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {details.keyBenefits.map((benefit, idx) => (
+                    {(Array.isArray(details.keyBenefits) ? details.keyBenefits : []).map((benefit, idx) => (
                       <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-[#122317] border border-[#203c26]">
                         <CheckCircle2 size={16} className="text-[#4aa036] shrink-0 mt-0.5" />
                         <span className="text-xs text-gray-300 leading-snug">{benefit}</span>
@@ -1003,7 +1006,7 @@ export const ProductDetail = () => {
                 </div>
 
                 {/* Especificaciones cannábicas especiales si existen */}
-                {details.cannabisSpecs && (
+                {details.cannabisSpecs && typeof details.cannabisSpecs === 'object' && !Array.isArray(details.cannabisSpecs) && (
                   <div className="pt-4 border-t border-[#1f3b25]">
                     <h4 className="text-xs font-bold uppercase tracking-widest text-[#e0a96d] mb-3">
                       Compatibilidad & Comportamiento en Cultivo:
@@ -1015,7 +1018,7 @@ export const ProductDetail = () => {
                             {key.replace(/([A-Z])/g, ' $1').trim()}
                           </span>
                           <span className="text-xs text-gray-200 font-medium">
-                            {value}
+                            {typeof value === 'object' ? JSON.stringify(value) : String(value || '')}
                           </span>
                         </div>
                       ))}
@@ -1041,9 +1044,9 @@ export const ProductDetail = () => {
                       <tr className="bg-[#0e1c12]">
                         <th className="py-3 px-4 font-bold text-white">Categoría</th>
                         <td className="py-3 px-4 text-gray-200">
-                          {product.category}
+                          {typeof product.category === 'object' ? (product.category?.name || 'Varios') : (product.category || 'Varios')}
                           {product.subcategory && (
-                            <span className="text-[#e0a96d] ml-1.5 font-medium">› {product.subcategory}</span>
+                            <span className="text-[#e0a96d] ml-1.5 font-medium">› {typeof product.subcategory === 'object' ? (product.subcategory?.name || '') : product.subcategory}</span>
                           )}
                         </td>
                       </tr>
@@ -1108,7 +1111,7 @@ export const ProductDetail = () => {
                     Paso a Paso de Aplicación:
                   </h4>
                   <div className="space-y-2">
-                    {details.applicationGuide.map((step, idx) => (
+                    {(Array.isArray(details.applicationGuide) ? details.applicationGuide : []).map((step, idx) => (
                       <div key={idx} className="flex items-start gap-3 p-3.5 rounded-xl bg-[#0a140d] border border-[#1b3420]">
                         <span className="w-6 h-6 rounded-full bg-[#2d5a27] text-white text-xs font-bold flex items-center justify-center shrink-0">
                           {idx + 1}

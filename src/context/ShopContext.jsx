@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { buildApiUrl, buildImageUrl } from '../config/api';
@@ -767,9 +767,9 @@ export const ShopProvider = ({ children }) => {
 
   /**
    * Consulta individual de producto por ID numérico o slug directamente al servidor (/api/products/:id).
-   * Formatea los datos botánicos, opciones y fotos, y los mezcla en la memoria local.
+   * Formatea los datos botánicos, opciones y fotos, y los mezcla en la memoria local con identidad estable.
    */
-  const fetchProductById = async (idOrSlug) => {
+  const fetchProductById = useCallback(async (idOrSlug) => {
     if (!idOrSlug || idOrSlug === 'undefined' || idOrSlug === 'null') return null;
     const cleanParam = String(idOrSlug).trim();
     if (!cleanParam || cleanParam === 'undefined' || cleanParam === 'null') return null;
@@ -781,8 +781,12 @@ export const ShopProvider = ({ children }) => {
         const rawProduct = json.product || json.data || (json.id ? json : null);
         if (rawProduct && rawProduct.id) {
           const formatted = formatApiProduct(rawProduct);
-          // Mezclar en el estado general de productos en memoria
+          // Mezclar en el estado general de productos en memoria solo si no existe o cambió
           setProducts((prev) => {
+            const existing = prev.find((p) => p.id === formatted.id);
+            if (existing && existing.title === formatted.title && existing.price === formatted.price && existing.stock === formatted.stock) {
+              return prev; // Mantiene la referencia original para no disparar re-renders innecesarios
+            }
             const map = new Map(prev.map((p) => [String(p.id), p]));
             map.set(String(formatted.id), formatted);
             return Array.from(map.values());
@@ -796,7 +800,7 @@ export const ShopProvider = ({ children }) => {
       console.warn(`Error al consultar detalle del producto "${cleanParam}":`, err);
     }
     return null;
-  };
+  }, []);
 
   useEffect(() => {
     fetchFeaturedProducts();
