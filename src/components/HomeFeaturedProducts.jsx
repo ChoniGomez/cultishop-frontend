@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Flame,
   Zap,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
@@ -27,12 +28,12 @@ export const HomeFeaturedProducts = () => {
     ? shopCategories 
     : CATEGORIES;
 
-  // Cargar productos destacados si aún no existen
+  // Cargar una combinación fresca y dinámica de destacados/novedades en cada visita o recarga
   useEffect(() => {
-    if ((!featuredProducts || featuredProducts.length === 0) && fetchFeaturedProducts) {
-      fetchFeaturedProducts();
+    if (fetchFeaturedProducts) {
+      fetchFeaturedProducts(true);
     }
-  }, [featuredProducts, fetchFeaturedProducts]);
+  }, [fetchFeaturedProducts]);
 
   const displayProducts = Array.isArray(featuredProducts) ? featuredProducts.slice(0, 8) : [];
 
@@ -84,13 +85,26 @@ export const HomeFeaturedProducts = () => {
           </p>
         </div>
 
-        <Link
-          to="/catalogo"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#e0a96d] hover:text-white bg-[#142619] hover:bg-[#1f3b25] px-4 py-2.5 rounded-full border border-[#2d5a27] transition shadow-sm group shrink-0"
-        >
-          <span>Ir al Catálogo Completo</span>
-          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => fetchFeaturedProducts && fetchFeaturedProducts(true)}
+            disabled={loadingFeatured}
+            title="Mostrar otra combinación de productos destacados y novedades"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-white bg-[#0f2114] hover:bg-[#1a3822] px-3.5 py-2.5 rounded-full border border-[#23422a] hover:border-[#38761d] transition shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Sparkles size={13} className={`text-[#e0a96d] ${loadingFeatured ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Explorar más</span>
+          </button>
+
+          <Link
+            to="/catalogo"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#e0a96d] hover:text-white bg-[#142619] hover:bg-[#1f3b25] px-4 py-2.5 rounded-full border border-[#2d5a27] transition shadow-sm group shrink-0"
+          >
+            <span>Ir al Catálogo Completo</span>
+            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
 
       {/* 3. GRILLA DE PRODUCTOS (8 PRODUCTOS O ESQUELETOS) */}

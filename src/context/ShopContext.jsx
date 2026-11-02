@@ -595,25 +595,22 @@ export const ShopProvider = ({ children }) => {
     };
   };
 
-  // Carga ligera de productos destacados / recientes para la Home (ultra rápida)
+  // Carga ligera y dinámica de productos destacados / recientes para la Home
   const fetchFeaturedProducts = async (force = false) => {
-    if (!force) {
-      try {
-        const saved = safeStorage.getItem(FEATURED_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed?.timestamp && (Date.now() - parsed.timestamp < FEATURED_CACHE_TTL_MS) && Array.isArray(parsed.products) && parsed.products.length > 0) {
-            setFeaturedProducts(parsed.products);
-            setLoadingFeatured(false);
-            return parsed.products;
-          }
-        }
-      } catch {}
+    if (!force && featuredProducts && featuredProducts.length > 0) {
+      return featuredProducts;
     }
 
     setLoadingFeatured(true);
     try {
-      const res = await fetch(buildApiUrl('products?featured=true&limit=8'));
+      // Consultar endpoint dinámico con timestamp para evitar caché HTTP del navegador
+      const timestamp = Date.now();
+      let res = await fetch(buildApiUrl(`products/featured?limit=8&_t=${timestamp}`));
+      if (!res.ok) {
+        // Fallback a query param si la ruta directa diera 404
+        res = await fetch(buildApiUrl(`products?featured=true&limit=8&_t=${timestamp}`));
+      }
+
       if (res.ok) {
         const data = await res.json();
         const rawFeatured = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
@@ -628,7 +625,7 @@ export const ShopProvider = ({ children }) => {
         }
       }
     } catch (err) {
-      console.warn('API /api/products?featured=true no disponible, usando fallback:', err);
+      console.warn('API de productos destacados no disponible, usando fallback:', err);
     } finally {
       setLoadingFeatured(false);
     }
