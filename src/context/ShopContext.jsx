@@ -595,12 +595,15 @@ export const ShopProvider = ({ children }) => {
     };
   };
 
-  // Carga ligera y dinámica de productos destacados / recientes para la Home
-  const fetchFeaturedProducts = async (force = false) => {
-    if (!force && featuredProducts && featuredProducts.length > 0) {
-      return featuredProducts;
-    }
+  // Ref para evitar peticiones concurrentes simultáneas hacia productos destacados
+  const isFetchingFeaturedRef = useRef(false);
 
+  // Carga ligera y dinámica de productos destacados / recientes para la Home (memorizada con useCallback)
+  const fetchFeaturedProducts = useCallback(async (force = false) => {
+    // Si ya hay una petición en curso, omitir para evitar bucles o sobrecarga
+    if (isFetchingFeaturedRef.current) return;
+
+    isFetchingFeaturedRef.current = true;
     setLoadingFeatured(true);
     try {
       // Consultar endpoint dinámico con timestamp para evitar caché HTTP del navegador
@@ -627,6 +630,7 @@ export const ShopProvider = ({ children }) => {
     } catch (err) {
       console.warn('API de productos destacados no disponible, usando fallback:', err);
     } finally {
+      isFetchingFeaturedRef.current = false;
       setLoadingFeatured(false);
     }
 
@@ -636,7 +640,7 @@ export const ShopProvider = ({ children }) => {
       return fallbackList;
     }
     return featuredProducts;
-  };
+  }, []);
 
   // Sincronizar con Backend el catálogo completo (bajo demanda con deduplicación y caché en memoria)
   const fetchProducts = async (force = false) => {

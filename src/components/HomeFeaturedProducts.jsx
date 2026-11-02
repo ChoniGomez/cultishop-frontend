@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
@@ -24,18 +24,28 @@ export const HomeFeaturedProducts = () => {
     categories: shopCategories 
   } = useShop();
 
-  const activeCategoriesList = (Array.isArray(shopCategories) && shopCategories.length > 0) 
-    ? shopCategories 
-    : CATEGORIES;
+  // Ref de montaje para garantizar que la carga inicial se ejecute ESTRICTAMENTE UNA VEZ
+  const hasLoadedRef = useRef(false);
 
-  // Cargar una combinación fresca y dinámica de destacados/novedades en cada visita o recarga
   useEffect(() => {
-    if (fetchFeaturedProducts) {
-      fetchFeaturedProducts(true);
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      if (typeof fetchFeaturedProducts === 'function') {
+        fetchFeaturedProducts();
+      }
     }
-  }, [fetchFeaturedProducts]);
+  }, []); // Dependencias estrictamente vacías: evita recálculos o parpadeos en cada ciclo de render
 
-  const displayProducts = Array.isArray(featuredProducts) ? featuredProducts.slice(0, 8) : [];
+  const activeCategoriesList = useMemo(() => {
+    return (Array.isArray(shopCategories) && shopCategories.length > 0) 
+      ? shopCategories 
+      : CATEGORIES;
+  }, [shopCategories]);
+
+  // Lista estable memorizada: solo se actualiza cuando el estado de productos cambia
+  const displayProducts = useMemo(() => {
+    return Array.isArray(featuredProducts) ? featuredProducts.slice(0, 8) : [];
+  }, [featuredProducts]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-8 sm:py-12 space-y-12">
