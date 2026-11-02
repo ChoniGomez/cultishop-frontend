@@ -765,6 +765,37 @@ export const ShopProvider = ({ children }) => {
     return [];
   };
 
+  /**
+   * Consulta individual de producto por ID numérico o slug directamente al servidor (/api/products/:id).
+   * Formatea los datos botánicos, opciones y fotos, y los mezcla en la memoria local.
+   */
+  const fetchProductById = async (idOrSlug) => {
+    if (!idOrSlug) return null;
+    const cleanParam = String(idOrSlug).trim();
+    if (!cleanParam) return null;
+
+    try {
+      const res = await fetch(buildApiUrl(`products/${encodeURIComponent(cleanParam)}`));
+      if (res.ok) {
+        const json = await res.json();
+        const rawProduct = json.product || json.data || (json.id ? json : null);
+        if (rawProduct && rawProduct.id) {
+          const formatted = formatApiProduct(rawProduct);
+          // Mezclar en el estado general de productos en memoria
+          setProducts((prev) => {
+            const map = new Map(prev.map((p) => [String(p.id), p]));
+            map.set(String(formatted.id), formatted);
+            return Array.from(map.values());
+          });
+          return formatted;
+        }
+      }
+    } catch (err) {
+      console.warn(`Error al consultar detalle del producto "${cleanParam}":`, err);
+    }
+    return null;
+  };
+
   useEffect(() => {
     fetchFeaturedProducts();
     fetchCategories();
@@ -1248,6 +1279,7 @@ export const ShopProvider = ({ children }) => {
         loadingProducts,
         fetchProducts,
         fetchCategoryProducts,
+        fetchProductById,
         featuredProducts: (featuredProducts && featuredProducts.length > 0) ? featuredProducts : (products.slice(0, 8)),
         loadingFeatured,
         fetchFeaturedProducts,

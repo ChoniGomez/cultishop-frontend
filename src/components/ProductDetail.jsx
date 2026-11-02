@@ -38,35 +38,85 @@ import { getProductDetails } from '../data/productDetailsData';
 import { buildImageUrl } from '../config/api';
 
 export const ProductDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
+  const productParam = id || slug;
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { 
     products, 
     loadingProducts,
     fetchProducts,
+    fetchProductById,
     addToCart, 
     openCart, 
     isFavorite, 
     toggleFavorite 
   } = useShop();
 
-  // Asegurar que el catálogo esté disponible si el usuario ingresó por enlace directo
-  useEffect(() => {
-    if (products.length === 0 && fetchProducts) {
-      fetchProducts();
-    }
-  }, [products.length, fetchProducts]);
+  // Estado del producto específico consultado por ID o slug
+  const [product, setProduct] = useState(() => {
+    if (!productParam) return null;
+    return products.find(
+      (p) => p.id === parseInt(productParam, 10) || String(p.id) === String(productParam) || p.slug === productParam
+    ) || null;
+  });
+
+  const [loadingDetail, setLoadingDetail] = useState(!product);
+  const [notFound, setNotFound] = useState(false);
 
   // Scroll al inicio al cambiar de producto
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [id]);
+  }, [productParam]);
 
-  // Buscar el producto por ID numérico o slug
-  const product = products.find(
-    (p) => p.id === parseInt(id, 10) || String(p.id) === String(id) || p.slug === id
-  );
+  // Carga robusta del producto: desde memoria local si existe, y consulta al backend (/api/products/:id)
+  useEffect(() => {
+    let isCancelled = false;
+
+    const currentCached = products.find(
+      (p) => p.id === parseInt(productParam, 10) || String(p.id) === String(productParam) || p.slug === productParam
+    );
+
+    if (currentCached) {
+      setProduct(currentCached);
+      setLoadingDetail(false);
+      setNotFound(false);
+    } else {
+      setLoadingDetail(true);
+    }
+
+    const loadProductFromApi = async () => {
+      try {
+        const remoteProduct = await fetchProductById(productParam);
+        if (!isCancelled) {
+          if (remoteProduct) {
+            setProduct(remoteProduct);
+            setNotFound(false);
+          } else if (!currentCached) {
+            setProduct(null);
+            setNotFound(true);
+          }
+        }
+      } catch (err) {
+        if (!isCancelled && !currentCached) {
+          setProduct(null);
+          setNotFound(true);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingDetail(false);
+        }
+      }
+    };
+
+    if (productParam) {
+      loadProductFromApi();
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [productParam, products, fetchProductById]);
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
@@ -93,7 +143,7 @@ export const ProductDetail = () => {
   // Reiniciar índice de imagen seleccionada al cambiar de producto
   useEffect(() => {
     setSelectedImageIndex(0);
-  }, [id]);
+  }, [productParam]);
 
   // Pestaña activa ('descripcion' | 'especificaciones' | 'uso' | 'envios')
   const [activeTab, setActiveTab] = useState('descripcion');
@@ -112,9 +162,9 @@ export const ProductDetail = () => {
     setValidationError('');
   }, [product?.id, priceInfo.hasMultipleOptions]);
 
-  // Si el catálogo está cargando o no se encuentra el producto
+  // Si el producto está cargando o no se encuentra
   if (!product) {
-    if (loadingProducts) {
+    if (loadingDetail || loadingProducts) {
       return (
         <div className="max-w-4xl mx-auto px-4 py-28 text-center animate-pulse">
           <div className="w-16 h-16 rounded-2xl bg-[#122317] border border-[#2d5a27] flex items-center justify-center text-[#e0a96d] mx-auto mb-6 shadow-xl">
