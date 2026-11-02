@@ -47,7 +47,8 @@ import {
   Play,
   HelpCircle,
   MapPin,
-  PhoneCall
+  PhoneCall,
+  Star
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -119,6 +120,9 @@ export const AdminDashboard = () => {
   const [formCategory, setFormCategory] = useState('Fertilizantes');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
+  const [formImages, setFormImages] = useState([]);
+  const [productImageUrlInput, setProductImageUrlInput] = useState('');
+  const [isUploadingProductImages, setIsUploadingProductImages] = useState(false);
   const [formBadge, setFormBadge] = useState('STOCK DISPONIBLE');
   const [formBadgeType, setFormBadgeType] = useState('gold');
   const [formVariants, setFormVariants] = useState([
@@ -379,6 +383,129 @@ export const AdminDashboard = () => {
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
+  };
+
+  // Helper para procesar múltiples imágenes de productos
+  const handleProductMultiImageFiles = async (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files).filter((f) => f.type && f.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      showNotification('error', 'Por favor, selecciona archivos de imagen válidos (JPG, PNG, WebP).');
+      return;
+    }
+
+    setIsUploadingProductImages(true);
+
+    const processSingleFile = (file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result;
+          if (!dataUrl) return resolve(null);
+
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1600;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.82));
+            } else {
+              resolve(dataUrl);
+            }
+          };
+          img.onerror = () => resolve(dataUrl);
+          img.src = dataUrl;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    };
+
+    try {
+      const results = await Promise.all(fileList.map(processSingleFile));
+      const validImages = results.filter(Boolean);
+      if (validImages.length > 0) {
+        setFormImages((prev) => {
+          const updated = [...prev, ...validImages];
+          if (!formImageUrl && updated.length > 0) {
+            setFormImageUrl(updated[0]);
+          }
+          return updated;
+        });
+        showNotification('success', `Se agregaron ${validImages.length} imagen(es) a la galería.`);
+      }
+    } catch (err) {
+      console.error('Error procesando imágenes:', err);
+      showNotification('error', 'Ocurrió un error al cargar las imágenes.');
+    } finally {
+      setIsUploadingProductImages(false);
+      if (productFileInputRef.current) {
+        productFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSetMainProductImage = (index) => {
+    if (index === 0) return;
+    setFormImages((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      const [selected] = next.splice(index, 1);
+      next.unshift(selected);
+      setFormImageUrl(next[0] || '');
+      return next;
+    });
+    showNotification('success', 'Imagen establecida como portada principal.');
+  };
+
+  const handleRemoveProductImage = (index) => {
+    setFormImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      setFormImageUrl(next[0] || '');
+      return next;
+    });
+  };
+
+  const handleMoveProductImage = (index, direction) => {
+    setFormImages((prev) => {
+      const next = [...prev];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      setFormImageUrl(next[0] || '');
+      return next;
+    });
+  };
+
+  const handleAddProductImageUrl = () => {
+    if (!productImageUrlInput || !productImageUrlInput.trim()) return;
+    const trimmed = productImageUrlInput.trim();
+    setFormImages((prev) => {
+      const next = [...prev, trimmed];
+      if (!formImageUrl && next.length > 0) {
+        setFormImageUrl(next[0]);
+      }
+      return next;
+    });
+    setProductImageUrlInput('');
+    showNotification('success', 'Imagen añadida a la galería desde URL.');
   };
 
   // Manejo de filas de variantes con precio y stock independiente
@@ -1554,6 +1681,8 @@ export const AdminDashboard = () => {
     setFormCategory(firstCat);
     setFormSubcategory('');
     setFormImageUrl('');
+    setFormImages([]);
+    setProductImageUrlInput('');
     setProductImageFileName('');
     setFormBadge('STOCK DISPONIBLE');
     setFormBadgeType('gold');
@@ -1594,7 +1723,14 @@ export const AdminDashboard = () => {
       : (typeof prod.price === 'number' ? prod.price : parsePrice(prod.price));
     setFormCategory(prod.category || 'Fertilizantes');
     setFormSubcategory(prod.subcategory || '');
-    setFormImageUrl(prod.image_url || prod.image || '');
+    
+    // Carga de galería completa de múltiples imágenes del producto
+    const prodImages = Array.isArray(prod.images) && prod.images.length > 0
+      ? prod.images.filter(Boolean)
+      : (prod.image_url || prod.image ? [prod.image_url || prod.image] : []);
+    setFormImages(prodImages);
+    setFormImageUrl(prodImages[0] || prod.image_url || prod.image || '');
+    setProductImageUrlInput('');
     setProductImageFileName(prod.title ? `${prod.title}.jpg` : '');
 
     const opts = getProductOptions(prod);
@@ -1668,10 +1804,15 @@ export const AdminDashboard = () => {
       return;
     }
 
-    if (!formImageUrl || !formImageUrl.trim()) {
-      showNotification('error', 'Por favor, selecciona una imagen desde tu equipo para el producto.');
+    // Validar imágenes
+    const effectiveImages = formImages.filter((img) => typeof img === 'string' && img.trim().length > 0);
+    if (effectiveImages.length === 0 && (!formImageUrl || !formImageUrl.trim())) {
+      showNotification('error', 'Por favor, selecciona al menos una imagen para la galería del producto.');
       return;
     }
+
+    const finalMainImage = effectiveImages[0] || formImageUrl.trim() || 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+    const finalImagesArray = effectiveImages.length > 0 ? effectiveImages : [finalMainImage];
 
     const validVariants = formVariants
       .filter((v) => v.name && v.name.trim().length > 0)
@@ -1751,7 +1892,8 @@ export const AdminDashboard = () => {
       category_id: categoryId,
       subcategory: formSubcategory || null,
       subcategory_id: subcategoryId,
-      image_url: formImageUrl.trim() || 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600',
+      image_url: finalMainImage,
+      images: finalImagesArray,
       badge: finalBadge,
       badge_type: finalBadgeType,
       options: finalVariants,
@@ -4617,96 +4759,197 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Selector de Archivo Local para Imagen del Producto */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider">
-                        Imagen del Producto *
-                      </label>
-                      <span className="text-[10px] text-[#e0a96d] font-semibold">
-                        Archivo local (.jpg, .png, .webp)
+                  {/* Selector de Archivos Múltiples para Galería del Producto (Estilo MercadoLibre) */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider">
+                          Galería de Imágenes del Producto *
+                        </label>
+                        <span className="text-[10px] text-gray-400">
+                          La <strong className="text-[#e0a96d]">primera imagen</strong> es la portada principal del catálogo (Estilo MercadoLibre).
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#18311d] text-[#e0a96d] border border-[#2d5a27] text-[10px] font-bold">
+                        {formImages.length} {formImages.length === 1 ? 'imagen' : 'imágenes'}
                       </span>
                     </div>
 
-                    {/* Input tipo file oculto accionado por el botón o zona de carga */}
+                    {/* Input tipo file múltiple oculto */}
                     <input
                       ref={productFileInputRef}
                       type="file"
+                      multiple
                       accept="image/*"
                       className="hidden"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageFileChange(file, setFormImageUrl, setProductImageFileName);
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          handleProductMultiImageFiles(files);
                         }
                       }}
                     />
 
-                    {!formImageUrl ? (
-                      <div
+                    {/* Zona de Carga / Botones de Acción */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <button
+                        type="button"
                         onClick={() => productFileInputRef.current?.click()}
-                        className="border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] rounded-2xl p-6 bg-[#0a140d] hover:bg-[#122317] transition cursor-pointer flex flex-col items-center justify-center text-center space-y-2 group shadow-inner"
+                        disabled={isUploadingProductImages}
+                        className="flex-1 py-3 px-4 rounded-xl border-2 border-dashed border-[#2d5a27] hover:border-[#4aa036] bg-[#0a140d] hover:bg-[#122317] text-white transition flex items-center justify-center gap-2.5 cursor-pointer shadow-inner disabled:opacity-60"
                       >
-                        <div className="w-12 h-12 rounded-full bg-[#183520] group-hover:bg-[#234b2d] text-[#e0a96d] flex items-center justify-center transition shadow-md">
-                          <Upload size={22} />
+                        <div className="w-8 h-8 rounded-full bg-[#183520] text-[#e0a96d] flex items-center justify-center shrink-0">
+                          {isUploadingProductImages ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
                         </div>
-                        <div className="space-y-0.5">
-                          <span className="text-xs font-bold text-white block">
-                            Elegir Imagen desde tu Equipo
+                        <div className="text-left">
+                          <span className="text-xs font-bold block text-white">
+                            {isUploadingProductImages ? 'Procesando imágenes...' : 'Subir imágenes desde el equipo'}
                           </span>
-                          <span className="text-[11px] text-gray-400 block">
-                            Haz clic aquí para abrir tu explorador de archivos
+                          <span className="text-[10px] text-gray-400 block">
+                            Podes seleccionar múltiples fotos a la vez (.jpg, .png, .webp)
                           </span>
                         </div>
-                        <span className="px-3.5 py-1 rounded-full bg-[#1e3c25] text-[#e0a96d] text-[10px] font-bold uppercase tracking-wider">
-                          Examinar Archivos
-                        </span>
+                      </button>
+
+                      {/* Botón para vaciar toda la galería si hay imágenes */}
+                      {formImages.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('¿Deseas quitar todas las imágenes de la galería?')) {
+                              setFormImages([]);
+                              setFormImageUrl('');
+                              setProductImageFileName('');
+                              if (productFileInputRef.current) productFileInputRef.current.value = '';
+                            }
+                          }}
+                          className="px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Eliminar todas las fotos de la galería"
+                        >
+                          <Trash2 size={13} />
+                          <span className="hidden sm:inline">Vaciar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Input opcional para añadir imagen mediante URL directa */}
+                    <div className="flex items-center gap-2 bg-[#0a140d] p-1.5 rounded-xl border border-[#1b3420]">
+                      <div className="pl-2 text-gray-400">
+                        <LinkIcon size={14} />
+                      </div>
+                      <input
+                        type="url"
+                        placeholder="O pega aquí la URL de una imagen externa (https://...)"
+                        value={productImageUrlInput}
+                        onChange={(e) => setProductImageUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddProductImageUrl();
+                          }
+                        }}
+                        className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none px-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddProductImageUrl}
+                        disabled={!productImageUrlInput.trim()}
+                        className="px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] disabled:opacity-40 text-[#e0a96d] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>Agregar</span>
+                      </button>
+                    </div>
+
+                    {/* Cuadrícula de Previsualización y Reordenamiento de Imágenes */}
+                    {formImages.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-[#0a140d] rounded-2xl border border-[#2d5a27] shadow-inner">
+                        {formImages.map((imgUrl, idx) => {
+                          const isMain = idx === 0;
+                          return (
+                            <div
+                              key={`${idx}-${imgUrl.slice(0, 30)}`}
+                              className={`relative rounded-xl border-2 overflow-hidden flex flex-col justify-between transition-all group ${
+                                isMain
+                                  ? 'border-[#e0a96d] bg-[#142619] shadow-lg ring-1 ring-[#e0a96d]/50'
+                                  : 'border-[#1f3b25] bg-[#0c1810] hover:border-[#4aa036]'
+                              }`}
+                            >
+                              {/* Badge de Portada Principal o Botón para Hacer Principal */}
+                              <div className="absolute top-1.5 left-1.5 z-10">
+                                {isMain ? (
+                                  <span className="flex items-center gap-1 bg-[#e0a96d] text-black text-[9px] font-black uppercase px-2 py-0.5 rounded shadow">
+                                    <Star size={10} className="fill-black" />
+                                    Principal
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetMainProductImage(idx)}
+                                    className="flex items-center gap-1 bg-black/80 hover:bg-[#e0a96d] text-gray-300 hover:text-black text-[9px] font-bold px-2 py-0.5 rounded border border-white/20 transition cursor-pointer backdrop-blur-sm"
+                                    title="Definir como foto de portada principal"
+                                  >
+                                    <Star size={10} />
+                                    Hacer Principal
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Botón de Borrar individual */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProductImage(idx)}
+                                className="absolute top-1.5 right-1.5 z-10 p-1 rounded-md bg-black/80 hover:bg-red-600 text-gray-300 hover:text-white transition cursor-pointer border border-white/10"
+                                title="Eliminar foto"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+
+                              {/* Visualizador de la miniatura */}
+                              <div className="h-28 w-full p-2 flex items-center justify-center bg-black/40 overflow-hidden">
+                                <img
+                                  src={buildImageUrl(imgUrl)}
+                                  alt={`Foto ${idx + 1}`}
+                                  className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
+                                  onError={(e) => {
+                                    e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                                  }}
+                                />
+                              </div>
+
+                              {/* Barra de Reordenamiento / Navegación */}
+                              <div className="flex items-center justify-between px-2 py-1.5 bg-[#08120b] border-t border-[#1a3321] text-[10px] text-gray-400 font-semibold">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveProductImage(idx, -1)}
+                                  disabled={idx === 0}
+                                  className="p-1 rounded hover:bg-[#18311d] disabled:opacity-20 text-gray-300 hover:text-white transition cursor-pointer"
+                                  title="Mover a la izquierda"
+                                >
+                                  <ChevronLeft size={13} />
+                                </button>
+                                <span className="font-mono text-gray-400 text-[10px]">
+                                  #{idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveProductImage(idx, 1)}
+                                  disabled={idx === formImages.length - 1}
+                                  className="p-1 rounded hover:bg-[#18311d] disabled:opacity-20 text-gray-300 hover:text-white transition cursor-pointer"
+                                  title="Mover a la derecha"
+                                >
+                                  <ChevronRight size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
-                      <div className="p-3 bg-[#0a140d] rounded-2xl border border-[#2d5a27] space-y-3 shadow-md">
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#2d5a27] bg-black/60 shrink-0 shadow-inner">
-                            <img
-                              src={buildImageUrl(formImageUrl)}
-                              alt="Previsualización"
-                              className="w-full h-full object-contain p-1 bg-[#0b1610]"
-                              onError={(e) => {
-                                e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-white mb-0.5">
-                              <CheckCircle2 size={14} className="text-[#25d366]" />
-                              <span>Imagen cargada correctamente</span>
-                            </div>
-                            <p className="text-[11px] text-gray-400 truncate">
-                              {productImageFileName || 'Imagen de producto'}
-                            </p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => productFileInputRef.current?.click()}
-                                className="px-3 py-1.5 rounded-lg bg-[#183520] hover:bg-[#234b2d] text-[#e0a96d] text-xs font-bold border border-[#2d5a27] transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-                              >
-                                <Upload size={13} />
-                                <span>Cambiar archivo</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFormImageUrl('');
-                                  setProductImageFileName('');
-                                  if (productFileInputRef.current) productFileInputRef.current.value = '';
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold border border-red-900/40 transition flex items-center gap-1 cursor-pointer"
-                              >
-                                <Trash2 size={13} />
-                                <span>Quitar</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="p-4 bg-[#0a140d] rounded-2xl border border-dashed border-[#1f3b25] text-center">
+                        <p className="text-xs text-gray-400">
+                          Aún no has agregado fotos para este producto. Sube una o varias fotos desde tu equipo o añade una URL.
+                        </p>
                       </div>
                     )}
                   </div>

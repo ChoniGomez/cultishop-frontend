@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -11,6 +11,7 @@ import {
   ZoomIn,
   Info,
   ChevronRight, 
+  ChevronLeft,
   ChevronDown, 
   ArrowLeft, 
   Plus, 
@@ -87,6 +88,12 @@ export const ProductDetail = () => {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
   const [isHoverZooming, setIsHoverZooming] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Reiniciar índice de imagen seleccionada al cambiar de producto
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [id]);
 
   // Pestaña activa ('descripcion' | 'especificaciones' | 'uso' | 'envios')
   const [activeTab, setActiveTab] = useState('descripcion');
@@ -160,7 +167,23 @@ export const ProductDetail = () => {
   const details = getProductDetails(product);
   const isFav = isFavorite(product.id);
   const stockCount = typeof product.stock === 'number' ? product.stock : 25;
-  const imageUrl = buildImageUrl(product.image || product.image_url);
+  // Galería de imágenes del producto (soporta múltiples fotos y compatibilidad con portada única)
+  const productImages = useMemo(() => {
+    if (!product) return [];
+    let list = [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      list = product.images;
+    } else if (product.image || product.image_url) {
+      list = [product.image || product.image_url];
+    }
+    const filtered = list
+      .map((img) => (typeof img === 'string' ? img.trim() : (img?.url ? String(img.url).trim() : '')))
+      .filter(Boolean);
+    return filtered.length > 0 ? filtered : ['https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600'];
+  }, [product]);
+
+  const activeRawImage = productImages[selectedImageIndex] || productImages[0];
+  const imageUrl = buildImageUrl(activeRawImage);
 
   // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption
@@ -284,79 +307,157 @@ export const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* ======================================================== */}
-          {/* COLUMNA 1: IMAGEN DEL PRODUCTO CON ZOOM (5 columnas) */}
+          {/* COLUMNA 1: GALERÍA DE IMÁGENES MERCADOLIBRE CON ZOOM (5 columnas) */}
           {/* ======================================================== */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative bg-[#0d1a11] border-2 border-[#1f3b25] rounded-3xl overflow-hidden shadow-2xl group">
-              {/* Badge temático CultiShop */}
-              {isOutOfStock ? (
-                <div className="absolute top-4 left-4 z-20">
-                  <span className="text-[11px] font-black tracking-wider px-3 py-1 rounded-lg uppercase shadow-lg bg-red-600 text-white border border-red-400 shadow-red-950/60">
-                    SIN STOCK
-                  </span>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 items-start">
+              {/* Tira de Miniaturas (MercadoLibre Style) */}
+              {productImages.length > 1 && (
+                <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[460px] w-full sm:w-auto pb-1 sm:pb-0 shrink-0">
+                  {productImages.map((img, idx) => {
+                    const isSelected = idx === selectedImageIndex;
+                    const thumbUrl = buildImageUrl(img);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImageIndex(idx)}
+                        onMouseEnter={() => setSelectedImageIndex(idx)}
+                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 transition-all p-1 bg-[#0b1610] cursor-pointer shrink-0 flex items-center justify-center relative ${
+                          isSelected
+                            ? 'border-[#e0a96d] ring-2 ring-[#e0a96d]/40 shadow-lg scale-105'
+                            : 'border-[#1f3b25] hover:border-[#4aa036] opacity-70 hover:opacity-100'
+                        }`}
+                        title={`Ver foto ${idx + 1}`}
+                      >
+                        <img
+                          src={thumbUrl}
+                          alt={`${product.title} ${idx + 1}`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                          }}
+                        />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-[#e0a96d]/10 pointer-events-none" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : (product.badge && product.badge.trim() !== '' && product.badge.toLowerCase() !== 'sin etiqueta') ? (
-                <div className="absolute top-4 left-4 z-20">
-                  <span className={`text-[11px] font-black tracking-wider px-3 py-1 rounded-lg uppercase shadow-lg ${
-                    product.badgeType === 'red' || product.badge.toUpperCase() === 'SIN STOCK'
-                      ? 'bg-red-600 text-white border border-red-400 shadow-red-950/60'
-                      : product.badgeType === 'gold' 
-                        ? 'bg-[#e0a96d] text-black font-extrabold shadow-amber-950/40' 
-                        : 'bg-[#2d5a27] text-white border border-[#4aa036]/60 shadow-green-950/40'
-                  }`}>
-                    {product.badge}
-                  </span>
-                </div>
-              ) : null}
+              )}
 
-              {/* Botón para abrir Lightbox / Zoom completo */}
-              <button
-                type="button"
-                onClick={() => setIsZoomModalOpen(true)}
-                className="absolute top-4 right-4 z-20 p-2.5 rounded-xl bg-[#09150d]/80 hover:bg-[#1a3521] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-lg backdrop-blur-sm group/btn"
-                title="Ampliar imagen en pantalla completa"
-              >
-                <Maximize2 size={16} className="group-hover/btn:scale-110 transition-transform" />
-              </button>
+              {/* Imagen Principal Grande con Zoom y Navegación */}
+              <div className="relative flex-1 w-full bg-[#0d1a11] border-2 border-[#1f3b25] rounded-3xl overflow-hidden shadow-2xl group">
+                {/* Badge temático CultiShop */}
+                {isOutOfStock ? (
+                  <div className="absolute top-4 left-4 z-20">
+                    <span className="text-[11px] font-black tracking-wider px-3 py-1 rounded-lg uppercase shadow-lg bg-red-600 text-white border border-red-400 shadow-red-950/60">
+                      SIN STOCK
+                    </span>
+                  </div>
+                ) : (product.badge && product.badge.trim() !== '' && product.badge.toLowerCase() !== 'sin etiqueta') ? (
+                  <div className="absolute top-4 left-4 z-20">
+                    <span className={`text-[11px] font-black tracking-wider px-3 py-1 rounded-lg uppercase shadow-lg ${
+                      product.badgeType === 'red' || product.badge.toUpperCase() === 'SIN STOCK'
+                        ? 'bg-red-600 text-white border border-red-400 shadow-red-950/60'
+                        : product.badgeType === 'gold' 
+                          ? 'bg-[#e0a96d] text-black font-extrabold shadow-amber-950/40' 
+                          : 'bg-[#2d5a27] text-white border border-[#4aa036]/60 shadow-green-950/40'
+                    }`}>
+                      {product.badge}
+                    </span>
+                  </div>
+                ) : null}
 
-              {/* Contenedor interactivo de la imagen */}
-              <div 
-                className="relative h-[380px] sm:h-[460px] w-full flex items-center justify-center overflow-hidden cursor-crosshair bg-[#0b1610] p-4"
-                onMouseEnter={() => setIsHoverZooming(true)}
-                onMouseLeave={() => setIsHoverZooming(false)}
-                onMouseMove={handleMouseMove}
-                onClick={() => setIsZoomModalOpen(true)}
-              >
-                <img
-                  src={imageUrl}
-                  alt={product.title}
-                  className={`object-contain max-h-full max-w-full w-full h-full transition duration-300 ${
-                    isHoverZooming ? 'opacity-0' : 'opacity-100'
-                  }`}
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
-                  }}
-                />
-
-                {/* Capa de Lupa / Zoom interactivo en hover */}
-                {isHoverZooming && (
-                  <div
-                    className="absolute inset-0 w-full h-full pointer-events-none transition-transform duration-75 ease-out"
-                    style={{
-                      backgroundImage: `url(${imageUrl})`,
-                      backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                      backgroundSize: '220%',
-                      backgroundRepeat: 'no-repeat'
-                    }}
-                  />
+                {/* Contador de fotos (e.g. 1 / 4) */}
+                {productImages.length > 1 && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                    <span className="text-[10px] font-bold text-gray-300 bg-black/70 px-2.5 py-0.5 rounded-full border border-white/10 backdrop-blur-sm shadow-md">
+                      {selectedImageIndex + 1} / {productImages.length}
+                    </span>
+                  </div>
                 )}
 
-                {/* Indicador de ayuda al pie de la foto */}
-                <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
-                  <span className="text-[10px] font-bold text-gray-400 bg-black/70 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm flex items-center gap-1.5 shadow-sm">
-                    <ZoomIn size={12} className="text-[#e0a96d]" />
-                    Pasa el cursor para hacer zoom o haz clic para ampliar
-                  </span>
+                {/* Botón para abrir Lightbox / Zoom completo */}
+                <button
+                  type="button"
+                  onClick={() => setIsZoomModalOpen(true)}
+                  className="absolute top-4 right-4 z-20 p-2.5 rounded-xl bg-[#09150d]/80 hover:bg-[#1a3521] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-lg backdrop-blur-sm group/btn cursor-pointer"
+                  title="Ampliar imagen en pantalla completa"
+                >
+                  <Maximize2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                </button>
+
+                {/* Flecha Anterior (solo si hay más de 1 imagen) */}
+                {productImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : productImages.length - 1));
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-[#18311d] text-white border border-white/10 opacity-70 group-hover:opacity-100 transition shadow-lg cursor-pointer backdrop-blur-sm"
+                    title="Imagen anterior"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                )}
+
+                {/* Flecha Siguiente (solo si hay más de 1 imagen) */}
+                {productImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImageIndex((prev) => (prev < productImages.length - 1 ? prev + 1 : 0));
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-[#18311d] text-white border border-white/10 opacity-70 group-hover:opacity-100 transition shadow-lg cursor-pointer backdrop-blur-sm"
+                    title="Siguiente imagen"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+
+                {/* Contenedor interactivo de la imagen */}
+                <div 
+                  className="relative h-[380px] sm:h-[460px] w-full flex items-center justify-center overflow-hidden cursor-crosshair bg-[#0b1610] p-4"
+                  onMouseEnter={() => setIsHoverZooming(true)}
+                  onMouseLeave={() => setIsHoverZooming(false)}
+                  onMouseMove={handleMouseMove}
+                  onClick={() => setIsZoomModalOpen(true)}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={product.title}
+                    className={`object-contain max-h-full max-w-full w-full h-full transition duration-300 ${
+                      isHoverZooming ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                    }}
+                  />
+
+                  {/* Capa de Lupa / Zoom interactivo en hover */}
+                  {isHoverZooming && (
+                    <div
+                      className="absolute inset-0 w-full h-full pointer-events-none transition-transform duration-75 ease-out"
+                      style={{
+                        backgroundImage: `url(${imageUrl})`,
+                        backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                        backgroundSize: '220%',
+                        backgroundRepeat: 'no-repeat'
+                      }}
+                    />
+                  )}
+
+                  {/* Indicador de ayuda al pie de la foto */}
+                  <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
+                    <span className="text-[10px] font-bold text-gray-400 bg-black/70 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm flex items-center gap-1.5 shadow-sm">
+                      <ZoomIn size={12} className="text-[#e0a96d]" />
+                      Pasa el cursor para hacer zoom o haz clic para ampliar
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1063,22 +1164,75 @@ export const ProductDetail = () => {
             {/* Botón Cerrar */}
             <button
               onClick={() => setIsZoomModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-[#1a3321] text-gray-300 hover:text-white transition cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-[#1a3321] text-gray-300 hover:text-white transition cursor-pointer z-30"
             >
               <X size={22} />
             </button>
 
-            <span className="text-xs font-bold text-[#e0a96d] uppercase tracking-wider mb-3">
-              {product.title}
-            </span>
+            <div className="flex items-center justify-between w-full mb-3 px-2">
+              <span className="text-xs font-bold text-[#e0a96d] uppercase tracking-wider truncate max-w-[80%]">
+                {product.title}
+              </span>
+              {productImages.length > 1 && (
+                <span className="text-[11px] font-bold text-gray-400 bg-[#142619] px-2.5 py-0.5 rounded-full border border-[#23422a]">
+                  {selectedImageIndex + 1} de {productImages.length}
+                </span>
+              )}
+            </div>
 
-            <div className="max-h-[75vh] w-full flex items-center justify-center overflow-hidden rounded-2xl bg-[#09150d]">
+            <div className="relative max-h-[68vh] sm:max-h-[72vh] w-full flex items-center justify-center overflow-hidden rounded-2xl bg-[#09150d] p-2">
+              {/* Flechas de navegación en lightbox */}
+              {productImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : productImages.length - 1))}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/70 hover:bg-[#18311d] text-white border border-white/20 transition cursor-pointer shadow-lg"
+                    title="Anterior"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageIndex((prev) => (prev < productImages.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/70 hover:bg-[#18311d] text-white border border-white/20 transition cursor-pointer shadow-lg"
+                    title="Siguiente"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+                </>
+              )}
+
               <img
                 src={imageUrl}
                 alt={product.title}
-                className="max-h-[72vh] max-w-full object-contain rounded-xl shadow-2xl"
+                className="max-h-[65vh] sm:max-h-[70vh] max-w-full object-contain rounded-xl shadow-2xl transition duration-200"
               />
             </div>
+
+            {/* Miniaturas en el lightbox */}
+            {productImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto max-w-full mt-3 p-1">
+                {productImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition p-1 bg-[#09150d] shrink-0 cursor-pointer ${
+                      idx === selectedImageIndex
+                        ? 'border-[#e0a96d] ring-2 ring-[#e0a96d]/40'
+                        : 'border-[#1f3b25] opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={buildImageUrl(img)}
+                      alt={`Miniatura ${idx + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
