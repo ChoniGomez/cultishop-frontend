@@ -770,9 +770,9 @@ export const ShopProvider = ({ children }) => {
    * Formatea los datos botánicos, opciones y fotos, y los mezcla en la memoria local.
    */
   const fetchProductById = async (idOrSlug) => {
-    if (!idOrSlug) return null;
+    if (!idOrSlug || idOrSlug === 'undefined' || idOrSlug === 'null') return null;
     const cleanParam = String(idOrSlug).trim();
-    if (!cleanParam) return null;
+    if (!cleanParam || cleanParam === 'undefined' || cleanParam === 'null') return null;
 
     try {
       const res = await fetch(buildApiUrl(`products/${encodeURIComponent(cleanParam)}`));
@@ -789,6 +789,8 @@ export const ShopProvider = ({ children }) => {
           });
           return formatted;
         }
+      } else if (res.status === 404) {
+        return null;
       }
     } catch (err) {
       console.warn(`Error al consultar detalle del producto "${cleanParam}":`, err);

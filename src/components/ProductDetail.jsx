@@ -39,7 +39,12 @@ import { buildImageUrl } from '../config/api';
 
 export const ProductDetail = () => {
   const { id, slug } = useParams();
-  const productParam = id || slug;
+  // Sanitizar el parámetro para evitar strings 'undefined', 'null' o vacíos
+  const rawParam = id || slug || '';
+  const productParam = (rawParam && rawParam !== 'undefined' && rawParam !== 'null') 
+    ? String(rawParam).trim() 
+    : '';
+
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { 
@@ -72,6 +77,12 @@ export const ProductDetail = () => {
   // Carga robusta del producto: desde memoria local si existe, y consulta al backend (/api/products/:id)
   useEffect(() => {
     let isCancelled = false;
+
+    if (!productParam) {
+      setLoadingDetail(false);
+      setNotFound(true);
+      return;
+    }
 
     const currentCached = products.find(
       (p) => p.id === parseInt(productParam, 10) || String(p.id) === String(productParam) || p.slug === productParam
@@ -109,9 +120,7 @@ export const ProductDetail = () => {
       }
     };
 
-    if (productParam) {
-      loadProductFromApi();
-    }
+    loadProductFromApi();
 
     return () => {
       isCancelled = true;
@@ -162,7 +171,51 @@ export const ProductDetail = () => {
     setValidationError('');
   }, [product?.id, priceInfo.hasMultipleOptions]);
 
-  // Si el producto está cargando o no se encuentra
+  // Galería de imágenes del producto (evaluada incondicionalmente como Hook)
+  const productImages = useMemo(() => {
+    if (!product) return [];
+    let list = [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      list = product.images;
+    } else if (product.image || product.image_url) {
+      list = [product.image || product.image_url];
+    }
+    const filtered = list
+      .map((img) => (typeof img === 'string' ? img.trim() : (img?.url ? String(img.url).trim() : '')))
+      .filter(Boolean);
+    return filtered.length > 0 ? filtered : ['https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600'];
+  }, [product]);
+
+  const activeRawImage = productImages[selectedImageIndex] || productImages[0] || '';
+  const imageUrl = activeRawImage ? buildImageUrl(activeRawImage) : '';
+
+  // Precios y Stock calculados dinámicos
+  const selectedVariant = selectedOption && priceInfo?.options
+    ? priceInfo.options.find((o) => o.name === selectedOption)
+    : null;
+  const currentUnitPrice = selectedVariant
+    ? selectedVariant.price
+    : (priceInfo?.minPrice || 0);
+  const displayPrice = selectedVariant
+    ? formatPrice(selectedVariant.price)
+    : (priceInfo?.formattedPrice || '$0,00');
+  const subtotalPrice = formatPrice(currentUnitPrice * quantity);
+
+  // Stock específico de la medida seleccionada o acumulado de opciones
+  const currentVariantStock = selectedVariant && selectedVariant.stock !== undefined && selectedVariant.stock !== null
+    ? Number(selectedVariant.stock)
+    : (priceInfo?.hasMultipleOptions && !selectedOption
+      ? priceInfo.options.reduce((acc, o) => acc + (Number(o.stock) || 0), 0)
+      : (product?.stock ?? 25));
+
+  // Sincronizar cantidad si la variante seleccionada tiene menor stock
+  useEffect(() => {
+    if (currentVariantStock > 0 && quantity > currentVariantStock) {
+      setQuantity(currentVariantStock);
+    }
+  }, [selectedOption, currentVariantStock]);
+
+  // Si el producto está cargando o no se encuentra (se evalúa DESPUÉS de declarar todos los Hooks)
   if (!product) {
     if (loadingDetail || loadingProducts) {
       return (
@@ -213,62 +266,10 @@ export const ProductDetail = () => {
     );
   }
 
-  // Datos técnicos enriquecidos
-  const details = getProductDetails(product);
+  // Datos técnicos enriquecidos y productos relacionados (solo con producto garantizado)
+  const details = getProductDetails(product) || {};
   const isFav = isFavorite(product.id);
   const stockCount = typeof product.stock === 'number' ? product.stock : 25;
-  // Galería de imágenes del producto (soporta múltiples fotos y compatibilidad con portada única)
-  const productImages = useMemo(() => {
-    if (!product) return [];
-    let list = [];
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      list = product.images;
-    } else if (product.image || product.image_url) {
-      list = [product.image || product.image_url];
-    }
-    const filtered = list
-      .map((img) => (typeof img === 'string' ? img.trim() : (img?.url ? String(img.url).trim() : '')))
-      .filter(Boolean);
-    return filtered.length > 0 ? filtered : ['https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600'];
-  }, [product]);
-
-  const activeRawImage = productImages[selectedImageIndex] || productImages[0];
-  const imageUrl = buildImageUrl(activeRawImage);
-
-  // Precios y Stock calculados dinámicos
-  const selectedVariant = selectedOption
-    ? priceInfo.options.find((o) => o.name === selectedOption)
-    : null;
-  const currentUnitPrice = selectedVariant
-    ? selectedVariant.price
-    : priceInfo.minPrice;
-  const displayPrice = selectedVariant
-    ? formatPrice(selectedVariant.price)
-    : priceInfo.formattedPrice;
-  const subtotalPrice = formatPrice(currentUnitPrice * quantity);
-
-  // Stock específico de la medida seleccionada o acumulado de opciones
-  const currentVariantStock = selectedVariant && selectedVariant.stock !== undefined && selectedVariant.stock !== null
-    ? Number(selectedVariant.stock)
-    : (priceInfo.hasMultipleOptions && !selectedOption
-      ? priceInfo.options.reduce((acc, o) => acc + (Number(o.stock) || 0), 0)
-      : stockCount);
-
-  // Manejo de cantidades
-  const handleIncreaseQty = () => {
-    if (quantity < currentVariantStock) setQuantity((prev) => prev + 1);
-  };
-
-  const handleDecreaseQty = () => {
-    if (quantity > 1) setQuantity((prev) => prev - 1);
-  };
-
-  // Sincronizar cantidad si la variante seleccionada tiene menor stock
-  useEffect(() => {
-    if (currentVariantStock > 0 && quantity > currentVariantStock) {
-      setQuantity(currentVariantStock);
-    }
-  }, [selectedOption, currentVariantStock]);
 
   // Añadir al carrito
   const handleAddToCart = () => {
@@ -320,9 +321,11 @@ export const ProductDetail = () => {
   };
 
   // Productos relacionados (misma categoría o complementarios)
-  const relatedProducts = products
-    .filter((p) => p.id !== product.id && (p.category === product.category || Math.abs(p.id - product.id) <= 3))
-    .slice(0, 4);
+  const relatedProducts = Array.isArray(products)
+    ? products
+        .filter((p) => p && p.id !== product.id && (p.category === product.category || Math.abs(Number(p.id) - Number(product.id)) <= 3))
+        .slice(0, 4)
+    : [];
 
   return (
     <div className="min-h-screen bg-[#0a140d] text-gray-100 pb-20">
