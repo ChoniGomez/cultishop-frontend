@@ -4,7 +4,6 @@ import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield, 
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
-import { buildImageUrl } from '../config/api';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, isFavorite, toggleFavorite } = useShop();
@@ -13,7 +12,12 @@ export const ProductCard = ({ product }) => {
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
-  const productImage = buildImageUrl(product.image_url);
+  const imagePath = product.image_url;
+  const imageUrl = imagePath?.startsWith('http')
+    ? imagePath
+    : imagePath
+      ? `https://cultishop.com.ar${imagePath.startsWith('/') ? '' : '/'}${imagePath}`
+      : '';
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -88,13 +92,13 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
-          {productImage && (
+          {imageUrl && (
             <img 
-              src={productImage} 
+              src={imageUrl} 
               alt={product.title} 
               loading="lazy"
               decoding="async"
-              className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
+              className={`w-full h-full min-h-48 object-contain group-hover:scale-105 transition duration-300 ${
                 isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
               }`} 
             />
