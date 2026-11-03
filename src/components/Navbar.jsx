@@ -404,7 +404,7 @@ export const Navbar = () => {
 
             {/* Ítem destacado de Ofertas en Móvil */}
             <Link 
-              to="/catalogo?ofertas=true" 
+              to="/ofertas" 
               className="flex items-center gap-1.5 bg-gradient-to-r from-[#e0a96d]/25 to-[#f39c12]/20 hover:from-[#e0a96d]/35 hover:to-[#f39c12]/30 text-[#e0a96d] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading border border-[#e0a96d]/50 shadow-sm whitespace-nowrap group"
             >
               <Flame size={13} className="text-[#e0a96d] group-hover:scale-110 transition-transform" />
@@ -433,7 +433,7 @@ export const Navbar = () => {
 
             {/* Ítem destacado de Ofertas en Escritorio */}
             <Link 
-              to="/catalogo?ofertas=true" 
+              to="/ofertas" 
               className="flex items-center gap-1.5 bg-gradient-to-r from-[#e0a96d]/20 to-[#f39c12]/20 hover:from-[#e0a96d]/30 hover:to-[#f39c12]/30 text-[#e0a96d] hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading border border-[#e0a96d]/40 hover:border-[#e0a96d] shadow-sm whitespace-nowrap group"
             >
               <Flame size={13} className="text-[#e0a96d] group-hover:scale-110 transition-transform" />
@@ -610,7 +610,7 @@ export const Navbar = () => {
                   Catálogo
                 </Link>
                 <Link
-                  to="/catalogo?ofertas=true"
+                  to="/ofertas"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#e0a96d]/20 to-[#f39c12]/20 border border-[#e0a96d]/50 text-[#e0a96d] hover:text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
                 >

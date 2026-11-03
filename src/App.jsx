@@ -15,6 +15,7 @@ import { ProductDetail } from './components/ProductDetail';
 import { CheckoutView } from './components/CheckoutView';
 import { AboutView } from './components/AboutView';
 import { FaqView } from './components/FaqView';
+import { OffersView } from './components/OffersView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { ShopProvider } from './context/ShopContext';
@@ -73,6 +74,7 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/ofertas" element={<OffersView />} />
                 <Route path="/catalogo" element={<CatalogPage />} />
                 <Route path="/productos" element={<CatalogPage />} />
                 <Route path="/producto/:id" element={<ProductDetail />} />

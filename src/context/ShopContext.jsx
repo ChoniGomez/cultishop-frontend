@@ -218,7 +218,13 @@ export const getProductPriceInfo = (product) => {
       minPrice: 0,
       maxPrice: 0,
       formattedPrice: '$0,00',
-      options: []
+      options: [],
+      isOnOffer: false,
+      originalPrice: 0,
+      finalPrice: 0,
+      discountPercentage: 0,
+      savingsAmount: 0,
+      offerCondition: ''
     };
   }
 
@@ -227,41 +233,82 @@ export const getProductPriceInfo = (product) => {
     ? product.numericPrice
     : (typeof product.price === 'number' ? product.price : parsePrice(product.price));
 
-  if (options.length === 0) {
-    return {
-      hasMultipleOptions: false,
-      isRange: false,
-      minPrice: basePrice,
-      maxPrice: basePrice,
-      formattedPrice: formatPrice(basePrice),
-      options: []
-    };
-  }
+  let minPrice = basePrice;
+  let maxPrice = basePrice;
+  let isRange = false;
+  let hasMultipleOptions = false;
+  let formattedOptions = options;
 
   if (options.length === 1) {
     const singlePrice = options[0].price || basePrice;
-    return {
-      hasMultipleOptions: false,
-      isRange: false,
-      minPrice: singlePrice,
-      maxPrice: singlePrice,
-      formattedPrice: formatPrice(singlePrice),
-      options
-    };
+    minPrice = singlePrice;
+    maxPrice = singlePrice;
+  } else if (options.length > 1) {
+    const prices = options.map((o) => o.price).filter((p) => !isNaN(p) && p > 0);
+    minPrice = prices.length > 0 ? Math.min(...prices) : basePrice;
+    maxPrice = prices.length > 0 ? Math.max(...prices) : basePrice;
+    isRange = minPrice !== maxPrice;
+    hasMultipleOptions = true;
   }
 
-  const prices = options.map((o) => o.price).filter((p) => !isNaN(p) && p > 0);
-  const minPrice = prices.length > 0 ? Math.min(...prices) : basePrice;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : basePrice;
-  const isRange = minPrice !== maxPrice;
+  const formattedPrice = isRange ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}` : formatPrice(minPrice);
+
+  // Ofertas y Descuentos
+  const rawDiscount = product.discount_price !== undefined ? Number(product.discount_price) : 0;
+  const rawOriginal = product.original_price !== undefined ? Number(product.original_price) : 0;
+  const rawFinal = product.final_price !== undefined ? Number(product.final_price) : 0;
+  const rawPct = Number(product.discount_percentage || product.discountPercentage || 0);
+
+  const isOnOffer = Boolean(
+    product.is_on_offer === true || 
+    product.isOnOffer === true || 
+    rawPct > 0 ||
+    (rawOriginal > 0 && rawFinal > 0 && rawOriginal > rawFinal) ||
+    (rawDiscount > 0 && rawDiscount < minPrice)
+  );
+
+  let originalPrice = rawOriginal > 0 ? rawOriginal : minPrice;
+  let finalPrice = rawFinal > 0 ? rawFinal : minPrice;
+  let discountPercentage = rawPct;
+  let savingsAmount = Number(product.savings_amount || product.savingsAmount || 0);
+
+  if (isOnOffer) {
+    if (rawDiscount > 0 && rawDiscount < minPrice && (!rawOriginal || rawOriginal <= rawFinal)) {
+      originalPrice = minPrice;
+      finalPrice = rawDiscount;
+    } else if (rawPct > 0 && (!rawOriginal || rawOriginal <= rawFinal)) {
+      originalPrice = minPrice;
+      finalPrice = Math.max(1, Math.round(minPrice * (1 - rawPct / 100)));
+    }
+
+    if (discountPercentage <= 0 && originalPrice > finalPrice && originalPrice > 0) {
+      discountPercentage = Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
+    }
+    if (savingsAmount <= 0 && originalPrice > finalPrice) {
+      savingsAmount = originalPrice - finalPrice;
+    }
+  } else {
+    originalPrice = minPrice;
+    finalPrice = minPrice;
+  }
+
+  const offerCondition = product.offer_condition || product.offerCondition || (
+    product.stock > 0 && Number(product.stock) <= 5 ? `¡Últimas ${product.stock} unidades!` : (isOnOffer ? 'Hasta agotar stock' : '')
+  );
 
   return {
-    hasMultipleOptions: true,
+    hasMultipleOptions,
     isRange,
     minPrice,
     maxPrice,
-    formattedPrice: isRange ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}` : formatPrice(minPrice),
-    options
+    formattedPrice,
+    options: formattedOptions,
+    isOnOffer,
+    originalPrice,
+    finalPrice,
+    discountPercentage,
+    savingsAmount,
+    offerCondition
   };
 };
 
@@ -568,13 +615,32 @@ export const ShopProvider = ({ children }) => {
   const formatApiProduct = (p) => {
     const rawImage = p.image_url || p.image;
     const resolvedImage = buildImageUrl(rawImage);
+    const numPrice = typeof p.price === 'number' ? p.price : parsePrice(p.price);
+    const origPrice = p.original_price !== undefined ? Number(p.original_price) : (p.originalPrice !== undefined ? Number(p.originalPrice) : numPrice);
+    const finPrice = p.final_price !== undefined ? Number(p.final_price) : (p.finalPrice !== undefined ? Number(p.finalPrice) : numPrice);
+    const discPct = Number(p.discount_percentage || p.discountPercentage || 0);
+    const savings = Number(p.savings_amount || p.savingsAmount || 0);
+    const onOffer = Boolean(p.is_on_offer || p.isOnOffer || discPct > 0 || (origPrice > finPrice));
+
     return {
       ...p,
       image: resolvedImage,
       image_url: resolvedImage,
       badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
-      numericPrice: typeof p.price === 'number' ? p.price : parsePrice(p.price),
+      numericPrice: numPrice,
       price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,
+      original_price: origPrice,
+      originalPrice: origPrice,
+      final_price: finPrice,
+      finalPrice: finPrice,
+      discount_percentage: discPct,
+      discountPercentage: discPct,
+      savings_amount: savings > 0 ? savings : (origPrice > finPrice ? origPrice - finPrice : 0),
+      savingsAmount: savings > 0 ? savings : (origPrice > finPrice ? origPrice - finPrice : 0),
+      is_on_offer: onOffer,
+      isOnOffer: onOffer,
+      offer_condition: p.offer_condition || p.offerCondition || '',
+      offerCondition: p.offer_condition || p.offerCondition || '',
       stock: p.stock ?? 20,
       brand: p.brand || '',
       origin: p.origin || '',
@@ -641,6 +707,56 @@ export const ShopProvider = ({ children }) => {
     }
     return featuredProducts;
   }, []);
+
+  // ============================================================
+  // GESTIÓN DE OFERTAS Y PROMOCIONES BOTÁNICAS
+  // ============================================================
+  const [offersProducts, setOffersProducts] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const isFetchingOffersRef = useRef(false);
+
+  const fetchOffersProducts = useCallback(async (params = {}) => {
+    if (isFetchingOffersRef.current) return offersProducts;
+    isFetchingOffersRef.current = true;
+    setLoadingOffers(true);
+    try {
+      const queryParts = [];
+      if (params.category && params.category !== 'todos') queryParts.push(`category=${encodeURIComponent(params.category)}`);
+      if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
+      if (params.sort) queryParts.push(`sort=${encodeURIComponent(params.sort)}`);
+      if (params.limit) queryParts.push(`limit=${encodeURIComponent(params.limit)}`);
+      queryParts.push(`_t=${Date.now()}`);
+
+      const queryString = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+      let res = await fetch(buildApiUrl(`products/offers${queryString}`));
+      if (!res.ok) {
+        res = await fetch(buildApiUrl(`products?offers=true${queryParts.length > 0 ? `&${queryParts.join('&')}` : ''}`));
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawOffers = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
+        if (rawOffers.length > 0) {
+          const formatted = rawOffers.map(formatApiProduct);
+          setOffersProducts(formatted);
+          return formatted;
+        }
+      }
+    } catch (err) {
+      console.warn('API de ofertas no disponible:', err);
+    } finally {
+      isFetchingOffersRef.current = false;
+      setLoadingOffers(false);
+    }
+
+    // Fallback local derivado de products
+    const fallbackOffers = (products || []).filter((p) => {
+      const pInfo = getProductPriceInfo(p);
+      return pInfo.isOnOffer;
+    });
+    setOffersProducts(fallbackOffers);
+    return fallbackOffers;
+  }, [products]);
 
   // Sincronizar con Backend el catálogo completo (bajo demanda con deduplicación y caché en memoria)
   const fetchProducts = async (force = false) => {
@@ -1290,6 +1406,9 @@ export const ShopProvider = ({ children }) => {
         featuredProducts: (featuredProducts && featuredProducts.length > 0) ? featuredProducts : (products.slice(0, 8)),
         loadingFeatured,
         fetchFeaturedProducts,
+        offersProducts,
+        loadingOffers,
+        fetchOffersProducts,
         updateProduct,
         addProduct,
         deleteProduct,

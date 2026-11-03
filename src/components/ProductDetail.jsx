@@ -577,19 +577,41 @@ export const ProductDetail = () => {
             </div>
 
             {/* PRECIO DESTACADO */}
-            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] space-y-1.5 shadow-md">
+            <div className="p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] space-y-2 shadow-md">
+              {priceInfo.isOnOffer && priceInfo.originalPrice > priceInfo.finalPrice && (
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="line-through text-gray-500 text-sm font-semibold">
+                    {formatPrice(selectedVariant ? Math.round(selectedVariant.price / (1 - (priceInfo.discountPercentage || 15) / 100)) : priceInfo.originalPrice)}
+                  </span>
+                  <span className="text-xs font-black text-white bg-gradient-to-r from-red-600 to-amber-500 px-2 py-0.5 rounded-md shadow-sm">
+                    -{priceInfo.discountPercentage}% OFF
+                  </span>
+                  {priceInfo.savingsAmount > 0 && (
+                    <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.5 rounded-md shadow-sm">
+                      Ahorrás {formatPrice(priceInfo.savingsAmount)}
+                    </span>
+                  )}
+                  {product.stock > 0 && Number(product.stock) <= 5 && (
+                    <span className="text-[11px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-md animate-pulse">
+                      ¡Últimas {product.stock} unidades!
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-baseline gap-3 flex-wrap">
                 <span className="text-3xl sm:text-4xl font-black text-[#e0a96d] font-heading text-glow-gold tracking-tight">
                   {displayPrice}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-md">
-                  {priceInfo.hasMultipleOptions && !selectedOption ? 'Rango de Precios' : 'Precio Oficial'}
+                  {priceInfo.hasMultipleOptions && !selectedOption 
+                    ? 'Rango de Precios' 
+                    : (priceInfo.isOnOffer ? 'Precio de Oferta Especial' : 'Precio Oficial')}
                 </span>
               </div>
               <p className="text-[11px] text-gray-400">
                 {priceInfo.hasMultipleOptions && !selectedOption
                   ? 'Elegí una presentación o medida para conocer el precio exacto.'
-                  : 'Aboná en efectivo o transferencia con 10% OFF en nuestro local de Posadas.'
+                  : 'Aboná en efectivo o transferencia con descuento directo en nuestro local de Posadas.'
                 }
               </p>
             </div>

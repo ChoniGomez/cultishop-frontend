@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield } from 'lucide-react';
+import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield, Tag, Flame, Sparkles } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -104,12 +104,24 @@ export const ProductCard = ({ product }) => {
           />
         </Link>
         
-        {/* Badge destacado tipo flyer CultiShop */}
+        {/* Badge de Oferta / Descuento o Estado */}
         {isOutOfStock ? (
           <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
             <span className="text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md uppercase shadow-md bg-red-600 text-white border border-red-400 shadow-red-950/60">
               SIN STOCK
             </span>
+          </div>
+        ) : priceInfo.isOnOffer && priceInfo.discountPercentage > 0 ? (
+          <div className="absolute top-2.5 left-2.5 pointer-events-none z-10 flex flex-col gap-1 items-start">
+            <span className="inline-flex items-center gap-1 text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg uppercase shadow-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-white border border-white/25 shadow-red-950/60">
+              <Sparkles size={11} className="text-amber-300 animate-pulse shrink-0" />
+              <span>-{priceInfo.discountPercentage}% OFF</span>
+            </span>
+            {product.badge && !/OFERTA|\d+%\s*OFF/i.test(product.badge) && product.badge.toLowerCase() !== 'sin etiqueta' && (
+              <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-md uppercase shadow-md bg-[#2d5a27]/90 text-white border border-[#4aa036]/60 backdrop-blur-sm">
+                {product.badge}
+              </span>
+            )}
           </div>
         ) : (product.badge && product.badge.trim() !== '' && product.badge.toLowerCase() !== 'sin etiqueta') ? (
           <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
@@ -254,9 +266,25 @@ export const ProductCard = ({ product }) => {
             <span className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">
               {priceInfo.hasMultipleOptions && !selectedOption ? 'Desde' : 'Precio'}
             </span>
-            <span className="text-[#e0a96d] font-black text-lg font-heading leading-tight block">
-              {displayPrice}
-            </span>
+            {priceInfo.isOnOffer && priceInfo.originalPrice > priceInfo.finalPrice ? (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 leading-none my-0.5">
+                  <span className="line-through text-gray-400 text-xs font-semibold">
+                    {formatPrice(selectedVariant ? Math.round(selectedVariant.price / (1 - (priceInfo.discountPercentage || 15) / 100)) : priceInfo.originalPrice)}
+                  </span>
+                  <span className="text-[10px] font-black text-rose-300 bg-rose-950/80 border border-rose-500/50 px-1 py-0.2 rounded">
+                    -{priceInfo.discountPercentage}%
+                  </span>
+                </div>
+                <span className="text-[#e0a96d] font-black text-xl font-heading leading-tight block text-glow-gold">
+                  {displayPrice}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[#e0a96d] font-black text-lg font-heading leading-tight block">
+                {displayPrice}
+              </span>
+            )}
           </div>
 
           {/* Botón interactivo: Gestionar (Admin), Sin Stock o Añadir al Carrito */}
@@ -304,6 +332,26 @@ export const ProductCard = ({ product }) => {
             </button>
           )}
         </div>
+
+        {/* Pastilla de ahorro exacto y avisos de urgencia */}
+        {priceInfo.isOnOffer && priceInfo.savingsAmount > 0 && !isOutOfStock && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-[#1a3320]/70">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-[#0e2c16] border border-[#2d5a27] px-2 py-0.5 rounded-full shadow-sm">
+              <Tag size={11} className="text-[#4aa036] shrink-0" />
+              <span>Ahorrás {formatPrice(priceInfo.savingsAmount)}</span>
+            </span>
+            {product.stock > 0 && Number(product.stock) <= 5 ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-300 bg-amber-950/70 border border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse">
+                <Flame size={10} className="text-amber-400 shrink-0" />
+                <span>¡Últimas {product.stock} unid!</span>
+              </span>
+            ) : priceInfo.offerCondition ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-300 bg-[#0d1a11] border border-[#23422a] px-2 py-0.5 rounded-full">
+                <span>{priceInfo.offerCondition}</span>
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
