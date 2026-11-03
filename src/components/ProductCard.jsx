@@ -13,10 +13,15 @@ export const ProductCard = ({ product }) => {
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
   const imagePath = product.image_url;
+  const uploadsBase = (
+    import.meta.env.VITE_UPLOADS_URL || 'https://www.cultishop.com.ar/uploads'
+  ).replace(/\/+$/, '');
   const imageUrl = imagePath?.startsWith('http')
     ? imagePath
     : imagePath
-      ? `https://cultishop.com.ar${imagePath.startsWith('/') ? '' : '/'}${imagePath}`
+      ? `${uploadsBase}${imagePath.startsWith('/uploads')
+        ? imagePath.replace('/uploads', '')
+        : `/${imagePath.replace(/^\/+/, '')}`}`
       : '';
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
