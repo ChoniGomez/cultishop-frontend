@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Layers,
-  Shield
+  Shield,
+  Flame
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '../assets/logo.png';
@@ -208,12 +209,13 @@ export const Navbar = () => {
           </Link>
 
           {/* Acciones móviles compactas (visibles solo en < md) */}
-          <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+          <div className="flex md:hidden items-center gap-1 sm:gap-1.5">
             {/* Botón Favoritos en móvil */}
             <Link 
               to="/favoritos" 
               className="relative p-2 text-gray-300 hover:text-[#e0a96d] rounded-xl bg-[#142619] border border-[#23422a] transition active:scale-95"
               aria-label={`Ver favoritos, ${favoritesCount} guardados`}
+              title="Mis Favoritos"
             >
               <Heart 
                 size={18} 
@@ -224,6 +226,16 @@ export const Navbar = () => {
                   {favoritesCount}
                 </span>
               )}
+            </Link>
+
+            {/* Botón Ingresar / Perfil en móvil */}
+            <Link 
+              to={user ? "/perfil" : "/ingresar"} 
+              className="p-2 text-gray-300 hover:text-[#e0a96d] rounded-xl bg-[#142619] border border-[#23422a] transition active:scale-95"
+              aria-label={user ? `Cuenta de ${user.name}` : "Ingresar a mi cuenta"}
+              title={user ? `Cuenta de ${user.name}` : "Ingresar"}
+            >
+              <User size={18} className={user ? "text-[#4aa036]" : "text-gray-300"} />
             </Link>
 
             {/* Botón Carrito o Acceso Admin en móvil */}
@@ -264,7 +276,7 @@ export const Navbar = () => {
         </div>
 
         {/* Buscador de productos */}
-        <form onSubmit={handleSearchSubmit} className="w-full md:w-5/12 relative">
+        <form onSubmit={handleSearchSubmit} className="w-full md:flex-1 md:max-w-xs lg:max-w-md xl:max-w-lg relative">
           <input
             type="text"
             value={searchQuery}
@@ -294,23 +306,64 @@ export const Navbar = () => {
           </button>
         </form>
 
-        {/* Acceso a Carrito o Panel Admin en Escritorio (oculto en móvil) */}
-        <div className="hidden md:flex items-center gap-4 md:w-auto justify-end">
+        {/* Acciones de Usuario y Carrito en Escritorio (Favoritos, Ingresar / Mi Cuenta, Carrito) */}
+        <div className="hidden md:flex items-center gap-2 lg:gap-2.5 xl:gap-3 shrink-0 justify-end">
+          {/* Botón Favoritos */}
+          <Link
+            to="/favoritos"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#122317] hover:bg-[#18331f] border border-[#23422a] hover:border-[#4aa036] text-gray-300 hover:text-[#e0a96d] transition shadow-sm group active:scale-95 text-xs font-semibold"
+            title={`Mis Favoritos (${favoritesCount})`}
+            aria-label={`Ver favoritos, ${favoritesCount} guardados`}
+          >
+            <div className="relative flex items-center justify-center">
+              <Heart 
+                size={17} 
+                className={`transition-colors ${favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : "text-gray-300 group-hover:text-[#e0a96d]"}`} 
+              />
+              {favoritesCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
+                  {favoritesCount}
+                </span>
+              )}
+            </div>
+            <span className="hidden xl:inline">Favoritos</span>
+          </Link>
+
+          {/* Botón Ingresar / Mi Cuenta */}
+          <Link
+            to={user ? "/perfil" : "/ingresar"}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#122317] hover:bg-[#18331f] border border-[#23422a] hover:border-[#4aa036] text-gray-300 hover:text-white transition shadow-sm group active:scale-95 text-xs font-semibold"
+            title={user ? `Cuenta de ${user.name}` : "Ingresar a mi cuenta"}
+          >
+            <div className="w-6 h-6 rounded-lg bg-[#18351f] flex items-center justify-center text-[#e0a96d] group-hover:text-white group-hover:bg-[#204529] transition">
+              <User size={15} className={user ? 'text-[#4aa036]' : ''} />
+            </div>
+            <div className="text-left hidden lg:block leading-tight">
+              <span className="block text-[9px] text-gray-400 uppercase font-semibold">
+                {user ? 'Mi Cuenta' : 'Ingresar'}
+              </span>
+              <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading truncate max-w-[90px] block">
+                {user ? user.name.split(' ')[0] : 'Identificate'}
+              </span>
+            </div>
+          </Link>
+
+          {/* Botón Carrito o Panel Admin */}
           {!isAdmin ? (
             <button
               type="button"
               onClick={openCart}
               aria-label={`Mi Carrito, ${totalItems} productos por ${formattedTotalPrice}`}
-              className="flex items-center gap-2.5 bg-[#122317] hover:bg-[#18331f] px-4 py-2.5 rounded-xl border border-[#23422a] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
+              className="flex items-center gap-2.5 bg-[#14291a] hover:bg-[#1d3d25] px-3.5 sm:px-4 py-2 rounded-xl border border-[#2d5a27] hover:border-[#4aa036] cursor-pointer transition shadow-sm group active:scale-95 text-left"
             >
-              <div className="relative">
-                <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={20} />
+              <div className="relative flex items-center justify-center">
+                <ShoppingBag className="text-[#4aa036] group-hover:scale-105 transition" size={19} />
                 <span className={`absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center transition-transform ${totalItems > 0 ? 'scale-110 shadow-sm shadow-black/50' : ''}`}>
                   {totalItems}
                 </span>
               </div>
-              <div className="text-left hidden sm:block">
-                <span className="block text-[10px] text-gray-400 uppercase font-semibold">Mi Carrito</span>
+              <div className="text-left hidden sm:block leading-tight">
+                <span className="block text-[9px] text-gray-400 uppercase font-semibold">Mi Carrito</span>
                 <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
                   {formattedTotalPrice}
                 </span>
@@ -320,12 +373,12 @@ export const Navbar = () => {
             <Link
               to="/admin"
               aria-label="Panel de Administración"
-              className="flex items-center gap-2.5 bg-[#172b1a] hover:bg-[#203a25] px-4 py-2.5 rounded-xl border border-[#e0a96d]/50 hover:border-[#e0a96d] transition shadow-sm group active:scale-95 text-left"
+              className="flex items-center gap-2.5 bg-[#172b1a] hover:bg-[#203a25] px-3.5 sm:px-4 py-2 rounded-xl border border-[#e0a96d]/50 hover:border-[#e0a96d] transition shadow-sm group active:scale-95 text-left"
             >
-              <div className="relative">
-                <Shield className="text-[#e0a96d] group-hover:scale-105 transition" size={20} />
+              <div className="relative flex items-center justify-center">
+                <Shield className="text-[#e0a96d] group-hover:scale-105 transition" size={19} />
               </div>
-              <div className="text-left hidden sm:block">
+              <div className="text-left hidden sm:block leading-tight">
                 <span className="block text-[9px] text-[#e0a96d] uppercase font-black tracking-wider">Modo Admin</span>
                 <span className="text-xs font-bold text-white group-hover:text-[#e0a96d] transition font-heading">
                   Panel de Control
@@ -343,11 +396,21 @@ export const Navbar = () => {
           {/* Tira horizontal deslizable de categorías para móviles y tablets */}
           <div className="flex lg:hidden items-center gap-2 overflow-x-auto py-2 w-full no-scrollbar text-xs scroll-smooth">
             <Link 
-              to="/" 
+              to="/catalogo" 
               className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
             >
               TODOS
             </Link>
+
+            {/* Ítem destacado de Ofertas en Móvil */}
+            <Link 
+              to="/catalogo?ofertas=true" 
+              className="flex items-center gap-1.5 bg-gradient-to-r from-[#e0a96d]/25 to-[#f39c12]/20 hover:from-[#e0a96d]/35 hover:to-[#f39c12]/30 text-[#e0a96d] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading border border-[#e0a96d]/50 shadow-sm whitespace-nowrap group"
+            >
+              <Flame size={13} className="text-[#e0a96d] group-hover:scale-110 transition-transform" />
+              <span>OFERTAS</span>
+            </Link>
+
             {navCategories.map((cat) => (
               <Link
                 key={cat.id || cat.slug}
@@ -359,16 +422,29 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Menú horizontal de escritorio optimizado con dropdowns flotantes */}
-          <div className="hidden lg:flex items-center w-full justify-between gap-1.5 xl:gap-3 py-1 relative">
-            <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1">
-              <Link 
-                to="/catalogo" 
-                className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
-              >
-                TODOS
-              </Link>
+          {/* Menú horizontal de escritorio DEDICADO EXCLUSIVAMENTE a categorías y ofertas */}
+          <div className="hidden lg:flex items-center w-full gap-1.5 xl:gap-2.5 py-1 relative">
+            <Link 
+              to="/catalogo" 
+              className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
+            >
+              TODOS
+            </Link>
 
+            {/* Ítem destacado de Ofertas en Escritorio */}
+            <Link 
+              to="/catalogo?ofertas=true" 
+              className="flex items-center gap-1.5 bg-gradient-to-r from-[#e0a96d]/20 to-[#f39c12]/20 hover:from-[#e0a96d]/30 hover:to-[#f39c12]/30 text-[#e0a96d] hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading border border-[#e0a96d]/40 hover:border-[#e0a96d] shadow-sm whitespace-nowrap group"
+            >
+              <Flame size={13} className="text-[#e0a96d] group-hover:scale-110 transition-transform" />
+              <span>OFERTAS</span>
+            </Link>
+
+            {/* Separador vertical sutil */}
+            <div className="h-4 w-px bg-[#26482c] shrink-0 mx-0.5" />
+
+            {/* Categorías de productos con Dropdowns completos ocupando todo el ancho */}
+            <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1 overflow-x-auto no-scrollbar">
               {navCategories.map((cat, index) => {
                 const hasSub = cat.subcategories && cat.subcategories.length > 0;
                 const catKey = cat.id || cat.slug;
@@ -456,29 +532,6 @@ export const Navbar = () => {
                 );
               })}
             </div>
-
-            {/* Enlaces de favoritos y cuenta a la derecha */}
-            <div className="flex items-center gap-3 xl:gap-4 pl-3 border-l border-[#24452a] shrink-0 text-xs font-semibold whitespace-nowrap">
-              <Link 
-                to="/favoritos" 
-                className="flex items-center gap-1.5 hover:text-[#e0a96d] transition group"
-              >
-                <Heart 
-                  size={15} 
-                  className={`transition-colors ${favoritesCount > 0 ? "fill-[#e0a96d] text-[#e0a96d]" : "group-hover:text-[#e0a96d]"}`} 
-                /> 
-                <span>Favoritos</span>
-                {favoritesCount > 0 && (
-                  <span className="min-w-4 h-4 px-1 bg-[#e0a96d] text-black text-[10px] font-black rounded-full flex items-center justify-center">
-                    {favoritesCount}
-                  </span>
-                )}
-              </Link>
-              <Link to="/ingresar" className="flex items-center gap-1.5 hover:text-[#e0a96d] transition">
-                <User size={15} className={user ? 'text-[#4aa036]' : ''} />
-                <span>{user ? user.name.split(' ')[0] : 'Ingresar'}</span>
-              </Link>
-            </div>
           </div>
         </div>
       </nav>
@@ -548,13 +601,23 @@ export const Navbar = () => {
                 </button>
               </form>
 
-              <Link
-                to="/catalogo"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full block text-center py-2.5 px-4 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
-              >
-                Ver Catálogo Completo
-              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  to="/catalogo"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 px-3 rounded-xl bg-[#2d5a27] hover:bg-[#38761d] text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
+                >
+                  Catálogo
+                </Link>
+                <Link
+                  to="/catalogo?ofertas=true"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#e0a96d]/20 to-[#f39c12]/20 border border-[#e0a96d]/50 text-[#e0a96d] hover:text-white font-bold text-xs uppercase tracking-wider transition shadow-md"
+                >
+                  <Flame size={14} className="text-[#e0a96d]" />
+                  <span>Ofertas</span>
+                </Link>
+              </div>
 
               {/* Botón Carrito o Acceso Admin en menú móvil */}
               {!isAdmin ? (

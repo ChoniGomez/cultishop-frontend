@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Leaf, Package, ArrowLeft, Search, X, RefreshCw, Layers } from 'lucide-react';
+import { Eye, Heart, ShoppingCart, CheckCircle, ShieldCheck, ChevronRight, ChevronLeft, Leaf, Package, ArrowLeft, Search, X, RefreshCw, Layers, Flame } from 'lucide-react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -137,11 +137,20 @@ export const ProductSection = () => {
     }))
   ];
 
+  const isOffersOnly = searchParams.get('ofertas') === 'true' || searchParams.get('filter') === 'ofertas';
   const normalizedQuery = normalizeText(searchQuery);
   const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
   const isSearchActive = queryTokens.length > 0;
 
   const filteredProducts = products.filter(product => {
+    // 0. Filtrado exclusivo de Ofertas si el parámetro ?ofertas=true está activo
+    if (isOffersOnly) {
+      const hasDiscount = (Number(product.discount_price) > 0 && Number(product.discount_price) < Number(product.price));
+      const badgeUpper = String(product.badge || '').toUpperCase();
+      const isOfferBadge = badgeUpper.includes('OFERTA') || badgeUpper.includes('PROMO') || badgeUpper.includes('LIQUIDA') || badgeUpper.includes('DESCUENTO');
+      if (!hasDiscount && !isOfferBadge) return false;
+    }
+
     // 1. Filtrado por búsqueda de texto
     if (isSearchActive) {
       const titleNorm = normalizeText(product.title);
@@ -311,7 +320,15 @@ export const ProductSection = () => {
       <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 flex-wrap">
         <Link to="/" className="hover:text-[#4aa036] transition">Inicio</Link>
         <ChevronRight size={12} />
-        {matchedCategory ? (
+        {isOffersOnly ? (
+          <>
+            <Link to="/catalogo" className="hover:text-[#e0a96d] transition font-medium">Catálogo</Link>
+            <ChevronRight size={12} />
+            <span className="text-[#e0a96d] font-bold flex items-center gap-1">
+              <Flame size={12} className="text-[#e0a96d]" /> Ofertas Especiales
+            </span>
+          </>
+        ) : matchedCategory ? (
           <>
             <Link to={`/categoria/${matchedCategory.slug}`} className="hover:text-[#e0a96d] transition font-medium">
               {matchedCategory.name}
@@ -335,6 +352,8 @@ export const ProductSection = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-[#4aa036]"></span>
             {isSearchActive ? (
               <>RESULTADOS DE BÚSQUEDA • {filteredProducts.length} PRODUCTO{filteredProducts.length === 1 ? '' : 'S'}</>
+            ) : isOffersOnly ? (
+              <>CULTISHOP • OFERTAS Y PROMOCIONES ({filteredProducts.length} DISPONIBLES)</>
             ) : matchedCategory ? (
               <>CULTISHOP • {matchedCategory.name.toUpperCase()}</>
             ) : (
@@ -345,6 +364,10 @@ export const ProductSection = () => {
             {isSearchActive ? (
               <>
                 RESULTADOS PARA <span className="text-[#e0a96d] text-glow-gold">"{searchQuery}"</span>
+              </>
+            ) : isOffersOnly ? (
+              <>
+                INSUMOS EN <span className="text-[#e0a96d] text-glow-gold">OFERTA Y PROMOCIÓN</span>
               </>
             ) : matchedSubcategory ? (
               <>
@@ -363,6 +386,8 @@ export const ProductSection = () => {
           <p className="text-gray-400 text-sm mt-1">
             {isSearchActive
               ? `Mostrando los insumos encontrados para tu consulta en el catálogo de CultiShop.`
+              : isOffersOnly
+              ? `Aprovechá los mejores precios promocionales y descuentos especiales para potenciar tu cultivo.`
               : matchedSubcategory 
               ? `Explorá las mejores opciones en ${matchedSubcategory.name} con stock disponible y asesoramiento.`
               : matchedCategory
@@ -373,6 +398,15 @@ export const ProductSection = () => {
 
         {/* Filtros de Categorías o botón volver al catálogo completo / limpiar búsqueda */}
         <div className="flex flex-wrap items-center gap-2">
+          {isOffersOnly && (
+            <Link
+              to="/catalogo"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-sm active:scale-95"
+            >
+              <ArrowLeft size={13} />
+              <span>Ver Todo el Catálogo</span>
+            </Link>
+          )}
           {isSearchActive && (
             <button
               type="button"
