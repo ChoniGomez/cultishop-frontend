@@ -5,7 +5,6 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { buildImageUrl } from '../config/api';
-import { resolveProductImage, getProductFallbackImage } from '../utils/productImages';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, isFavorite, toggleFavorite } = useShop();
@@ -14,6 +13,9 @@ export const ProductCard = ({ product }) => {
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
+  const productImage = buildImageUrl(
+    product.image_url || product.image || product.imageUrl || product.imagen
+  );
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -88,21 +90,17 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
-          <img 
-            src={resolveProductImage(product)} 
-            alt={product.title} 
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              const fallback = getProductFallbackImage(product);
-              if (e.currentTarget.src !== fallback) {
-                e.currentTarget.src = fallback;
-              }
-            }}
-            className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
-              isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
-            }`} 
-          />
+          {productImage && (
+            <img 
+              src={productImage} 
+              alt={product.title} 
+              loading="lazy"
+              decoding="async"
+              className={`object-contain max-h-full max-w-full w-full h-full group-hover:scale-105 transition duration-300 ${
+                isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
+              }`} 
+            />
+          )}
         </Link>
         
         {/* Badge de Oferta / Descuento o Estado */}
@@ -357,5 +355,4 @@ export const ProductCard = ({ product }) => {
     </div>
   );
 };
-
 
