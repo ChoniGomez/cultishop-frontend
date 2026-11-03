@@ -36,6 +36,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { getProductDetails } from '../data/productDetailsData';
 import { buildImageUrl } from '../config/api';
+import { getAllProductImages, getProductFallbackImage, resolveProductImage } from '../utils/productImages';
 
 export const ProductDetail = () => {
   const { id, slug } = useParams();
@@ -176,21 +177,11 @@ export const ProductDetail = () => {
 
   // Galería de imágenes del producto (evaluada incondicionalmente como Hook)
   const productImages = useMemo(() => {
-    if (!product) return [];
-    let list = [];
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      list = product.images;
-    } else if (product.image || product.image_url) {
-      list = [product.image || product.image_url];
-    }
-    const filtered = list
-      .map((img) => (typeof img === 'string' ? img.trim() : (img?.url ? String(img.url).trim() : '')))
-      .filter(Boolean);
-    return filtered.length > 0 ? filtered : ['https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600'];
+    return getAllProductImages(product);
   }, [product]);
 
   const activeRawImage = productImages[selectedImageIndex] || productImages[0] || '';
-  const imageUrl = activeRawImage ? buildImageUrl(activeRawImage) : '';
+  const imageUrl = activeRawImage ? buildImageUrl(activeRawImage) : getProductFallbackImage(product);
 
   // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption && priceInfo?.options
@@ -406,7 +397,10 @@ export const ProductDetail = () => {
                           alt={`${product.title} ${idx + 1}`}
                           className="w-full h-full object-contain"
                           onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                            const fallback = getProductFallbackImage(product);
+                            if (e.target.src !== fallback) {
+                              e.target.src = fallback;
+                            }
                           }}
                         />
                         {isSelected && (
@@ -505,7 +499,10 @@ export const ProductDetail = () => {
                       isHoverZooming ? 'opacity-0' : 'opacity-100'
                     }`}
                     onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                      const fallback = getProductFallbackImage(product);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
                     }}
                   />
 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { buildApiUrl, buildImageUrl } from '../config/api';
+import { resolveProductImage, getAllProductImages, getProductFallbackImage } from '../utils/productImages';
 import { useAuth } from './AuthContext';
 
 const ShopContext = createContext();
@@ -613,8 +614,9 @@ export const ShopProvider = ({ children }) => {
   };
 
   const formatApiProduct = (p) => {
-    const rawImage = p.image_url || p.image;
-    const resolvedImage = buildImageUrl(rawImage);
+    // Resolver la imagen real mapeando de forma segura cualquier nombre de propiedad que devuelva la API
+    const resolvedImage = resolveProductImage(p);
+    const resolvedGallery = getAllProductImages(p);
     const numPrice = typeof p.price === 'number' ? p.price : parsePrice(p.price);
     const origPrice = p.original_price !== undefined ? Number(p.original_price) : (p.originalPrice !== undefined ? Number(p.originalPrice) : numPrice);
     const finPrice = p.final_price !== undefined ? Number(p.final_price) : (p.finalPrice !== undefined ? Number(p.finalPrice) : numPrice);
@@ -626,6 +628,10 @@ export const ShopProvider = ({ children }) => {
       ...p,
       image: resolvedImage,
       image_url: resolvedImage,
+      imageUrl: resolvedImage,
+      imagen: resolvedImage,
+      images: resolvedGallery,
+      imagenes: resolvedGallery,
       badgeType: p.badge_type || p.badgeType || (p.badge === 'SIN STOCK' || Number(p.stock) <= 0 ? 'red' : 'gold'),
       numericPrice: numPrice,
       price: typeof p.price === 'number' ? formatPrice(p.price) : p.price,

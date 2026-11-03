@@ -45,7 +45,7 @@ export const PRODUCTS = [
       { name: '250 ml', price: 15800 },
       { name: '1 Litro', price: 46200 }
     ],
-    image: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600'
+    image: 'https://images.unsplash.com/photo-1628543606553-66239922f533?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 4,

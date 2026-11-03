@@ -5,6 +5,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { buildImageUrl } from '../config/api';
+import { resolveProductImage, getProductFallbackImage } from '../utils/productImages';
 
 export const ProductCard = ({ product }) => {
   const { addToCart, isFavorite, toggleFavorite } = useShop();
@@ -88,12 +89,12 @@ export const ProductCard = ({ product }) => {
           title={`Ver detalle de ${product.title}`}
         >
           <img 
-            src={buildImageUrl(product.image || product.image_url)} 
+            src={resolveProductImage(product)} 
             alt={product.title} 
             loading="lazy"
             decoding="async"
             onError={(e) => {
-              const fallback = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+              const fallback = getProductFallbackImage(product);
               if (e.currentTarget.src !== fallback) {
                 e.currentTarget.src = fallback;
               }

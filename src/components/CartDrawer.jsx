@@ -13,6 +13,7 @@ import { useShop, formatPrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { buildImageUrl } from '../config/api';
+import { resolveProductImage, getProductFallbackImage } from '../utils/productImages';
 
 export const CartDrawer = () => {
   const { isAdmin } = useAuth();
@@ -135,11 +136,11 @@ export const CartDrawer = () => {
                     title={`Ver detalle de ${item.title}`}
                   >
                     <img
-                      src={buildImageUrl(item.image || item.image_url)}
+                      src={resolveProductImage(item)}
                       alt={item.title}
                       className="w-full h-full object-contain"
                       onError={(e) => {
-                        const fallback = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=200';
+                        const fallback = getProductFallbackImage(item);
                         if (e.currentTarget.src !== fallback) {
                           e.currentTarget.src = fallback;
                         }

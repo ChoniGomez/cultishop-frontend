@@ -1811,7 +1811,7 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const finalMainImage = effectiveImages[0] || formImageUrl.trim() || 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+    const finalMainImage = effectiveImages[0] || formImageUrl.trim() || 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=600';
     const finalImagesArray = effectiveImages.length > 0 ? effectiveImages : [finalMainImage];
 
     const validVariants = formVariants
@@ -4912,7 +4912,7 @@ export const AdminDashboard = () => {
                                   alt={`Foto ${idx + 1}`}
                                   className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
                                   onError={(e) => {
-                                    e.target.src = 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&q=80&w=600';
+                                    e.target.src = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=600';
                                   }}
                                 />
                               </div>
