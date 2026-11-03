@@ -36,7 +36,7 @@ export const getApiBaseUrl = () => {
   }
 
   // Fallback seguro y directo de producción hacia el dominio oficial
-  return 'https://www.cultishop.com.ar/api';
+  return 'https://cultishop.com.ar/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
