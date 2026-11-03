@@ -53,7 +53,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
-import { formatPrice, parsePrice, useShop, getProductOptions } from '../context/ShopContext';
+import { formatPrice, parsePrice, useShop, getProductOptions, getProductPriceInfo } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -75,7 +75,8 @@ export const AdminDashboard = () => {
     paymentSettings,
     updatePaymentSettings,
     locationSettings,
-    updateLocationSettings
+    updateLocationSettings,
+    fetchOffersProducts
   } = useShop();
   const navigate = useNavigate();
 
@@ -99,6 +100,7 @@ export const AdminDashboard = () => {
   const [loadingAdminProducts, setLoadingAdminProducts] = useState(false);
   const [offerManagementProducts, setOfferManagementProducts] = useState([]);
   const [loadingOfferManagement, setLoadingOfferManagement] = useState(false);
+  const [offerManagementError, setOfferManagementError] = useState('');
   const [offerManagementSearch, setOfferManagementSearch] = useState('');
   const [updatingOfferIds, setUpdatingOfferIds] = useState([]);
   const [productPaginationMeta, setProductPaginationMeta] = useState({
@@ -681,10 +683,15 @@ export const AdminDashboard = () => {
 
   const fetchOfferManagementProducts = async () => {
     setLoadingOfferManagement(true);
+    setOfferManagementError('');
     try {
-      const params = new URLSearchParams({ all: 'true', limit: 'all' });
-      const res = await fetch(buildApiUrl(`products?${params.toString()}`));
-      const data = await res.json();
+      const res = await fetch(buildApiUrl('products/offers/admin/products'), {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || 'No se pudo cargar el inventario para gestionar ofertas.');
       }
@@ -693,9 +700,12 @@ export const AdminDashboard = () => {
         ? data.data
         : (Array.isArray(data.products) ? data.products : []);
       setOfferManagementProducts(items);
+      setOfferManagementError('');
     } catch (err) {
       console.error('Error al cargar productos para gestión de ofertas:', err);
-      showNotification('error', err.message || 'Error al cargar productos para gestión de ofertas.');
+      const message = err.message || 'Error al cargar productos para gestión de ofertas.';
+      setOfferManagementError(message);
+      showNotification('error', message);
     } finally {
       setLoadingOfferManagement(false);
     }
@@ -725,6 +735,9 @@ export const AdminDashboard = () => {
       setOfferManagementProducts((prev) => prev.map((item) => (
         item.id === productId ? { ...item, is_offer_active: active } : item
       )));
+      if (fetchOffersProducts) {
+        await fetchOffersProducts();
+      }
       showNotification('success', active
         ? `${product.title} agregado a Ofertas.`
         : `${product.title} quitado de Ofertas.`);
@@ -2808,6 +2821,17 @@ export const AdminDashboard = () => {
           {loadingOfferManagement ? (
             <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
               Cargando inventario...
+            </div>
+          ) : offerManagementError ? (
+            <div className="p-6 rounded-2xl bg-red-950/40 border border-red-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <p className="text-sm text-red-200">{offerManagementError}</p>
+              <button
+                type="button"
+                onClick={fetchOfferManagementProducts}
+                className="px-4 py-2 rounded-xl bg-red-900/60 hover:bg-red-800 text-white text-xs font-bold border border-red-500/40"
+              >
+                Reintentar
+              </button>
             </div>
           ) : offerManagementProducts.length === 0 ? (
             <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
