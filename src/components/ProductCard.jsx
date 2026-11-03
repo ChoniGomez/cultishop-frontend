@@ -13,9 +13,7 @@ export const ProductCard = ({ product }) => {
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
-  const productImage = buildImageUrl(
-    product.image_url || product.image || product.imageUrl || product.imagen
-  );
+  const productImage = buildImageUrl(product.image_url);
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -355,4 +353,3 @@ export const ProductCard = ({ product }) => {
     </div>
   );
 };
-

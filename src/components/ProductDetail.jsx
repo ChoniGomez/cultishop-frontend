@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -36,7 +36,6 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { getProductDetails } from '../data/productDetailsData';
 import { buildImageUrl } from '../config/api';
-import { getAllProductImages, getProductFallbackImage, resolveProductImage } from '../utils/productImages';
 
 export const ProductDetail = () => {
   const { id, slug } = useParams();
@@ -176,12 +175,8 @@ export const ProductDetail = () => {
   }, [product?.id, priceInfo.hasMultipleOptions]);
 
   // Galería de imágenes del producto (evaluada incondicionalmente como Hook)
-  const productImages = useMemo(() => {
-    return getAllProductImages(product);
-  }, [product]);
-
-  const activeRawImage = productImages[selectedImageIndex] || productImages[0] || '';
-  const imageUrl = activeRawImage ? buildImageUrl(activeRawImage) : getProductFallbackImage(product);
+  const productImages = product?.image_url ? [product.image_url] : [];
+  const imageUrl = buildImageUrl(product?.image_url);
 
   // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption && priceInfo?.options
@@ -396,12 +391,6 @@ export const ProductDetail = () => {
                           src={thumbUrl}
                           alt={`${product.title} ${idx + 1}`}
                           className="w-full h-full object-contain"
-                          onError={(e) => {
-                            const fallback = getProductFallbackImage(product);
-                            if (e.target.src !== fallback) {
-                              e.target.src = fallback;
-                            }
-                          }}
                         />
                         {isSelected && (
                           <div className="absolute inset-0 bg-[#e0a96d]/10 pointer-events-none" />
@@ -445,14 +434,16 @@ export const ProductDetail = () => {
                 )}
 
                 {/* Botón para abrir Lightbox / Zoom completo */}
-                <button
-                  type="button"
-                  onClick={() => setIsZoomModalOpen(true)}
-                  className="absolute top-4 right-4 z-20 p-2.5 rounded-xl bg-[#09150d]/80 hover:bg-[#1a3521] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-lg backdrop-blur-sm group/btn cursor-pointer"
-                  title="Ampliar imagen en pantalla completa"
-                >
-                  <Maximize2 size={16} className="group-hover/btn:scale-110 transition-transform" />
-                </button>
+                {imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsZoomModalOpen(true)}
+                    className="absolute top-4 right-4 z-20 p-2.5 rounded-xl bg-[#09150d]/80 hover:bg-[#1a3521] text-gray-300 hover:text-white border border-[#2d5a27] transition shadow-lg backdrop-blur-sm group/btn cursor-pointer"
+                    title="Ampliar imagen en pantalla completa"
+                  >
+                    <Maximize2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                  </button>
+                )}
 
                 {/* Flecha Anterior (solo si hay más de 1 imagen) */}
                 {productImages.length > 1 && (
@@ -490,24 +481,20 @@ export const ProductDetail = () => {
                   onMouseEnter={() => setIsHoverZooming(true)}
                   onMouseLeave={() => setIsHoverZooming(false)}
                   onMouseMove={handleMouseMove}
-                  onClick={() => setIsZoomModalOpen(true)}
+                  onClick={() => imageUrl && setIsZoomModalOpen(true)}
                 >
-                  <img
-                    src={imageUrl}
-                    alt={product.title}
-                    className={`object-contain max-h-full max-w-full w-full h-full transition duration-300 ${
-                      isHoverZooming ? 'opacity-0' : 'opacity-100'
-                    }`}
-                    onError={(e) => {
-                      const fallback = getProductFallbackImage(product);
-                      if (e.target.src !== fallback) {
-                        e.target.src = fallback;
-                      }
-                    }}
-                  />
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt={product.title}
+                      className={`object-contain max-h-full max-w-full w-full h-full transition duration-300 ${
+                        isHoverZooming ? 'opacity-0' : 'opacity-100'
+                      }`}
+                    />
+                  )}
 
                   {/* Capa de Lupa / Zoom interactivo en hover */}
-                  {isHoverZooming && (
+                  {isHoverZooming && imageUrl && (
                     <div
                       className="absolute inset-0 w-full h-full pointer-events-none transition-transform duration-75 ease-out"
                       style={{
