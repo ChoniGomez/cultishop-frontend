@@ -12,13 +12,9 @@ export const ProductCard = ({ product }) => {
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
-  const imagePath = product.image_url;
-  const uploadsBase = (
-    import.meta.env.VITE_UPLOADS_URL || 'https://cultishop.com.ar/uploads'
-  ).replace(/\/+$/, '');
-  const imageUrl = product.image_url.startsWith('http') 
-  ? product.image_url 
-  : `https://cultishop.com.ar/uploads/${product.image_url.replace(/^\/+/, '')}`;
+  const imageUrl = product.image_url?.startsWith('http')
+    ? product.image_url
+    : `https://cultishop.com.ar/uploads/${product.image_url?.replace(/^\/+/, '')}`;
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -93,7 +89,7 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
-          {imageUrl && (
+          {product.image_url && (
             <img 
               src={imageUrl} 
               alt={product.title} 
