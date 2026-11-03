@@ -390,8 +390,8 @@ export const Navbar = () => {
       </div>
 
       {/* Menú de categorías corporativo con Dropdowns */}
-      <nav className="bg-[#18311d] border-t border-[#234428] text-gray-200 relative">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+      <nav className="bg-[#18311d] border-t border-[#234428] text-gray-200 relative overflow-visible z-40">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between overflow-visible">
           
           {/* Tira horizontal deslizable de categorías para móviles y tablets */}
           <div className="flex lg:hidden items-center gap-2 overflow-x-auto py-2 w-full no-scrollbar text-xs scroll-smooth">
@@ -423,7 +423,7 @@ export const Navbar = () => {
           </div>
 
           {/* Menú horizontal de escritorio DEDICADO EXCLUSIVAMENTE a categorías y ofertas */}
-          <div className="hidden lg:flex items-center w-full gap-1.5 xl:gap-2.5 py-1 relative">
+          <div className="hidden lg:flex items-center w-full gap-1.5 xl:gap-2.5 py-1 relative overflow-visible">
             <Link 
               to="/catalogo" 
               className="text-white bg-[#2d5a27] hover:bg-[#38761d] px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition shrink-0 uppercase font-heading shadow-sm whitespace-nowrap"
@@ -444,7 +444,7 @@ export const Navbar = () => {
             <div className="h-4 w-px bg-[#26482c] shrink-0 mx-0.5" />
 
             {/* Categorías de productos con Dropdowns completos ocupando todo el ancho */}
-            <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-0.5 xl:gap-1.5 flex-grow py-1 overflow-visible">
               {navCategories.map((cat, index) => {
                 const hasSub = cat.subcategories && cat.subcategories.length > 0;
                 const catKey = cat.id || cat.slug;
@@ -453,42 +453,43 @@ export const Navbar = () => {
                 return (
                   <div
                     key={catKey}
-                    className="relative shrink-0"
+                    className="relative shrink-0 group/cat"
                     onMouseEnter={() => hasSub && handleMouseEnter(catKey)}
                     onMouseLeave={hasSub ? handleMouseLeave : undefined}
                   >
-                    {hasSub ? (
-                      <button
-                        type="button"
-                        onClick={(e) => handleCategoryClick(e, cat)}
-                        aria-expanded={isOpen}
-                        className={`flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg select-none whitespace-nowrap shrink-0 cursor-pointer ${
-                          isOpen
-                            ? 'text-[#e0a96d] bg-[#122416]'
-                            : 'hover:text-[#e0a96d] hover:bg-[#152a1a]/60 text-gray-200'
-                        }`}
-                      >
-                        <span>{cat.name}</span>
-                        <ChevronDown
-                          size={12}
-                          className={`transition-transform duration-200 ${
-                            isOpen ? 'rotate-180 text-[#e0a96d]' : 'text-gray-400'
-                          }`}
-                        />
-                      </button>
-                    ) : (
+                    <div className={`flex items-center rounded-lg transition ${
+                      isOpen ? 'bg-[#122416] text-[#e0a96d]' : 'hover:bg-[#152a1a]/70 text-gray-200'
+                    }`}>
                       <Link
                         to={`/categoria/${cat.slug}`}
-                        className="flex items-center gap-1 py-1.5 px-2 xl:px-2.5 text-xs font-semibold transition tracking-wide rounded-lg hover:text-[#e0a96d] hover:bg-[#152a1a]/60 text-gray-200 select-none whitespace-nowrap shrink-0"
+                        onClick={closeDropdowns}
+                        className="py-1.5 pl-2 xl:pl-2.5 pr-1 text-xs font-semibold tracking-wide hover:text-[#e0a96d] select-none whitespace-nowrap"
+                        title={`Ver todo en ${cat.name}`}
                       >
-                        <span>{cat.name}</span>
+                        {cat.name}
                       </Link>
-                    )}
+                      {hasSub && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleCategoryClick(e, cat)}
+                          aria-expanded={isOpen}
+                          aria-label={`Subcategorías de ${cat.name}`}
+                          className="py-1.5 pr-2 xl:pr-2.5 pl-0.5 text-xs text-gray-400 hover:text-[#e0a96d] cursor-pointer"
+                        >
+                          <ChevronDown
+                            size={12}
+                            className={`transition-transform duration-200 ${
+                              isOpen ? 'rotate-180 text-[#e0a96d]' : 'group-hover/cat:text-[#e0a96d]'
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Menú desplegable con diseño corporativo y puente de hover */}
                     {hasSub && isOpen && (
                       <div
-                        className={`absolute top-full mt-1.5 w-64 bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-[60] py-2.5 backdrop-blur-md animate-in fade-in duration-150 before:absolute before:-top-3 before:left-0 before:right-0 before:h-3 before:content-[''] ${
+                        className={`absolute top-full mt-1.5 w-64 bg-[#0c1a10] border border-[#2d5a27] rounded-xl shadow-2xl z-[100] py-2.5 backdrop-blur-md animate-in fade-in duration-150 before:absolute before:-top-3 before:left-0 before:right-0 before:h-3 before:content-[''] ${
                           index >= 4 ? 'right-0' : 'left-0'
                         }`}
                         onMouseEnter={() => {

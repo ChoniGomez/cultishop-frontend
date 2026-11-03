@@ -51,18 +51,37 @@ export const buildApiUrl = (endpoint = '') => {
 };
 
 /**
+ * Resuelve la URL base para archivos estáticos y subidas (carpeta /uploads).
+ * Prioriza VITE_UPLOADS_URL si está definida, o la deriva del origen del servidor.
+ */
+export const getUploadsBaseUrl = () => {
+  const custom = import.meta.env.VITE_UPLOADS_URL;
+  if (custom && typeof custom === 'string' && custom.trim()) {
+    let cleaned = custom.trim().replace(/^[\["'`]+|[\]"'`]+$/g, '').trim();
+    cleaned = cleaned.replace(/\/+$/, '');
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+      return cleaned;
+    }
+  }
+
+  const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocal) {
+    return 'http://localhost:4000/uploads';
+  }
+
+  const apiBase = getApiBaseUrl();
+  const serverOrigin = apiBase.replace(/\/api\/?$/i, '');
+  return `${serverOrigin}/uploads`;
+};
+
+/**
  * Resuelve una URL de imagen para que siempre apunte al servidor correcto (Backend / VPS).
  * 
- * Si es una ruta relativa local (como '/uploads/...'):
- * En producción, si el frontend está alojado de forma separada o servido por Nginx como SPA,
- * las peticiones puramente relativas a '/uploads/...' son interceptadas por la regla SPA
- * (try_files $uri $uri/ /index.html), devolviendo 'text/html' y provocando cuadros negros en las imágenes.
- * 
- * Para solucionarlo de raíz:
- * 1. Si la ruta apunta a '/uploads/...', se enruta a través de la URL base del backend
- *    (ej: `${apiBase}/uploads/...` -> 'https://www.cultishop.com.ar/api/uploads/...'),
- *    garantizando que alcance siempre al proceso Express en Node.js mediante el proxy de la API.
- * 2. Si ya es una URL absoluta (http://, https://, data:, blob:), se retorna tal cual.
+ * 1. Si ya es una URL absoluta (http://, https://, data:, blob:), se retorna tal cual.
+ * 2. Si es una ruta relativa local (como '/uploads/product-123.webp' o 'product-123.webp'),
+ *    la resuelve hacia la URL base donde se sirven las imágenes estáticas del backend.
  */
 export const buildImageUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
@@ -78,25 +97,12 @@ export const buildImageUrl = (url) => {
     return trimmed;
   }
 
-  const apiBase = getApiBaseUrl(); // ej: 'https://www.cultishop.com.ar/api' o 'http://localhost:4000/api'
-  const serverOrigin = apiBase.replace(/\/api\/?$/i, ''); // ej: 'https://www.cultishop.com.ar' o 'http://localhost:4000'
-  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const uploadsBase = getUploadsBaseUrl();
+  // Limpiar prefijos redundantes para asegurar una ruta limpia
+  const cleanPath = trimmed
+    .replace(/^\/api\/uploads\//i, '')
+    .replace(/^\/uploads\//i, '')
+    .replace(/^\/+/, '');
 
-  // 2. Si la ruta ya incluye el prefijo de la API (/api/uploads/...)
-  if (cleanPath.startsWith('/api/')) {
-    return `${serverOrigin}${cleanPath}`;
-  }
-
-  // 3. Si es una ruta de subidas (/uploads/...)
-  if (cleanPath.startsWith('/uploads/')) {
-    // Si la URL de la API contiene /api, usar /api/uploads/... para aprovechar el proxy de Nginx
-    // que ya está configurado y garantizado hacia el backend
-    if (apiBase.endsWith('/api')) {
-      return `${apiBase}${cleanPath}`;
-    }
-    return `${serverOrigin}${cleanPath}`;
-  }
-
-  // 4. Cualquier otra ruta estática relativa
-  return `${serverOrigin}${cleanPath}`;
+  return `${uploadsBase}/${cleanPath}`;
 };
