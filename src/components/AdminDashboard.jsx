@@ -97,6 +97,10 @@ export const AdminDashboard = () => {
   const [productLimit, setProductLimit] = useState(50);
   const [adminProducts, setAdminProducts] = useState([]);
   const [loadingAdminProducts, setLoadingAdminProducts] = useState(false);
+  const [offerManagementProducts, setOfferManagementProducts] = useState([]);
+  const [loadingOfferManagement, setLoadingOfferManagement] = useState(false);
+  const [offerManagementSearch, setOfferManagementSearch] = useState('');
+  const [updatingOfferIds, setUpdatingOfferIds] = useState([]);
   const [productPaginationMeta, setProductPaginationMeta] = useState({
     total: 0,
     page: 1,
@@ -675,6 +679,63 @@ export const AdminDashboard = () => {
     }
   };
 
+  const fetchOfferManagementProducts = async () => {
+    setLoadingOfferManagement(true);
+    try {
+      const params = new URLSearchParams({ all: 'true', limit: 'all' });
+      const res = await fetch(buildApiUrl(`products?${params.toString()}`));
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo cargar el inventario para gestionar ofertas.');
+      }
+
+      const items = Array.isArray(data.data)
+        ? data.data
+        : (Array.isArray(data.products) ? data.products : []);
+      setOfferManagementProducts(items);
+    } catch (err) {
+      console.error('Error al cargar productos para gestión de ofertas:', err);
+      showNotification('error', err.message || 'Error al cargar productos para gestión de ofertas.');
+    } finally {
+      setLoadingOfferManagement(false);
+    }
+  };
+
+  const handleToggleOfferStatus = async (product) => {
+    const productId = product.id;
+    if (updatingOfferIds.includes(productId)) return;
+
+    const isOfferActive = product.is_offer_active !== true;
+    setUpdatingOfferIds((prev) => [...prev, productId]);
+    try {
+      const res = await fetch(buildApiUrl(`products/${productId}/offer`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_offer_active: isOfferActive })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo actualizar la oferta.');
+      }
+
+      const active = data.product?.is_offer_active === true;
+      setOfferManagementProducts((prev) => prev.map((item) => (
+        item.id === productId ? { ...item, is_offer_active: active } : item
+      )));
+      showNotification('success', active
+        ? `${product.title} agregado a Ofertas.`
+        : `${product.title} quitado de Ofertas.`);
+    } catch (err) {
+      console.error('Error al actualizar producto en ofertas:', err);
+      showNotification('error', err.message || 'Error al actualizar el estado de oferta.');
+    } finally {
+      setUpdatingOfferIds((prev) => prev.filter((id) => id !== productId));
+    }
+  };
+
   const handlePageChange = (newPage) => {
     if (
       newPage < 1 || 
@@ -901,6 +962,11 @@ export const AdminDashboard = () => {
       if (!loadedTabsRef.current.has('pedidos')) {
         loadedTabsRef.current.add('pedidos');
         fetchOrders();
+      }
+    } else if (activeTab === 'ofertas') {
+      if (!loadedTabsRef.current.has('ofertas')) {
+        loadedTabsRef.current.add('ofertas');
+        fetchOfferManagementProducts();
       }
     } else if (activeTab === 'banners') {
       if (!loadedTabsRef.current.has('banners')) {
@@ -2321,6 +2387,8 @@ export const AdminDashboard = () => {
                 fetchAdminCategories();
               } else if (activeTab === 'pedidos') {
                 fetchOrders();
+              } else if (activeTab === 'ofertas') {
+                fetchOfferManagementProducts();
               } else if (activeTab === 'banners') {
                 fetchBannersAdmin();
               } else if (activeTab === 'categorias') {
@@ -2399,6 +2467,18 @@ export const AdminDashboard = () => {
               {displayPendingOrdersCount}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ofertas')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+            activeTab === 'ofertas'
+              ? 'bg-[#2d5a27] text-white shadow-md'
+              : 'text-gray-400 hover:text-white hover:bg-[#142619]'
+          }`}
+        >
+          <Tag size={16} />
+          <span>GESTIÓN DE OFERTAS</span>
         </button>
 
         <button
@@ -2686,6 +2766,112 @@ export const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'ofertas' && (
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-white">Gestión de Ofertas</h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Activá o desactivá ofertas para productos que ya existen en el inventario.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchOfferManagementProducts}
+              disabled={loadingOfferManagement}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-200 border border-[#23422a] text-xs font-bold disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={loadingOfferManagement ? 'animate-spin' : ''} />
+              Actualizar inventario
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+            <div className="relative w-full sm:max-w-md">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={offerManagementSearch}
+                onChange={(event) => setOfferManagementSearch(event.target.value)}
+                placeholder="Buscar producto por nombre, marca o categoría..."
+                className="w-full py-2.5 pl-9 pr-3 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036]"
+              />
+            </div>
+            <span className="text-xs text-gray-400">
+              {offerManagementProducts.filter((product) => product.is_offer_active === true).length} ofertas activas
+            </span>
+          </div>
+
+          {loadingOfferManagement ? (
+            <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
+              Cargando inventario...
+            </div>
+          ) : offerManagementProducts.length === 0 ? (
+            <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
+              No hay productos cargados en el inventario.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {offerManagementProducts
+                .filter((product) => {
+                  const query = offerManagementSearch.trim().toLowerCase();
+                  if (!query) return true;
+                  return [product.title, product.brand, product.category]
+                    .some((value) => String(value || '').toLowerCase().includes(query));
+                })
+                .map((product) => {
+                  const isActive = product.is_offer_active === true;
+                  const isUpdating = updatingOfferIds.includes(product.id);
+                  const productPriceInfo = getProductPriceInfo(product);
+
+                  return (
+                    <label
+                      key={product.id}
+                      className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition cursor-pointer ${
+                        isActive
+                          ? 'bg-[#102318] border-[#38761d]'
+                          : 'bg-[#0e1c12] border-[#1f3b25] hover:border-[#2d5a27]'
+                      } ${isUpdating ? 'opacity-60 cursor-wait' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        disabled={isUpdating}
+                        onChange={() => handleToggleOfferStatus(product)}
+                        className="w-5 h-5 accent-[#4aa036] shrink-0"
+                        aria-label={`${isActive ? 'Quitar' : 'Agregar'} ${product.title} ${isActive ? 'de' : 'a'} ofertas`}
+                      />
+                      {product.image_url && (
+                        <img
+                          src={buildImageUrl(product.image_url)}
+                          alt=""
+                          className="w-14 h-14 object-contain rounded-lg bg-[#0b1610] border border-[#1f3b25] shrink-0"
+                        />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-white truncate">{product.title}</span>
+                        <span className="block text-xs text-gray-400 truncate">
+                          {[product.brand, product.category].filter(Boolean).join(' · ') || 'Sin categoría'}
+                        </span>
+                      </span>
+                      <span className="text-right shrink-0">
+                        <span className="block text-sm font-bold text-[#e0a96d]">
+                          {productPriceInfo.formattedPrice}
+                        </span>
+                        {productPriceInfo.discountPercentage > 0 && (
+                          <span className="block text-[10px] font-bold text-emerald-300">
+                            -{productPriceInfo.discountPercentage}% real
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
 

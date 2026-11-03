@@ -35,7 +35,6 @@ import { useAuth } from '../context/AuthContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
 import { getProductDetails } from '../data/productDetailsData';
-import { buildImageUrl } from '../config/api';
 
 export const ProductDetail = () => {
   const { id, slug } = useParams();
@@ -175,8 +174,17 @@ export const ProductDetail = () => {
   }, [product?.id, priceInfo.hasMultipleOptions]);
 
   // Galería de imágenes del producto (evaluada incondicionalmente como Hook)
-  const productImages = product?.image_url ? [product.image_url] : [];
-  const imageUrl = buildImageUrl(product?.image_url);
+  const imageSource = [product?.image_url, product?.image, product?.thumbnail]
+    .find((image) => typeof image === 'string' && image.trim());
+  const imagePath = imageSource?.trim() || '';
+  const imageUrl = imagePath.startsWith('http') || imagePath.startsWith('data:')
+    ? imagePath
+    : imagePath
+      ? `https://cultishop.com.ar/uploads/${imagePath
+        .replace(/^\/+/, '')
+        .replace(/^uploads\/+/i, '')}`
+      : '';
+  const productImages = imageUrl ? [imageUrl] : [];
 
   // Precios y Stock calculados dinámicos
   const selectedVariant = selectedOption && priceInfo?.options
@@ -373,7 +381,7 @@ export const ProductDetail = () => {
                 <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[460px] w-full sm:w-auto pb-1 sm:pb-0 shrink-0">
                   {productImages.map((img, idx) => {
                     const isSelected = idx === selectedImageIndex;
-                    const thumbUrl = buildImageUrl(img);
+                    const thumbUrl = img;
                     return (
                       <button
                         key={idx}
@@ -1302,7 +1310,7 @@ export const ProductDetail = () => {
                     }`}
                   >
                     <img
-                      src={buildImageUrl(img)}
+                      src={img}
                       alt={`Miniatura ${idx + 1}`}
                       className="w-full h-full object-contain"
                     />

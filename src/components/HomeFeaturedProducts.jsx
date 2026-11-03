@@ -10,7 +10,7 @@ import {
   Flame,
   Zap,
   Layers,
-  Sparkles
+  RefreshCw
 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
@@ -103,7 +103,7 @@ export const HomeFeaturedProducts = () => {
             title="Mostrar otra combinación de productos destacados y novedades"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-white bg-[#0f2114] hover:bg-[#1a3822] px-3.5 py-2.5 rounded-full border border-[#23422a] hover:border-[#38761d] transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
-            <Sparkles size={13} className={`text-[#e0a96d] ${loadingFeatured ? 'animate-spin' : ''}`} />
+            <RefreshCw size={13} className={`text-[#e0a96d] ${loadingFeatured ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Explorar más</span>
           </button>
 
@@ -256,4 +256,3 @@ export const HomeFeaturedProducts = () => {
     </section>
   );
 };
-

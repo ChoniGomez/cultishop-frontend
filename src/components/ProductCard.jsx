@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield, Tag, Flame, Sparkles } from 'lucide-react';
+import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield, Tag, Flame } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,9 +12,16 @@ export const ProductCard = ({ product }) => {
 
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
-  const imageUrl = product.image_url?.startsWith('http')
-    ? product.image_url
-    : `https://cultishop.com.ar/uploads/${product.image_url?.replace(/^\/+/, '')}`;
+
+  // Lógica de imagen robusta y blindada
+  const rawImage = product.image_url || product.image || product.thumbnail || '';
+  const cleanImage = typeof rawImage === 'string' ? rawImage.trim() : '';
+  
+  const imageUrl = cleanImage.startsWith('http') || cleanImage.startsWith('data:')
+    ? cleanImage
+    : cleanImage 
+      ? `https://cultishop.com.ar/uploads/${cleanImage.replace(/^\/+/, '').replace(/^uploads\//i, '')}`
+      : '';
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -89,10 +96,10 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
-          {product.image_url && (
+          {imageUrl && (
             <img 
               src={imageUrl} 
-              alt={product.title} 
+              alt={product.name || product.title} 
               loading="lazy"
               decoding="async"
               className={`w-full h-full min-h-48 object-contain group-hover:scale-105 transition duration-300 ${
@@ -112,7 +119,7 @@ export const ProductCard = ({ product }) => {
         ) : priceInfo.isOnOffer && priceInfo.discountPercentage > 0 ? (
           <div className="absolute top-2.5 left-2.5 pointer-events-none z-10 flex flex-col gap-1 items-start">
             <span className="inline-flex items-center gap-1 text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg uppercase shadow-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-white border border-white/25 shadow-red-950/60">
-              <Sparkles size={11} className="text-amber-300 animate-pulse shrink-0" />
+              <Tag size={11} className="text-amber-300 shrink-0" />
               <span>-{priceInfo.discountPercentage}% OFF</span>
             </span>
             {product.badge && !/OFERTA|\d+%\s*OFF/i.test(product.badge) && product.badge.toLowerCase() !== 'sin etiqueta' && (

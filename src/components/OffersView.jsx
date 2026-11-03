@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Flame, 
-  Sparkles, 
   Tag, 
   ShieldCheck, 
   Truck, 
@@ -46,15 +45,13 @@ export const OffersView = () => {
 
   // Consolidar fuente de ofertas (del endpoint dedicado o derivado del catálogo completo)
   const baseOffersList = useMemo(() => {
-    if (Array.isArray(offersProducts) && offersProducts.length > 0) {
-      return offersProducts;
-    }
-    // Fallback con productos en oferta del catálogo en memoria
-    return (products || []).filter((p) => {
-      const pInfo = getProductPriceInfo(p);
-      return pInfo.isOnOffer;
-    });
-  }, [offersProducts, products]);
+    return Array.isArray(offersProducts) ? offersProducts : [];
+  }, [offersProducts]);
+
+  const maxOfferDiscount = useMemo(
+    () => Math.max(0, ...baseOffersList.map((product) => getProductPriceInfo(product).discountPercentage || 0)),
+    [baseOffersList]
+  );
 
   // Lista de categorías que tienen productos en oferta para generar las pastillas dinámicas
   const availableCategories = useMemo(() => {
@@ -166,7 +163,11 @@ export const OffersView = () => {
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <div className="flex items-center gap-1.5 bg-[#0e1d12]/90 border border-[#2d5a27] px-3 py-1.5 rounded-xl text-xs text-gray-200">
                 <Percent size={13} className="text-[#e0a96d]" />
-                <span className="font-semibold">Hasta 40% OFF en productos seleccionados</span>
+                <span className="font-semibold">
+                  {maxOfferDiscount > 0
+                    ? `Hasta ${maxOfferDiscount}% OFF en productos seleccionados`
+                    : 'Productos seleccionados en oferta'}
+                </span>
               </div>
               <div className="flex items-center gap-1.5 bg-[#0e1d12]/90 border border-[#2d5a27] px-3 py-1.5 rounded-xl text-xs text-gray-200">
                 <Truck size={13} className="text-[#4aa036]" />
@@ -352,4 +353,3 @@ export const OffersView = () => {
     </div>
   );
 };
-

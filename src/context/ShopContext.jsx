@@ -742,11 +742,9 @@ export const ShopProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         const rawOffers = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);
-        if (rawOffers.length > 0) {
-          const formatted = rawOffers.map(formatApiProduct);
-          setOffersProducts(formatted);
-          return formatted;
-        }
+        const formatted = rawOffers.map(formatApiProduct);
+        setOffersProducts(formatted);
+        return formatted;
       }
     } catch (err) {
       console.warn('API de ofertas no disponible:', err);
@@ -756,10 +754,7 @@ export const ShopProvider = ({ children }) => {
     }
 
     // Fallback local derivado de products
-    const fallbackOffers = (products || []).filter((p) => {
-      const pInfo = getProductPriceInfo(p);
-      return pInfo.isOnOffer;
-    });
+    const fallbackOffers = (products || []).filter((p) => p.is_offer_active === true);
     setOffersProducts(fallbackOffers);
     return fallbackOffers;
   }, [products]);
@@ -1473,4 +1468,3 @@ export const useShop = () => {
 
 // Alias compatible
 export const useCart = useShop;
-
