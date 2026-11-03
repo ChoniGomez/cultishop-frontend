@@ -16,15 +16,9 @@ export const ProductCard = ({ product }) => {
   const uploadsBase = (
     import.meta.env.VITE_UPLOADS_URL || 'https://cultishop.com.ar/uploads'
   ).replace(/\/+$/, '');
-  const imageUrl = imagePath?.startsWith('http')
-    ? imagePath
-    : imagePath
-      ? `${uploadsBase}${imagePath.startsWith('/uploads')
-        ? imagePath.replace('/uploads', '')
-        : imagePath.startsWith('/')
-          ? imagePath
-          : `/${imagePath}`}`
-      : '';
+  const imageUrl = product.image_url.startsWith('http') 
+  ? product.image_url 
+  : `https://cultishop.com.ar/uploads/${product.image_url.replace(/^\/+/, '')}`;
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
