@@ -4,7 +4,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
-import { useShop } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 
 const PRODUCTS_PER_PAGE = 9;
 
@@ -730,3 +730,6 @@ export const ProductSection = () => {
     </section>
   );
 };
+
+export default ProductSection;
+

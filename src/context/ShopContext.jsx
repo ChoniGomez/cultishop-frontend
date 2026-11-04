@@ -1416,6 +1416,8 @@ export const ShopProvider = ({ children }) => {
         getProductOptions,
         isProductOutOfStock,
         getProductPriceInfo,
+        formatPrice,
+        parsePrice,
         cart,
         isCartOpen,
         setIsCartOpen,

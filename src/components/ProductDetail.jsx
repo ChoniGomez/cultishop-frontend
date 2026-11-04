@@ -30,7 +30,7 @@ import {
   XCircle,
   Shield
 } from 'lucide-react';
-import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { ProductCard } from './ProductCard';
@@ -1324,3 +1324,6 @@ export const ProductDetail = () => {
     </div>
   );
 };
+
+export default ProductDetail;
+

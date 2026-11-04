@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   CheckCircle2
 } from 'lucide-react';
-import { useShop, formatPrice } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { buildImageUrl } from '../config/api';
@@ -277,4 +277,7 @@ export const CartDrawer = () => {
     </div>
   );
 };
+
+export default CartDrawer;
+
 

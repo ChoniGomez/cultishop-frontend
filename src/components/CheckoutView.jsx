@@ -25,7 +25,7 @@ import {
   Store,
   Bike
 } from 'lucide-react';
-import { useShop, formatPrice } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -1370,4 +1370,7 @@ export const CheckoutView = () => {
     </div>
   );
 };
+
+export default CheckoutView;
+
 

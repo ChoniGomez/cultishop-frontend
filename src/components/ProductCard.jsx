@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Check, Heart, XCircle, AlertCircle, ChevronDown, Shield, Tag, Flame } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
-import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
+import { resolveProductImage, getProductFallbackImage } from '../utils/productImages';
 
 export const ProductCard = ({ product }) => {
+  if (!product) return null;
+
   const { addToCart, isFavorite, toggleFavorite } = useShop();
   const { isAdmin } = useAuth();
   const isFav = isFavorite(product.id);
@@ -13,15 +16,7 @@ export const ProductCard = ({ product }) => {
   const priceInfo = getProductPriceInfo(product);
   const isOutOfStock = isProductOutOfStock(product);
 
-  // Lógica de imagen robusta y blindada
-  const rawImage = product.image_url || product.image || product.thumbnail || '';
-  const cleanImage = typeof rawImage === 'string' ? rawImage.trim() : '';
-  
-  const imageUrl = cleanImage.startsWith('http') || cleanImage.startsWith('data:')
-    ? cleanImage
-    : cleanImage 
-      ? `https://cultishop.com.ar/uploads/${cleanImage.replace(/^\/+/, '').replace(/^uploads\//i, '')}`
-      : '';
+  const displayImage = resolveProductImage(product);
 
   // Variante seleccionada (vacía si hay múltiples opciones para forzar selección)
   const [selectedOption, setSelectedOption] = useState(
@@ -96,17 +91,21 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full flex items-center justify-center cursor-pointer"
           title={`Ver detalle de ${product.title}`}
         >
-          {imageUrl && (
-            <img 
-              src={imageUrl} 
-              alt={product.name || product.title} 
-              loading="lazy"
-              decoding="async"
-              className={`w-full h-full min-h-48 object-contain group-hover:scale-105 transition duration-300 ${
-                isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
-              }`} 
-            />
-          )}
+          <img 
+            src={displayImage} 
+            alt={product.title || product.name || 'Producto CultiShop'} 
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              const fallback = getProductFallbackImage(product);
+              if (e.currentTarget.src !== fallback) {
+                e.currentTarget.src = fallback;
+              }
+            }}
+            className={`w-full h-full min-h-48 object-contain group-hover:scale-105 transition duration-300 ${
+              isOutOfStock ? 'opacity-60 grayscale-[30%]' : 'opacity-95 group-hover:opacity-100'
+            }`} 
+          />
         </Link>
         
         {/* Badge de Oferta / Descuento o Estado */}
@@ -361,3 +360,5 @@ export const ProductCard = ({ product }) => {
     </div>
   );
 };
+
+export default ProductCard;

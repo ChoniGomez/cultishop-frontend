@@ -11,7 +11,7 @@ import {
   CheckCircle,
   ShieldCheck
 } from 'lucide-react';
-import { useShop } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { ProductCard } from './ProductCard';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
@@ -167,4 +167,7 @@ export const FavoritesView = () => {
     </div>
   );
 };
+
+export default FavoritesView;
+
 

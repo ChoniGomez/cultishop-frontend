@@ -13,7 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
-import { useShop } from '../context/ShopContext';
+import { useShop, formatPrice, getProductPriceInfo, isProductOutOfStock, getProductOptions, parsePrice } from '../context/ShopContext';
 import { CATEGORIES } from '../data/categories';
 
 export const HomeFeaturedProducts = () => {
@@ -256,3 +256,6 @@ export const HomeFeaturedProducts = () => {
     </section>
   );
 };
+
+export default HomeFeaturedProducts;
+

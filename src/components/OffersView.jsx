@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Percent
 } from 'lucide-react';
-import { useShop, getProductPriceInfo } from '../context/ShopContext';
+import { useShop, getProductPriceInfo, formatPrice, isProductOutOfStock, parsePrice, getProductOptions } from '../context/ShopContext';
 import { ProductCard } from './ProductCard';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
@@ -353,3 +353,6 @@ export const OffersView = () => {
     </div>
   );
 };
+
+export default OffersView;
+

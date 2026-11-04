@@ -53,7 +53,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
-import { formatPrice, parsePrice, useShop, getProductOptions, getProductPriceInfo } from '../context/ShopContext';
+import { formatPrice, parsePrice, useShop, getProductOptions, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -6820,3 +6820,6 @@ export const AdminDashboard = () => {
     </div>
   );
 };
+
+export default AdminDashboard;
+
