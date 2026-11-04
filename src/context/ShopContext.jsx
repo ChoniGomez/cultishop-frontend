@@ -260,7 +260,8 @@ export const getProductPriceInfo = (product) => {
   const rawFinal = product.final_price !== undefined ? Number(product.final_price) : 0;
   const rawPct = Number(product.discount_percentage || product.discountPercentage || 0);
 
-  const isOnOffer = Boolean(
+  const isOfferExpired = product.is_offer_expired === true;
+  const isOnOffer = !isOfferExpired && Boolean(
     product.is_on_offer === true || 
     product.isOnOffer === true || 
     product.is_offer_active === true || 

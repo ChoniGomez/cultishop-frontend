@@ -50,7 +50,8 @@ import {
   PhoneCall,
   Star,
   Percent,
-  Flame
+  Flame,
+  Calendar
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -115,6 +116,7 @@ export const AdminDashboard = () => {
   });
   const [updatingOfferIds, setUpdatingOfferIds] = useState([]);
   const [pendingDiscounts, setPendingDiscounts] = useState({});
+  const [pendingOfferDates, setPendingOfferDates] = useState({});
   const [productPaginationMeta, setProductPaginationMeta] = useState({
     total: 0,
     page: 1,
@@ -727,7 +729,7 @@ export const AdminDashboard = () => {
         : (Array.isArray(data.products) ? data.products : []);
       setOfferManagementProducts(items);
 
-      // Sincronizar porcentajes pendientes con los productos cargados
+      // Sincronizar porcentajes y vigencias pendientes con los productos cargados
       setPendingDiscounts((prev) => {
         const next = { ...prev };
         items.forEach((item) => {
@@ -735,6 +737,20 @@ export const AdminDashboard = () => {
             next[item.id] = (typeof item.discount_percentage === 'number' && item.discount_percentage > 0)
               ? item.discount_percentage
               : 15;
+          }
+        });
+        return next;
+      });
+
+      setPendingOfferDates((prev) => {
+        const next = { ...prev };
+        items.forEach((item) => {
+          if (next[item.id] === undefined) {
+            next[item.id] = {
+              startDate: item.offer_start_date || '',
+              endDate: item.offer_end_date || '',
+              untilStock: item.offer_until_stock_out !== false
+            };
           }
         });
         return next;
@@ -768,6 +784,11 @@ export const AdminDashboard = () => {
 
     const isOfferActive = product.is_offer_active !== true;
     const currentDiscountPct = pendingDiscounts[productId] || product.discount_percentage || 15;
+    const dates = pendingOfferDates[productId] || {
+      startDate: product.offer_start_date || '',
+      endDate: product.offer_end_date || '',
+      untilStock: product.offer_until_stock_out !== false
+    };
 
     setUpdatingOfferIds((prev) => [...prev, productId]);
     try {
@@ -779,7 +800,10 @@ export const AdminDashboard = () => {
         },
         body: JSON.stringify({ 
           is_offer_active: isOfferActive,
-          discount_percentage: currentDiscountPct
+          discount_percentage: currentDiscountPct,
+          offer_start_date: dates.startDate || null,
+          offer_end_date: dates.endDate || null,
+          offer_until_stock_out: dates.untilStock
         })
       });
       const data = await res.json();
@@ -812,13 +836,19 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handleSaveOfferDiscount = async (product, forcedPct) => {
+  const handleSaveOfferDiscount = async (product, forcedPct, forcedDates) => {
     const productId = product.id;
     if (updatingOfferIds.includes(productId)) return;
 
     const discountPct = Math.min(95, Math.max(1, Math.round(Number(forcedPct !== undefined ? forcedPct : (pendingDiscounts[productId] || 15)))));
+    const dates = forcedDates || pendingOfferDates[productId] || {
+      startDate: product.offer_start_date || '',
+      endDate: product.offer_end_date || '',
+      untilStock: product.offer_until_stock_out !== false
+    };
 
     setPendingDiscounts((prev) => ({ ...prev, [productId]: discountPct }));
+    setPendingOfferDates((prev) => ({ ...prev, [productId]: dates }));
     setUpdatingOfferIds((prev) => [...prev, productId]);
     try {
       const res = await fetch(buildApiUrl(`products/${productId}/offer`), {
@@ -829,7 +859,10 @@ export const AdminDashboard = () => {
         },
         body: JSON.stringify({ 
           is_offer_active: true,
-          discount_percentage: discountPct 
+          discount_percentage: discountPct,
+          offer_start_date: dates.startDate || null,
+          offer_end_date: dates.endDate || null,
+          offer_until_stock_out: dates.untilStock
         })
       });
       const data = await res.json();
@@ -849,7 +882,7 @@ export const AdminDashboard = () => {
       if (fetchOffersProducts) {
         await fetchOffersProducts();
       }
-      showNotification('success', `Descuento de "${product.title}" guardado en -${discountPct}% OFF.`);
+      showNotification('success', `Oferta de "${product.title}" guardada exitosamente (-${discountPct}% OFF).`);
     } catch (err) {
       console.error('Error al guardar porcentaje de oferta:', err);
       showNotification('error', err.message || 'Error al guardar el porcentaje.');
@@ -3067,6 +3100,12 @@ export const AdminDashboard = () => {
                     ? pendingDiscounts[product.id]
                     : (product.discount_percentage > 0 ? product.discount_percentage : 15);
 
+                  const currentDates = pendingOfferDates[product.id] || {
+                    startDate: product.offer_start_date || '',
+                    endDate: product.offer_end_date || '',
+                    untilStock: product.offer_until_stock_out !== false
+                  };
+
                   // Cálculo dinámico para la vista previa
                   const previewDiscountPrice = Math.round(originalPrice * (1 - currentDiscountPct / 100) * 100) / 100;
                   const previewSavings = Math.max(0, originalPrice - previewDiscountPrice);
@@ -3233,6 +3272,163 @@ export const AdminDashboard = () => {
                               </button>
                             )}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* 3. Fila de Vigencia y Fechas (Inicio / Fin / Hasta agotar stock) */}
+                      <div className="mt-3 pt-3 border-t border-[#1a3320] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {/* Checkbox Hasta agotar stock */}
+                          <label className="flex items-center gap-1.5 text-gray-300 font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={currentDates.untilStock}
+                              onChange={(e) => {
+                                const val = e.target.checked;
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    ...(prev[product.id] || { startDate: product.offer_start_date || '', endDate: product.offer_end_date || '' }),
+                                    untilStock: val
+                                  }
+                                }));
+                              }}
+                              className="w-4 h-4 accent-[#4aa036] rounded"
+                            />
+                            <span>Hasta agotar stock</span>
+                          </label>
+
+                          <span className="text-gray-600 hidden sm:inline">|</span>
+
+                          {/* Fecha Inicio */}
+                          <div className="flex items-center gap-1.5 text-gray-400">
+                            <Calendar size={13} className="text-gray-400" />
+                            <span>Desde:</span>
+                            <input
+                              type="date"
+                              value={currentDates.startDate || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    ...(prev[product.id] || { untilStock: product.offer_until_stock_out !== false, endDate: product.offer_end_date || '' }),
+                                    startDate: val
+                                  }
+                                }));
+                              }}
+                              className="bg-[#142619] border border-[#23422a] rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+
+                          {/* Fecha Fin */}
+                          <div className="flex items-center gap-1.5 text-gray-400">
+                            <span>Hasta:</span>
+                            <input
+                              type="date"
+                              value={currentDates.endDate || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    ...(prev[product.id] || { untilStock: product.offer_until_stock_out !== false, startDate: product.offer_start_date || '' }),
+                                    endDate: val
+                                  }
+                                }));
+                              }}
+                              className="bg-[#142619] border border-[#23422a] rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-[#4aa036]"
+                            />
+                          </div>
+
+                          {/* Presets rápidos */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nowStr = new Date().toISOString().split('T')[0];
+                                const d = new Date();
+                                d.setDate(d.getDate() + 7);
+                                const endStr = d.toISOString().split('T')[0];
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    startDate: nowStr,
+                                    endDate: endStr,
+                                    untilStock: true
+                                  }
+                                }));
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] transition"
+                            >
+                              +7 días
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nowStr = new Date().toISOString().split('T')[0];
+                                const d = new Date();
+                                d.setDate(d.getDate() + 15);
+                                const endStr = d.toISOString().split('T')[0];
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    startDate: nowStr,
+                                    endDate: endStr,
+                                    untilStock: true
+                                  }
+                                }));
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] transition"
+                            >
+                              +15 días
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingOfferDates((prev) => ({
+                                  ...prev,
+                                  [product.id]: {
+                                    startDate: '',
+                                    endDate: '',
+                                    untilStock: true
+                                  }
+                                }));
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#142619] hover:bg-[#1f3b25] text-gray-400 border border-[#23422a] transition"
+                            >
+                              Sin límite
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Estado de Vigencia Calculado */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {product.is_offer_expired ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-950/60 text-red-300 border border-red-500/40">
+                              Oferta Expirada
+                            </span>
+                          ) : product.is_offer_scheduled ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-500/40">
+                              Programada (Inicia {product.offer_start_date})
+                            </span>
+                          ) : isActive ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/40">
+                              {product.offer_condition || 'Vigente'}
+                            </span>
+                          ) : null}
+
+                          {isActive && (
+                            <button
+                              type="button"
+                              onClick={() => handleSaveOfferDiscount(product, currentDiscountPct)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#23422a] hover:bg-[#2d5a27] text-white text-xs font-bold transition disabled:opacity-50"
+                            >
+                              <Save size={12} />
+                              <span>Guardar Vigencia</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
