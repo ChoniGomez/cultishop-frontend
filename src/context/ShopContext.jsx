@@ -263,6 +263,8 @@ export const getProductPriceInfo = (product) => {
   const isOnOffer = Boolean(
     product.is_on_offer === true || 
     product.isOnOffer === true || 
+    product.is_offer_active === true || 
+    product.isOfferActive === true || 
     rawPct > 0 ||
     (rawOriginal > 0 && rawFinal > 0 && rawOriginal > rawFinal) ||
     (rawDiscount > 0 && rawDiscount < minPrice)

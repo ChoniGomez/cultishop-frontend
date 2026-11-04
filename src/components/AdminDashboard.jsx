@@ -48,7 +48,9 @@ import {
   HelpCircle,
   MapPin,
   PhoneCall,
-  Star
+  Star,
+  Percent,
+  Flame
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -102,7 +104,17 @@ export const AdminDashboard = () => {
   const [loadingOfferManagement, setLoadingOfferManagement] = useState(false);
   const [offerManagementError, setOfferManagementError] = useState('');
   const [offerManagementSearch, setOfferManagementSearch] = useState('');
+  const [offerFilter, setOfferFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [offerPage, setOfferPage] = useState(1);
+  const [offerPaginationMeta, setOfferPaginationMeta] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    activeCount: 0
+  });
   const [updatingOfferIds, setUpdatingOfferIds] = useState([]);
+  const [pendingDiscounts, setPendingDiscounts] = useState({});
   const [productPaginationMeta, setProductPaginationMeta] = useState({
     total: 0,
     page: 1,
@@ -681,11 +693,25 @@ export const AdminDashboard = () => {
     }
   };
 
-  const fetchOfferManagementProducts = async () => {
+  const fetchOfferManagementProducts = async (
+    page = offerPage,
+    search = offerManagementSearch,
+    filter = offerFilter
+  ) => {
     setLoadingOfferManagement(true);
     setOfferManagementError('');
     try {
-      const res = await fetch(buildApiUrl('products/offers/admin/products'), {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '20'
+      });
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+      if (filter && filter !== 'all') {
+        params.append('filter', filter);
+      }
+      const res = await fetch(buildApiUrl(`products/offers/admin/products?${params.toString()}`), {
         headers: {
           'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -700,6 +726,31 @@ export const AdminDashboard = () => {
         ? data.data
         : (Array.isArray(data.products) ? data.products : []);
       setOfferManagementProducts(items);
+
+      // Sincronizar porcentajes pendientes con los productos cargados
+      setPendingDiscounts((prev) => {
+        const next = { ...prev };
+        items.forEach((item) => {
+          if (next[item.id] === undefined) {
+            next[item.id] = (typeof item.discount_percentage === 'number' && item.discount_percentage > 0)
+              ? item.discount_percentage
+              : 15;
+          }
+        });
+        return next;
+      });
+
+      if (data.meta) {
+        setOfferPaginationMeta(data.meta);
+      } else {
+        setOfferPaginationMeta({
+          total: items.length,
+          page: Number(page),
+          limit: 20,
+          totalPages: Math.max(1, Math.ceil(items.length / 20)),
+          activeCount: items.filter((p) => p.is_offer_active).length
+        });
+      }
       setOfferManagementError('');
     } catch (err) {
       console.error('Error al cargar productos para gestión de ofertas:', err);
@@ -716,6 +767,8 @@ export const AdminDashboard = () => {
     if (updatingOfferIds.includes(productId)) return;
 
     const isOfferActive = product.is_offer_active !== true;
+    const currentDiscountPct = pendingDiscounts[productId] || product.discount_percentage || 15;
+
     setUpdatingOfferIds((prev) => [...prev, productId]);
     try {
       const res = await fetch(buildApiUrl(`products/${productId}/offer`), {
@@ -724,29 +777,98 @@ export const AdminDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ is_offer_active: isOfferActive })
+        body: JSON.stringify({ 
+          is_offer_active: isOfferActive,
+          discount_percentage: currentDiscountPct
+        })
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'No se pudo actualizar la oferta.');
       }
 
-      const active = data.product?.is_offer_active === true;
+      const updated = data.product;
+      const active = updated?.is_offer_active === true;
+
       setOfferManagementProducts((prev) => prev.map((item) => (
-        item.id === productId ? { ...item, is_offer_active: active } : item
+        item.id === productId ? (updated || { ...item, is_offer_active: active, discount_percentage: currentDiscountPct }) : item
       )));
+
+      if (typeof data.meta?.activeCount === 'number') {
+        setOfferPaginationMeta((prev) => ({ ...prev, activeCount: data.meta.activeCount }));
+      }
+
       if (fetchOffersProducts) {
         await fetchOffersProducts();
       }
       showNotification('success', active
-        ? `${product.title} agregado a Ofertas.`
-        : `${product.title} quitado de Ofertas.`);
+        ? `"${product.title}" activado en Ofertas con -${currentDiscountPct}% OFF.`
+        : `"${product.title}" quitado de Ofertas.`);
     } catch (err) {
       console.error('Error al actualizar producto en ofertas:', err);
       showNotification('error', err.message || 'Error al actualizar el estado de oferta.');
     } finally {
       setUpdatingOfferIds((prev) => prev.filter((id) => id !== productId));
     }
+  };
+
+  const handleSaveOfferDiscount = async (product, forcedPct) => {
+    const productId = product.id;
+    if (updatingOfferIds.includes(productId)) return;
+
+    const discountPct = Math.min(95, Math.max(1, Math.round(Number(forcedPct !== undefined ? forcedPct : (pendingDiscounts[productId] || 15)))));
+
+    setPendingDiscounts((prev) => ({ ...prev, [productId]: discountPct }));
+    setUpdatingOfferIds((prev) => [...prev, productId]);
+    try {
+      const res = await fetch(buildApiUrl(`products/${productId}/offer`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          is_offer_active: true,
+          discount_percentage: discountPct 
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo guardar el descuento.');
+      }
+
+      const updated = data.product;
+      setOfferManagementProducts((prev) => prev.map((item) => (
+        item.id === productId ? (updated || { ...item, is_offer_active: true, discount_percentage: discountPct }) : item
+      )));
+
+      if (typeof data.meta?.activeCount === 'number') {
+        setOfferPaginationMeta((prev) => ({ ...prev, activeCount: data.meta.activeCount }));
+      }
+
+      if (fetchOffersProducts) {
+        await fetchOffersProducts();
+      }
+      showNotification('success', `Descuento de "${product.title}" guardado en -${discountPct}% OFF.`);
+    } catch (err) {
+      console.error('Error al guardar porcentaje de oferta:', err);
+      showNotification('error', err.message || 'Error al guardar el porcentaje.');
+    } finally {
+      setUpdatingOfferIds((prev) => prev.filter((id) => id !== productId));
+    }
+  };
+
+  const handleOfferPageChange = (newPage) => {
+    if (
+      newPage < 1 || 
+      newPage > (offerPaginationMeta.totalPages || 1) || 
+      newPage === offerPage ||
+      loadingOfferManagement
+    ) {
+      return;
+    }
+    setOfferPage(newPage);
+    fetchOfferManagementProducts(newPage, offerManagementSearch, offerFilter);
   };
 
   const handlePageChange = (newPage) => {
@@ -2783,118 +2905,378 @@ export const AdminDashboard = () => {
       )}
 
       {activeTab === 'ofertas' && (
-        <div className="space-y-5">
+        <div className="space-y-6">
+          {/* Cabecera de Sección con Estadísticas */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black text-white">Gestión de Ofertas</h2>
-              <p className="text-xs text-gray-400 mt-1">
-                Activá o desactivá ofertas para productos que ya existen en el inventario.
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Flame size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-white flex items-center gap-2.5">
+                  Gestión de Ofertas y Descuentos
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                    {offerPaginationMeta.activeCount || 0} activas
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Activá productos en oferta, personalizá el % de descuento y calculá precios rebajados dinámicamente.
+                </p>
+              </div>
             </div>
             <button
               type="button"
-              onClick={fetchOfferManagementProducts}
+              onClick={() => fetchOfferManagementProducts(offerPage, offerManagementSearch, offerFilter)}
               disabled={loadingOfferManagement}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-200 border border-[#23422a] text-xs font-bold disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-200 border border-[#23422a] text-xs font-bold transition disabled:opacity-50"
             >
               <RefreshCw size={14} className={loadingOfferManagement ? 'animate-spin' : ''} />
               Actualizar inventario
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
-            <div className="relative w-full sm:max-w-md">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="search"
-                value={offerManagementSearch}
-                onChange={(event) => setOfferManagementSearch(event.target.value)}
-                placeholder="Buscar producto por nombre, marca o categoría..."
-                className="w-full py-2.5 pl-9 pr-3 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036]"
-              />
+          {/* Barra de Filtros, Búsqueda y Pestañas */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25]">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                setOfferPage(1);
+                fetchOfferManagementProducts(1, offerManagementSearch, offerFilter);
+              }}
+              className="relative flex-grow max-w-xl flex items-center gap-2"
+            >
+              <div className="relative flex-grow">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search"
+                  value={offerManagementSearch}
+                  onChange={(event) => setOfferManagementSearch(event.target.value)}
+                  placeholder="Buscar producto por nombre, marca o categoría..."
+                  className="w-full py-2.5 pl-10 pr-8 rounded-xl bg-[#142619] border border-[#23422a] text-white text-xs placeholder-gray-400 focus:outline-none focus:border-[#4aa036] transition"
+                />
+                {offerManagementSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOfferManagementSearch('');
+                      setOfferPage(1);
+                      fetchOfferManagementProducts(1, '', offerFilter);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2.5 rounded-xl bg-[#23422a] hover:bg-[#2d5a27] text-white text-xs font-bold transition shrink-0"
+              >
+                Buscar
+              </button>
+            </form>
+
+            {/* Pestañas de Filtro Rápido */}
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#142619] border border-[#23422a] text-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferFilter('all');
+                  setOfferPage(1);
+                  fetchOfferManagementProducts(1, offerManagementSearch, 'all');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                  offerFilter === 'all'
+                    ? 'bg-[#23422a] text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferFilter('active');
+                  setOfferPage(1);
+                  fetchOfferManagementProducts(1, offerManagementSearch, 'active');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                  offerFilter === 'active'
+                    ? 'bg-emerald-900/60 text-emerald-200 border border-emerald-500/40 shadow-sm'
+                    : 'text-gray-400 hover:text-emerald-300'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Ofertas Activas ({offerPaginationMeta.activeCount || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferFilter('inactive');
+                  setOfferPage(1);
+                  fetchOfferManagementProducts(1, offerManagementSearch, 'inactive');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                  offerFilter === 'inactive'
+                    ? 'bg-[#23422a] text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Sin Oferta
+              </button>
             </div>
-            <span className="text-xs text-gray-400">
-              {offerManagementProducts.filter((product) => product.is_offer_active === true).length} ofertas activas
-            </span>
           </div>
 
+          {/* Estado de Carga y Errores */}
           {loadingOfferManagement ? (
-            <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
-              Cargando inventario...
+            <div className="p-12 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400 flex flex-col items-center justify-center gap-3">
+              <RefreshCw size={24} className="animate-spin text-[#4aa036]" />
+              <span>Cargando productos paginados...</span>
             </div>
           ) : offerManagementError ? (
             <div className="p-6 rounded-2xl bg-red-950/40 border border-red-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <p className="text-sm text-red-200">{offerManagementError}</p>
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="text-red-400 shrink-0" size={20} />
+                <p className="text-sm text-red-200">{offerManagementError}</p>
+              </div>
               <button
                 type="button"
-                onClick={fetchOfferManagementProducts}
-                className="px-4 py-2 rounded-xl bg-red-900/60 hover:bg-red-800 text-white text-xs font-bold border border-red-500/40"
+                onClick={() => fetchOfferManagementProducts(offerPage, offerManagementSearch, offerFilter)}
+                className="px-4 py-2 rounded-xl bg-red-900/60 hover:bg-red-800 text-white text-xs font-bold border border-red-500/40 transition shrink-0"
               >
                 Reintentar
               </button>
             </div>
           ) : offerManagementProducts.length === 0 ? (
-            <div className="p-10 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
-              No hay productos cargados en el inventario.
+            <div className="p-12 text-center rounded-2xl bg-[#0e1c12] border border-[#1f3b25] text-sm text-gray-400">
+              No se encontraron productos que coincidan con la búsqueda o filtro seleccionado.
             </div>
           ) : (
-            <div className="space-y-2">
-              {offerManagementProducts
-                .filter((product) => {
-                  const query = offerManagementSearch.trim().toLowerCase();
-                  if (!query) return true;
-                  return [product.title, product.brand, product.category]
-                    .some((value) => String(value || '').toLowerCase().includes(query));
-                })
-                .map((product) => {
+            <>
+              {/* Tarjetas de Producto para Gestión de Oferta */}
+              <div className="space-y-3">
+                {offerManagementProducts.map((product) => {
                   const isActive = product.is_offer_active === true;
                   const isUpdating = updatingOfferIds.includes(product.id);
-                  const productPriceInfo = getProductPriceInfo(product);
+                  const basePrice = typeof product.price === 'number'
+                    ? product.price
+                    : parsePrice(product.price);
+                  const originalPrice = product.original_price > 0 ? product.original_price : basePrice;
+
+                  const currentDiscountPct = pendingDiscounts[product.id] !== undefined
+                    ? pendingDiscounts[product.id]
+                    : (product.discount_percentage > 0 ? product.discount_percentage : 15);
+
+                  // Cálculo dinámico para la vista previa
+                  const previewDiscountPrice = Math.round(originalPrice * (1 - currentDiscountPct / 100) * 100) / 100;
+                  const previewSavings = Math.max(0, originalPrice - previewDiscountPrice);
+
+                  const presetPills = [10, 15, 20, 25, 30, 50];
 
                   return (
-                    <label
+                    <div
                       key={product.id}
-                      className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition cursor-pointer ${
+                      className={`p-4 rounded-2xl border transition-all ${
                         isActive
-                          ? 'bg-[#102318] border-[#38761d]'
+                          ? 'bg-[#102318] border-[#38761d] shadow-sm'
                           : 'bg-[#0e1c12] border-[#1f3b25] hover:border-[#2d5a27]'
-                      } ${isUpdating ? 'opacity-60 cursor-wait' : ''}`}
+                      } ${isUpdating ? 'opacity-60 pointer-events-none' : ''}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isActive}
-                        disabled={isUpdating}
-                        onChange={() => handleToggleOfferStatus(product)}
-                        className="w-5 h-5 accent-[#4aa036] shrink-0"
-                        aria-label={`${isActive ? 'Quitar' : 'Agregar'} ${product.title} ${isActive ? 'de' : 'a'} ofertas`}
-                      />
-                      {product.image_url && (
-                        <img
-                          src={buildImageUrl(product.image_url)}
-                          alt=""
-                          className="w-14 h-14 object-contain rounded-lg bg-[#0b1610] border border-[#1f3b25] shrink-0"
-                        />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-white truncate">{product.title}</span>
-                        <span className="block text-xs text-gray-400 truncate">
-                          {[product.brand, product.category].filter(Boolean).join(' · ') || 'Sin categoría'}
-                        </span>
-                      </span>
-                      <span className="text-right shrink-0">
-                        <span className="block text-sm font-bold text-[#e0a96d]">
-                          {productPriceInfo.formattedPrice}
-                        </span>
-                        {productPriceInfo.discountPercentage > 0 && (
-                          <span className="block text-[10px] font-bold text-emerald-300">
-                            -{productPriceInfo.discountPercentage}% real
-                          </span>
-                        )}
-                      </span>
-                    </label>
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        {/* 1. Toggle y Datos Principales del Producto */}
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={isActive}
+                            disabled={isUpdating}
+                            onChange={() => handleToggleOfferStatus(product)}
+                            className="w-5 h-5 accent-[#4aa036] rounded cursor-pointer shrink-0"
+                            aria-label={`${isActive ? 'Desactivar' : 'Activar'} oferta para ${product.title}`}
+                          />
+                          {product.image_url ? (
+                            <img
+                              src={buildImageUrl(product.image_url)}
+                              alt={product.title}
+                              className="w-14 h-14 object-contain rounded-xl bg-[#0b1610] border border-[#1f3b25] shrink-0 p-1"
+                              onError={(e) => {
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=600';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-[#0b1610] border border-[#1f3b25] flex items-center justify-center text-gray-500 shrink-0">
+                              <Tag size={20} />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-white truncate max-w-sm">
+                                {product.title}
+                              </span>
+                              {isActive && (
+                                <span className="text-[10px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  En Oferta
+                                </span>
+                              )}
+                              {product.stock <= 5 && product.stock > 0 && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  {product.stock} un.
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5 truncate flex items-center gap-2">
+                              <span>{[product.brand, product.category].filter(Boolean).join(' · ') || 'General'}</span>
+                              <span>•</span>
+                              <span>Precio regular: <strong className="text-gray-300">{formatPrice(originalPrice)}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Control de Descuento Personalizado y Vista Previa */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#1f3b25]">
+                          {/* Pastillas rápidas de descuento */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {presetPills.map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => {
+                                  setPendingDiscounts((prev) => ({ ...prev, [product.id]: pct }));
+                                  if (isActive) {
+                                    handleSaveOfferDiscount(product, pct);
+                                  }
+                                }}
+                                className={`px-2 py-1 rounded-lg text-xs font-bold transition ${
+                                  currentDiscountPct === pct
+                                    ? 'bg-[#4aa036] text-white shadow-sm'
+                                    : 'bg-[#142619] text-gray-300 hover:bg-[#1f3b25] border border-[#23422a]'
+                                }`}
+                              >
+                                -{pct}%
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Input manual de porcentaje */}
+                          <div className="flex items-center gap-1.5 bg-[#142619] px-2.5 py-1 rounded-xl border border-[#23422a]">
+                            <Percent size={13} className="text-gray-400" />
+                            <input
+                              type="number"
+                              min="1"
+                              max="95"
+                              value={currentDiscountPct}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setPendingDiscounts((prev) => ({
+                                  ...prev,
+                                  [product.id]: isNaN(val) ? 0 : val
+                                }));
+                              }}
+                              onBlur={() => {
+                                if (isActive && currentDiscountPct > 0) {
+                                  handleSaveOfferDiscount(product, currentDiscountPct);
+                                }
+                              }}
+                              className="w-12 bg-transparent text-white text-xs font-bold text-center focus:outline-none"
+                              aria-label="Porcentaje de descuento"
+                            />
+                            <span className="text-[11px] font-bold text-gray-400">% OFF</span>
+                          </div>
+
+                          {/* Vista Previa del Precio Final y Ahorro */}
+                          <div className="text-right min-w-[130px] shrink-0">
+                            {isActive ? (
+                              <div>
+                                <span className="block text-xs line-through text-gray-400">
+                                  {formatPrice(originalPrice)}
+                                </span>
+                                <span className="block text-sm font-black text-emerald-400">
+                                  {formatPrice(previewDiscountPrice)}
+                                </span>
+                                <span className="block text-[10px] font-semibold text-emerald-300/90">
+                                  Ahorro: {formatPrice(previewSavings)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div>
+                                <span className="block text-sm font-bold text-[#e0a96d]">
+                                  {formatPrice(originalPrice)}
+                                </span>
+                                <span className="block text-[10px] text-gray-400">
+                                  Sin oferta activa
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Botón de Acción Guardar / Activar */}
+                          <div className="shrink-0">
+                            {isActive ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSaveOfferDiscount(product, currentDiscountPct)}
+                                disabled={isUpdating}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 border border-emerald-500/30 text-xs font-bold transition disabled:opacity-50"
+                                title="Guardar porcentaje de descuento"
+                              >
+                                <Check size={13} />
+                                <span>Guardar %</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleOfferStatus(product)}
+                                disabled={isUpdating}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#23422a] hover:bg-[#2d5a27] text-white text-xs font-bold transition disabled:opacity-50"
+                              >
+                                <Flame size={13} />
+                                <span>Activar</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-            </div>
+              </div>
+
+              {/* Barra de Paginación Limpia (20 por página) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#0e1c12] border border-[#1f3b25] mt-4">
+                <span className="text-xs text-gray-400">
+                  Mostrando{' '}
+                  <strong className="text-white">
+                    {Math.min((offerPage - 1) * 20 + 1, offerPaginationMeta.total || 0)} - {Math.min(offerPage * 20, offerPaginationMeta.total || 0)}
+                  </strong>{' '}
+                  de <strong className="text-white">{offerPaginationMeta.total || 0}</strong> productos
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOfferPageChange(offerPage - 1)}
+                    disabled={offerPage <= 1 || loadingOfferManagement}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={15} />
+                    <span>Anterior</span>
+                  </button>
+
+                  <span className="px-3 py-1.5 rounded-xl bg-[#142619] text-xs font-bold text-gray-200 border border-[#23422a]">
+                    Página {offerPage} de {offerPaginationMeta.totalPages || 1}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOfferPageChange(offerPage + 1)}
+                    disabled={offerPage >= (offerPaginationMeta.totalPages || 1) || loadingOfferManagement}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[#142619] hover:bg-[#1f3b25] text-gray-300 border border-[#23422a] text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span>Siguiente</span>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
