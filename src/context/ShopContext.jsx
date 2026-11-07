@@ -784,7 +784,7 @@ export const ShopProvider = ({ children }) => {
     setLoadingProducts(true);
     inFlightProductsPromise = (async () => {
       try {
-        const res = await fetch(buildApiUrl('products'));
+        const res = await fetch(buildApiUrl('products?limit=all'));
         if (res.ok) {
           const data = await res.json();
           const rawProducts = Array.isArray(data.data) ? data.data : (Array.isArray(data.products) ? data.products : []);

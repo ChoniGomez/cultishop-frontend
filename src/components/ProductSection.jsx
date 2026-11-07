@@ -32,7 +32,7 @@ export const ProductSection = () => {
       if (fetchCategoryProducts) {
         fetchCategoryProducts(cleanCategorySlug, cleanSubcategorySlug);
       }
-    } else if (products.length === 0 && fetchProducts) {
+    } else if (fetchProducts) {
       fetchProducts();
     }
   }, [cleanCategorySlug, cleanSubcategorySlug, fetchCategoryProducts, fetchProducts]);
@@ -281,13 +281,14 @@ export const ProductSection = () => {
     return false;
   });
 
-  // Cálculos de Paginación (Exactamente 9 productos por defecto en cada página)
+  // El filtro "Todos" muestra el catálogo completo en una sola página.
   const totalProducts = filteredProducts.length;
-  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE) || 1;
+  const productsPerPage = selectedCategory === 'todos' ? Math.max(totalProducts, 1) : PRODUCTS_PER_PAGE;
+  const totalPages = Math.ceil(totalProducts / productsPerPage) || 1;
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
-  const startIndex = (validCurrentPage - 1) * PRODUCTS_PER_PAGE;
-  const endIndex = Math.min(startIndex + PRODUCTS_PER_PAGE, totalProducts);
+  const startIndex = (validCurrentPage - 1) * productsPerPage;
+  const endIndex = Math.min(startIndex + productsPerPage, totalProducts);
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   const handlePageChange = (newPage) => {
@@ -608,14 +609,15 @@ export const ProductSection = () => {
             ))}
           </div>
 
+          {filteredProducts.length > 0 && (
+            <div className="mt-6 text-xs text-gray-400 font-medium">
+              Mostrando <span className="text-[#e0a96d] font-bold">{startIndex + 1}</span>–<span className="text-[#e0a96d] font-bold">{endIndex}</span> de <span className="text-white font-bold">{totalProducts}</span> productos
+            </div>
+          )}
+
           {/* Componente de Paginación Inferior Estándar E-Commerce */}
           {totalPages > 1 && (
             <div className="mt-12 pt-6 border-t border-[#1f3b25] flex flex-col sm:flex-row items-center justify-between gap-4">
-              {/* Información de productos mostrados */}
-              <div className="text-xs text-gray-400 font-medium">
-                Mostrando <span className="text-[#e0a96d] font-bold">{startIndex + 1}</span>–<span className="text-[#e0a96d] font-bold">{endIndex}</span> de <span className="text-white font-bold">{totalProducts}</span> productos
-              </div>
-
               {/* Botones de navegación y números de página */}
               <div className="flex items-center gap-1.5 flex-wrap justify-center">
                 {/* Botón Anterior */}
@@ -732,4 +734,3 @@ export const ProductSection = () => {
 };
 
 export default ProductSection;
-
