@@ -128,6 +128,8 @@ export const formatPrice = (amount) => {
   return `$${integerPart},${decimalPart}`;
 };
 
+export const roundPriceToCents = (amount) => Math.round((amount + Number.EPSILON) * 100) / 100;
+
 /**
  * Normaliza las opciones / medidas de un producto al formato estándar:
  * [{ name: string, price: number, stock: number }]
@@ -252,8 +254,6 @@ export const getProductPriceInfo = (product) => {
     hasMultipleOptions = true;
   }
 
-  const formattedPrice = isRange ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}` : formatPrice(minPrice);
-
   // Ofertas y Descuentos
   const rawDiscount = product.discount_price !== undefined ? Number(product.discount_price) : 0;
   const rawOriginal = product.original_price !== undefined ? Number(product.original_price) : 0;
@@ -261,7 +261,8 @@ export const getProductPriceInfo = (product) => {
   const rawPct = Number(product.discount_percentage || product.discountPercentage || 0);
 
   const isOfferExpired = product.is_offer_expired === true;
-  const isOnOffer = !isOfferExpired && Boolean(
+  const isOfferScheduled = product.is_offer_scheduled === true;
+  const isOnOffer = !isOfferExpired && !isOfferScheduled && Boolean(
     product.is_on_offer === true || 
     product.isOnOffer === true || 
     product.is_offer_active === true || 
@@ -282,7 +283,7 @@ export const getProductPriceInfo = (product) => {
       finalPrice = rawDiscount;
     } else if (rawPct > 0 && (!rawOriginal || rawOriginal <= rawFinal)) {
       originalPrice = minPrice;
-      finalPrice = Math.max(1, Math.round(minPrice * (1 - rawPct / 100)));
+      finalPrice = roundPriceToCents(minPrice * (1 - rawPct / 100));
     }
 
     if (discountPercentage <= 0 && originalPrice > finalPrice && originalPrice > 0) {
@@ -295,6 +296,29 @@ export const getProductPriceInfo = (product) => {
     originalPrice = minPrice;
     finalPrice = minPrice;
   }
+
+  const getFinalOptionPrice = (baseOptionPrice) => {
+    if (!isOnOffer) return baseOptionPrice;
+    if (baseOptionPrice === minPrice) return roundPriceToCents(finalPrice);
+    if (discountPercentage > 0) {
+      return roundPriceToCents(baseOptionPrice * (1 - discountPercentage / 100));
+    }
+    return roundPriceToCents(Math.max(0, baseOptionPrice - (originalPrice - finalPrice)));
+  };
+
+  formattedOptions = options.map((option) => ({
+    ...option,
+    finalPrice: getFinalOptionPrice(option.price)
+  }));
+
+  const displayPrices = formattedOptions.length > 0
+    ? formattedOptions.map((option) => option.finalPrice).filter((price) => !isNaN(price) && price > 0)
+    : [finalPrice];
+  const displayMinPrice = displayPrices.length > 0 ? Math.min(...displayPrices) : finalPrice;
+  const displayMaxPrice = displayPrices.length > 0 ? Math.max(...displayPrices) : finalPrice;
+  const formattedPrice = isRange && displayMinPrice !== displayMaxPrice
+    ? `${formatPrice(displayMinPrice)} – ${formatPrice(displayMaxPrice)}`
+    : formatPrice(displayMinPrice);
 
   const offerCondition = product.offer_condition || product.offerCondition || (
     product.stock > 0 && Number(product.stock) <= 5 ? `¡Últimas ${product.stock} unidades!` : (isOnOffer ? 'Hasta agotar stock' : '')
@@ -1241,21 +1265,21 @@ export const ShopProvider = ({ children }) => {
 
     // 3. Resolución de nombre de opción, precio unitario y stock específico
     let finalOptionName = 'Estándar';
-    let unitPrice = priceInfo.minPrice;
+    let unitPrice = priceInfo.finalPrice;
     let optionStock = product.stock !== undefined && !isNaN(Number(product.stock)) ? Number(product.stock) : 10;
 
     if (priceInfo.hasMultipleOptions) {
       finalOptionName = selectedOption;
       const matched = priceInfo.options.find((o) => o.name === selectedOption);
       if (matched) {
-        unitPrice = matched.price;
+        unitPrice = matched.finalPrice;
         if (matched.stock !== undefined && matched.stock !== null && !isNaN(Number(matched.stock))) {
           optionStock = Number(matched.stock);
         }
       }
     } else if (priceInfo.options.length === 1) {
       finalOptionName = priceInfo.options[0].name;
-      unitPrice = priceInfo.options[0].price;
+      unitPrice = priceInfo.options[0].finalPrice;
       if (priceInfo.options[0].stock !== undefined && priceInfo.options[0].stock !== null && !isNaN(Number(priceInfo.options[0].stock))) {
         optionStock = Number(priceInfo.options[0].stock);
       }

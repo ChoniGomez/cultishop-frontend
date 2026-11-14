@@ -42,7 +42,7 @@ export const ProductCard = ({ product }) => {
     ? priceInfo.options.find((o) => o.name === selectedOption)
     : null;
   const displayPrice = selectedVariant
-    ? formatPrice(selectedVariant.price)
+    ? formatPrice(selectedVariant.finalPrice)
     : priceInfo.formattedPrice;
 
   const handleAddToCart = () => {
@@ -244,7 +244,7 @@ export const ProductCard = ({ product }) => {
                     style={{ backgroundColor: '#0b1610', color: '#f3f4f6' }}
                     className="bg-[#0b1610] text-white"
                   >
-                    {opt.name} — {formatPrice(opt.price)}
+                    {opt.name} — {formatPrice(priceInfo.isOnOffer ? opt.finalPrice : opt.price)}
                   </option>
                 ))}
               </select>
@@ -274,7 +274,7 @@ export const ProductCard = ({ product }) => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 leading-none my-0.5">
                   <span className="line-through text-gray-400 text-xs font-semibold">
-                    {formatPrice(selectedVariant ? Math.round(selectedVariant.price / (1 - (priceInfo.discountPercentage || 15) / 100)) : priceInfo.originalPrice)}
+                    {formatPrice(selectedVariant ? selectedVariant.price : priceInfo.originalPrice)}
                   </span>
                   <span className="text-[10px] font-black text-rose-300 bg-rose-950/80 border border-rose-500/50 px-1 py-0.2 rounded">
                     -{priceInfo.discountPercentage}%

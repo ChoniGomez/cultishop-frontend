@@ -56,7 +56,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
-import { formatPrice, parsePrice, useShop, getProductOptions, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
+import { formatPrice, parsePrice, roundPriceToCents, useShop, getProductOptions, getProductPriceInfo, isProductOutOfStock } from '../context/ShopContext';
 import { PRODUCTS as FALLBACK_PRODUCTS } from '../data/products';
 import { getProductDetails } from '../data/productDetailsData';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -3107,7 +3107,7 @@ export const AdminDashboard = () => {
                   };
 
                   // Cálculo dinámico para la vista previa
-                  const previewDiscountPrice = Math.round(originalPrice * (1 - currentDiscountPct / 100) * 100) / 100;
+                  const previewDiscountPrice = roundPriceToCents(originalPrice * (1 - currentDiscountPct / 100));
                   const previewSavings = Math.max(0, originalPrice - previewDiscountPrice);
 
                   const presetPills = [10, 15, 20, 25, 30, 50];
@@ -7400,4 +7400,3 @@ export const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-

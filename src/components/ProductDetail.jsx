@@ -191,10 +191,13 @@ export const ProductDetail = () => {
     ? priceInfo.options.find((o) => o.name === selectedOption)
     : null;
   const currentUnitPrice = selectedVariant
-    ? selectedVariant.price
-    : (priceInfo?.minPrice || 0);
+    ? selectedVariant.finalPrice
+    : (priceInfo?.finalPrice || 0);
+  const currentSavingsAmount = selectedVariant
+    ? selectedVariant.price - selectedVariant.finalPrice
+    : priceInfo?.savingsAmount || 0;
   const displayPrice = selectedVariant
-    ? formatPrice(selectedVariant.price)
+    ? formatPrice(selectedVariant.finalPrice)
     : (priceInfo?.formattedPrice || '$0,00');
   const subtotalPrice = formatPrice(currentUnitPrice * quantity);
 
@@ -573,14 +576,14 @@ export const ProductDetail = () => {
               {priceInfo.isOnOffer && priceInfo.originalPrice > priceInfo.finalPrice && (
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="line-through text-gray-500 text-sm font-semibold">
-                    {formatPrice(selectedVariant ? Math.round(selectedVariant.price / (1 - (priceInfo.discountPercentage || 15) / 100)) : priceInfo.originalPrice)}
+                    {formatPrice(selectedVariant ? selectedVariant.price : priceInfo.originalPrice)}
                   </span>
                   <span className="text-xs font-black text-white bg-gradient-to-r from-red-600 to-amber-500 px-2 py-0.5 rounded-md shadow-sm">
                     -{priceInfo.discountPercentage}% OFF
                   </span>
-                  {priceInfo.savingsAmount > 0 && (
+                  {currentSavingsAmount > 0 && (
                     <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.5 rounded-md shadow-sm">
-                      Ahorrás {formatPrice(priceInfo.savingsAmount)}
+                      Ahorrás {formatPrice(currentSavingsAmount)}
                     </span>
                   )}
                   {product.stock > 0 && Number(product.stock) <= 5 && (
@@ -700,7 +703,7 @@ export const ProductDetail = () => {
                           style={{ backgroundColor: '#0b1610', color: isOptZero ? '#ef4444' : '#f3f4f6' }}
                           className={`bg-[#0b1610] py-2 ${isOptZero ? 'text-red-400' : 'text-gray-100'}`}
                         >
-                          {opt.name} — {formatPrice(opt.price)} {isOptZero ? '• (Agotado)' : `• (${optStock} en stock)`}
+                          {opt.name} — {formatPrice(priceInfo.isOnOffer ? opt.finalPrice : opt.price)} {isOptZero ? '• (Agotado)' : `• (${optStock} en stock)`}
                         </option>
                       );
                     })}
@@ -1326,4 +1329,3 @@ export const ProductDetail = () => {
 };
 
 export default ProductDetail;
-
